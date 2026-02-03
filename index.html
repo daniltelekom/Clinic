@@ -507,7 +507,7 @@ function makePatient(){
     // флаг “известная болезнь”
     knownDisease: false,
 
-    treatmentOptions: nul,
+    treatmentOptions: null,
 
     doctorAdviceCache: null,
     
@@ -1148,6 +1148,7 @@ function rerollDuty(slot){
 }
 saveState();
 refreshVisibleUI();
+}
 
 function tryPlaceOrOpen(patientId){
   // если пациент уже в палате/ожидает результата — открыть
@@ -1189,23 +1190,24 @@ function renderPatient(patientId){
   elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
 
   // советы врачей зависят от 4 опций лечения
- // советы врачей зависят от 4 опций лечения
+// 1) фиксируем 4 опции лечения ОДИН РАЗ на пациента
 if(!p.treatmentOptions){
   p.treatmentOptions = pickTreatmentOptions(p);
+  saveState();
 }
 
-// ✅ кеш советов, чтобы не скакали
+const options = p.treatmentOptions;
+
+// 2) фиксируем советы врачей ОДИН РАЗ на пациента (пока не сменили врачей)
 if(!p.doctorAdviceCache){
   const docs = dutyDoctors();
-  p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, p.treatmentOptions));
+  p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, options));
   saveState();
 }
 
 elAdvice.innerHTML = p.doctorAdviceCache.join("<br>");
   
 const options = p.treatmentOptions;
-  const docs = dutyDoctors();
-  elAdvice.innerHTML = docs.map(d=>doctorAdviceText(d, options)).join("<br>");
 
   // если пациент уже имеет результат в палате — показываем результат
   const ward = findWardByPatient(patientId);
