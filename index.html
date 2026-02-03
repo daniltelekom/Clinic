@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plague Clinic</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#111a33;
+      --panel2:#0f1730;
+      --text:#e9eefc;
+      --muted:#9fb0d9;
+      --line:rgba(255,255,255,.08);
+      --ok:#49d17d;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+      --accent:#5b7cff;
+      --btn:#1b2a55;
+      --btn2:#23356b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,Segoe UI,Roboto,Arial;
+      background: radial-gradient(1200px 700px at 30% -20%, rgba(91,124,255,.25), transparent 60%),
+                  radial-gradient(900px 600px at 70% 0%, rgba(73,209,125,.14), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:720px; margin:0 auto; padding:16px;}
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px; border:1px solid var(--line); border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      margin-bottom:12px;
+    }
+    .title{display:flex; gap:10px; align-items:center; font-weight:800;}
+    .pill{
+      padding:6px 10px; border:1px solid var(--line); border-radius:999px;
+      background:rgba(255,255,255,.03); display:flex; gap:8px; align-items:center;
+      font-weight:700;
+    }
+    .muted{color:var(--muted); font-weight:500}
+    .screen{display:none}
+    .screen.active{display:block}
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      margin:12px 0;
+    }
+    h2{margin:0 0 10px 0; font-size:18px}
+    .card{
+      background:rgba(0,0,0,.12);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      margin:10px 0;
+    }
+    .row{display:flex; gap:10px; align-items:center; justify-content:space-between}
+    .btn{
+      background:linear-gradient(180deg, var(--btn2), var(--btn));
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 12px;
+      font-weight:800;
+      cursor:pointer;
+      text-align:left;
+      width:100%;
+    }
+    .btn:active{transform:scale(.99)}
+    .btn.small{width:auto; padding:8px 10px; border-radius:12px}
+    .btn.danger{background:linear-gradient(180deg, rgba(255,107,107,.22), rgba(255,107,107,.12))}
+    .btn.ok{background:linear-gradient(180deg, rgba(73,209,125,.22), rgba(73,209,125,.12))}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .tag{
+      padding:4px 8px; border:1px solid var(--line); border-radius:999px;
+      font-weight:800; font-size:12px; background:rgba(255,255,255,.03);
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .right{ text-align:right }
+    .timer{font-weight:900; letter-spacing:.3px}
+    .ok{color:var(--ok)}
+    .warn{color:var(--warn)}
+    .bad{color:var(--bad)}
+    .listBtn{
+      background:rgba(0,0,0,.12);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      margin:10px 0;
+      cursor:pointer;
+    }
+    .listBtn:active{transform:scale(.995)}
+    .listTitle{font-weight:900; font-size:16px}
+    .listSub{color:var(--muted); margin-top:4px}
+    .hint{font-size:12px; color:var(--muted); margin-top:8px}
+    .sep{height:1px; background:var(--line); margin:10px 0}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- TOP -->
+  <div class="topbar">
+    <div class="title">🧪 Чумная клиника</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div class="pill">🏥 Ур. <span id="clinic-level">1</span></div>
+      <div class="pill">💰 <span id="coins">0</span></div>
+      <div class="pill">⭐ Реп. <span id="rep">0</span></div>
+      <div class="pill">🧫 <span id="bio">0</span></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: CLINIC -->
+  <div class="screen active" id="screen-clinic">
+
+    <div class="panel">
+      <h2>Палаты</h2>
+      <div id="wards"></div>
+      <div class="hint">Палаты лечат параллельно. Прокачка ограничена капами и дорожает.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Дежурные доктора</h2>
+      <div id="duty"></div>
+      <div class="hint">Дежурные дают советы и штрафуют методы, которые “не умеют”.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Очередь пациентов</h2>
+      <div id="queue"></div>
+      <div class="hint">Если долго не лечить: могут уйти или умереть прямо в очереди. Жизнь.</div>
+    </div>
+
+  </div>
+
+  <!-- SCREEN: PATIENT -->
+  <div class="screen" id="screen-patient">
+
+    <div class="panel">
+      <div class="row">
+        <div>
+          <div class="listTitle" id="patient-title">Пациент</div>
+          <div class="listSub" id="patient-sub">симптомы…</div>
+        </div>
+        <button class="btn small" onclick="backToClinic()">← Назад</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="muted">Подозрение:</div>
+      <div id="patient-disease" style="font-weight:900; margin-top:4px;">?</div>
+
+      <div class="sep"></div>
+
+      <div class="muted">Советы дежурных:</div>
+      <div id="doctor-advice" class="hint"></div>
+    </div>
+
+    <!-- Назначить лечение -->
+    <div class="panel" id="treat-panel">
+      <h2>Назначить лечение</h2>
+      <div id="treatment-buttons"></div>
+      <div class="hint">Выбирай из 4 вариантов. Один обычно лучше, один обычно хуже, два просто по приколу.</div>
+    </div>
+
+    <!-- Активное лечение -->
+    <div class="panel" id="active-treatment" style="display:none">
+      <h2>Лечение идёт</h2>
+      <div class="muted">Метод:</div>
+      <div id="active-treatment-name" style="font-weight:900; margin:6px 0 10px 0;">—</div>
+      <div class="muted">Осталось:</div>
+      <div id="active-treatment-timer" class="timer">--:--</div>
+
+      <button class="btn danger" style="margin-top:12px" onclick="finishNowForTest()">
+        ✅ Завершить сейчас (тест)
+      </button>
+    </div>
+
+    <!-- Результат -->
+    <div class="panel" id="result-panel" style="display:none">
+      <h2>Результат</h2>
+      <div id="result-text"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   0) CONST / ENUMS
+========================================================= */
+
+const OUTCOMES = {
+  CURE: "cure",
+  DISFIGURED: "disfigured",
+  INFECTED: "infected",
+  WORSENED: "worsened",
+  DEATH: "death"
+};
+
+const RARITY = {
+  COMMON: "common",
+  RARE: "rare",
+  LEGENDARY: "legendary"
+};
+
+const LS_STATE = "plague_state_v2";
+const LS_ACTIVE = "plague_active_map_v2";
+
+/* =========================================================
+   1) DATA: methods / diseases / doctors / names
+========================================================= */
+
+const METHODS = [
+  { id:"bloodletting", name:"🩸 Кровопускание" },
+  { id:"herbalism", name:"🌿 Настой трав" },
+  { id:"prayer", name:"🙏 Молитва" },
+  { id:"demonology", name:"😈 Демонология" },
+  { id:"amputation", name:"🪓 Ампутация" },
+  { id:"hypnosis", name:"🌀 Гипноз" },
+  { id:"charms", name:"🕯 Заговоры" },
+];
+
+function methodName(id){
+  const m = METHODS.find(x=>x.id===id);
+  return m ? m.name : id;
+}
+
+// Болезни: симптомы + веса методов (чем выше, тем “лучше шанс”)
+const DISEASES = [
+  {
+    id:"miasma_fever",
+    name:"Миазменная лихорадка",
+    rarity: RARITY.COMMON,
+    symptoms:["Жар","Озноб","Тяжесть в груди"],
+    weights:{ herbalism: 1.2, prayer: 1.0, bloodletting: 0.8, hypnosis: 0.9, charms: 1.0, demonology: 0.6, amputation: 0.2 }
+  },
+  {
+    id:"black_spots",
+    name:"Чёрные пятна",
+    rarity: RARITY.RARE,
+    symptoms:["Чёрные пятна","Слабость","Мрачные речи"],
+    weights:{ bloodletting: 1.3, demonology: 1.1, herbalism: 0.9, prayer: 0.8, hypnosis: 0.7, charms: 1.0, amputation: 0.3 }
+  },
+  {
+    id:"glass_cough",
+    name:"Стеклянный кашель",
+    rarity: RARITY.COMMON,
+    symptoms:["Кашель","Сухость","Головная муть"],
+    weights:{ herbalism: 1.2, hypnosis: 1.0, prayer: 0.9, bloodletting: 0.7, charms: 0.8, demonology: 0.5, amputation: 0.1 }
+  },
+  {
+    id:"holy_worms",
+    name:"Святые черви",
+    rarity: RARITY.LEGENDARY,
+    symptoms:["Шепчет молитвы","Пустой взгляд","Зуд под кожей"],
+    weights:{ prayer: 1.3, demonology: 1.2, charms: 1.1, hypnosis: 0.9, herbalism: 0.7, bloodletting: 0.6, amputation: 0.4 }
+  },
+  {
+    id:"bone_mold",
+    name:"Костяная плесень",
+    rarity: RARITY.RARE,
+    symptoms:["Боль в костях","Плесень на повязках","Скрип в суставах"],
+    weights:{ amputation: 1.2, herbalism: 0.9, bloodletting: 0.8, prayer: 0.8, demonology: 0.9, hypnosis: 0.6, charms: 0.7 }
+  }
+];
+
+const FIRST_NAMES = ["Ганс","Марта","Пахом","Виллем","Фрида","Зигмунд","Грета","Ян","Август","Ида","Каспар","Лотта"];
+const LAST_NAMES  = ["Сопливый","Сквозняк","Невезучий","Шаткий","Криповая","Чешуйчатый","Кислая","Бледный","Скрипучий","Плесневый","Сумрачный","Угрюмый"];
+
+const DOCTOR_POOL = [
+  // common: 1 метод
+  { id:"doc_herb",  name:"Доктор Травник",   rarity:RARITY.RARE,      methods:["herbalism","charms"], persona:"confident" },
+  { id:"doc_blood", name:"Доктор Пиявка",    rarity:RARITY.COMMON,    methods:["bloodletting"], persona:"fanatic" },
+  { id:"doc_priest",name:"Отец Кадило",      rarity:RARITY.RARE,      methods:["prayer","charms"], persona:"confident" },
+  { id:"doc_demo",  name:"Маг Пепел",        rarity:RARITY.LEGENDARY, methods:["demonology","hypnosis","charms"], persona:"trickster" },
+  { id:"doc_amput", name:"Мастер Пила",      rarity:RARITY.RARE,      methods:["amputation","bloodletting"], persona:"cold" },
+  { id:"doc_hypno", name:"Гипнотизёр Нитка", rarity:RARITY.COMMON,    methods:["hypnosis"], persona:"uncertain" },
+];
+
+function rarityLabel(r){
+  return r===RARITY.LEGENDARY ? "Legendary" : r===RARITY.RARE ? "Rare" : "Common";
+}
+
+/* =========================================================
+   2) STATE
+========================================================= */
+
+function defaultState(){
+  return {
+    clinicXP: 0,
+    clinicLevel: 1,
+    coins: 120,
+    reputation: 0,
+    biomaterial: 0,
+
+    wards: [
+      makeWard("A"),
+      makeWard("B"),
+    ],
+
+    duty: {
+      slot1: pickRandomDoctorId(),
+      slot2: pickRandomDoctorId(true),
+    },
+
+    patients: [],
+    queue: [],
+    selectedPatientId: null,
+
+    // баланс
+    maxQueue: 6,
+    baseWaitSec: 120,     // сколько может ждать в очереди
+    baseTreatSecMin: 30,
+    baseTreatSecMax: 60,
+  };
+}
+
+function makeWard(letter){
+  return {
+    id: "ward_"+letter,
+    name: "Палата "+letter,
+    level: 1,
+
+    // статы (с капами)
+    comfort: 1,
+    cleanliness: 1,
+    ventilation: 1,
+    light: 1,
+
+    // капы
+    capComfort: 6,
+    capCleanliness: 6,
+    capVentilation: 6,
+    capLight: 6,
+
+    // занятость
+    occupiedBy: null,      // patientId
+    pendingResult: null,   // outcome object after finish
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_STATE);
+    if(!raw) return defaultState();
+    const s = JSON.parse(raw);
+
+    // миграции на случай старых версий
+    if(s.coins==null) s.coins=0;
+    if(s.reputation==null) s.reputation=0;
+    if(s.biomaterial==null) s.biomaterial=0;
+    if(!s.wards || !Array.isArray(s.wards)) s.wards = [makeWard("A"), makeWard("B")];
+    if(!s.queue) s.queue=[];
+    if(!s.patients) s.patients=[];
+    if(!s.duty) s.duty={slot1:pickRandomDoctorId(), slot2:pickRandomDoctorId(true)};
+    if(!s.maxQueue) s.maxQueue=6;
+    if(!s.baseWaitSec) s.baseWaitSec=120;
+    if(!s.baseTreatSecMin) s.baseTreatSecMin=30;
+    if(!s.baseTreatSecMax) s.baseTreatSecMax=60;
+
+    return s;
+  }catch{
+    return defaultState();
+  }
+}
+
+function saveState(){
+  localStorage.setItem(LS_STATE, JSON.stringify(state));
+}
+
+/* =========================================================
+   3) ACTIVE MAP (treatments in progress per ward)
+========================================================= */
+
+function getActiveMap(){
+  try { return JSON.parse(localStorage.getItem(LS_ACTIVE) || "{}") || {}; }
+  catch { return {}; }
+}
+function saveActiveMap(map){
+  localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
+}
+function getActiveForWard(wardId){
+  const map = getActiveMap();
+  return map[wardId] || null;
+}
+function setActiveForWard(wardId, obj){
+  const map = getActiveMap();
+  map[wardId] = obj;
+  saveActiveMap(map);
+}
+function clearActiveForWard(wardId){
+  const map = getActiveMap();
+  delete map[wardId];
+  saveActiveMap(map);
+}
+
+/* =========================================================
+   4) HELPERS
+========================================================= */
+
+function randInt(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function formatLeft(ms){
+  ms = Math.max(0, ms);
+  const s = Math.floor(ms/1000);
+  const m = Math.floor(s/60);
+  const r = s%60;
+  return `${m}:${String(r).padStart(2,"0")}`;
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+function now(){ return Date.now(); }
+
+function pickRandomDoctorId(avoidSame=false){
+  const all = DOCTOR_POOL.map(d=>d.id);
+  if(!avoidSame) return pick(all);
+  const base = state ? state.duty?.slot1 : null;
+  const filtered = all.filter(x=>x!==base);
+  return pick(filtered.length?filtered:all);
+}
+
+function getDoctorById(id){
+  return DOCTOR_POOL.find(d=>d.id===id) || DOCTOR_POOL[0];
+}
+
+function getDiseaseById(id){
+  return DISEASES.find(d=>d.id===id) || DISEASES[0];
+}
+
+function patientById(id){
+  return state.patients.find(p=>p.id===id) || null;
+}
+
+function wardById(id){
+  return state.wards.find(w=>w.id===id) || null;
+}
+
+function findWardByPatient(patientId){
+  return state.wards.find(w=>w.occupiedBy===patientId) || null;
+}
+
+/* =========================================================
+   5) PATIENT GENERATION + QUEUE
+========================================================= */
+
+function makePatient(){
+  const fn = pick(FIRST_NAMES);
+  const ln = pick(LAST_NAMES);
+
+  // шанс на редкость пациента
+  const pr = Math.random();
+  const patientRarity =
+    pr < 0.78 ? RARITY.COMMON :
+    pr < 0.95 ? RARITY.RARE :
+    RARITY.LEGENDARY;
+
+  // болезнь с учётом редкости пациента
+  const diseasePool = DISEASES.filter(d=>{
+    if(patientRarity===RARITY.COMMON) return d.rarity!==RARITY.LEGENDARY;
+    if(patientRarity===RARITY.RARE) return true;
+    return true;
+  });
+
+  // небольшое смещение в редкие болезни для редких пациентов
+  let disease = pick(diseasePool);
+  if(patientRarity!==RARITY.COMMON){
+    const rarePool = diseasePool.filter(d=>d.rarity!==RARITY.COMMON);
+    if(rarePool.length && Math.random()<0.55) disease = pick(rarePool);
+  }
+
+  const id = "p"+Math.random().toString(16).slice(2,8);
+  const waitSec = state.baseWaitSec + randInt(-20, 40);
+  const treatSec = randInt(state.baseTreatSecMin, state.baseTreatSecMax);
+
+  // видимые симптомы: 1-2 штуки
+  const visCount = Math.random()<0.5 ? 1 : 2;
+  const vis = shuffle([...disease.symptoms]).slice(0, visCount);
+
+  return {
+    id,
+    name: `${fn} ${ln}`,
+    rarity: patientRarity,
+
+    trueDiseaseId: disease.id,
+    visibleSymptoms: vis,
+
+    // тайминги
+    createdAt: now(),
+    leaveAt: now() + waitSec*1000,
+    treatSec,
+
+    // флаг “известная болезнь”
+    knownDisease: false,
+  };
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function fillQueue(){
+  while(state.queue.length < state.maxQueue){
+    const p = makePatient();
+    state.patients.push(p);
+    state.queue.push(p.id);
+  }
+}
+
+function processQueueTick(){
+  const t = now();
+  let changed = false;
+
+  // пациенты в очереди могут умереть / уйти
+  for(let i=state.queue.length-1;i>=0;i--){
+    const pid = state.queue[i];
+    const p = patientById(pid);
+    if(!p){ state.queue.splice(i,1); changed=true; continue; }
+
+    if(t >= p.leaveAt){
+      // 20% шанс умереть в очереди, иначе уйти
+      const died = Math.random() < 0.20;
+      if(died){
+        state.reputation -= 2;
+        state.biomaterial += 1;
+      }else{
+        state.reputation -= 1;
+      }
+      state.queue.splice(i,1);
+      // удалить пациента полностью
+      state.patients = state.patients.filter(x=>x.id!==pid);
+      changed=true;
+    }
+  }
+
+  if(changed){
+    fillQueue();
+    saveState();
+  }
+}
+
+/* =========================================================
+   6) WARD UPGRADES (caps + scaling cost)
+========================================================= */
+
+function wardStatValue(w, stat){
+  return w[stat];
+}
+function wardStatCap(w, stat){
+  if(stat==="comfort") return w.capComfort;
+  if(stat==="cleanliness") return w.capCleanliness;
+  if(stat==="ventilation") return w.capVentilation;
+  if(stat==="light") return w.capLight;
+  return 6;
+}
+function upgradeCost(w, stat){
+  // растущая цена: база * (уровень стата+1) * (уровень палаты)
+  const v = wardStatValue(w, stat);
+  const base = 20;
+  return base * (v+1) * w.level;
+}
+function canUpgrade(w, stat){
+  return wardStatValue(w, stat) < wardStatCap(w, stat);
+}
+
+function upgradeWardStat(wardId, stat){
+  const w = wardById(wardId);
+  if(!w) return;
+
+  if(!canUpgrade(w, stat)) return;
+
+  const cost = upgradeCost(w, stat);
+  if(state.coins < cost) return;
+
+  state.coins -= cost;
+  w[stat] += 1;
+
+  // палата растёт по сумме статов
+  const sum = w.comfort + w.cleanliness + w.ventilation + w.light;
+  w.level = 1 + Math.floor(sum/8);
+
+  saveState();
+  refreshVisibleUI();
+}
+
+/* =========================================================
+   7) DOCTORS: advice + skill penalties
+========================================================= */
+
+function dutyDoctors(){
+  const d1 = getDoctorById(state.duty.slot1);
+  const d2 = getDoctorById(state.duty.slot2);
+  return [d1,d2];
+}
+
+function doctorConfidence(persona){
+  if(persona==="fanatic") return 0.90;
+  if(persona==="confident") return 0.75;
+  if(persona==="trickster") return 0.65;
+  if(persona==="cold") return 0.60;
+  return 0.45; // uncertain
+}
+
+function doctorAdviceText(doc, options){
+  // doc советует метод, который он знает, если он в options
+  const knows = options.filter(o=>doc.methods.includes(o));
+  const conf = doctorConfidence(doc.persona);
+
+  if(knows.length && Math.random() < conf){
+    const m = pick(knows);
+    return `— <b>${escapeHtml(doc.name)}</b>: “Я бы взял <b>${escapeHtml(methodName(m))}</b>.”`;
+  }
+
+  // иногда критикует метод, который не любит (просто выбираем рандомный не-его)
+  if(Math.random() < 0.35){
+    const m = pick(options);
+    if(!doc.methods.includes(m)){
+      return `— <b>${escapeHtml(doc.name)}</b>: “Только не <b>${escapeHtml(methodName(m))}</b>… это пахнет провалом.”`;
+    }
+  }
+
+  return `— <b>${escapeHtml(doc.name)}</b>: “Ситуация… атмосферная. Решай сам.”`;
+}
+
+function doctorSkillPenalty(selectedMethod){
+  // если ни один дежурный не умеет метод — штраф
+  const docs = dutyDoctors();
+  const any = docs.some(d=>d.methods.includes(selectedMethod));
+  return any ? 1.0 : 0.78; // множитель “шанса хорошего исхода”
+}
+
+/* =========================================================
+   8) TREATMENT OPTIONS (4 buttons: best, worst, 2 random)
+========================================================= */
+
+function scoreMethodForDisease(methodId, disease){
+  return disease.weights?.[methodId] ?? 0.5;
+}
+
+function pickTreatmentOptions(patient){
+  const d = getDiseaseById(patient.trueDiseaseId);
+
+  const scored = METHODS.map(m=>{
+    return { id:m.id, score:scoreMethodForDisease(m.id,d) };
+  }).sort((a,b)=>b.score-a.score);
+
+  const best = scored[0].id;
+  const worst = scored[scored.length-1].id;
+
+  const middle = scored.slice(1, scored.length-1).map(x=>x.id);
+  shuffle(middle);
+
+  const opt = [best, worst, middle[0] || best, middle[1] || worst];
+  // перемешаем, чтобы не было палевно
+  shuffle(opt);
+  return opt;
+}
+
+/* =========================================================
+   9) OUTCOMES (black comedy)
+========================================================= */
+
+function makeFlavor(kind, treatmentId){
+  const t = methodName(treatmentId);
+
+  const pool = {
+    [OUTCOMES.CURE]: [
+      "Пациент выжил и даже улыбается. Подозрительно.",
+      "Симптомы ушли. Чувство вины осталось.",
+      `Как ни странно, ${t} помогло.`
+    ],
+    [OUTCOMES.DISFIGURED]: [
+      `Успешно… но теперь без пары деталей. Метод: ${t}.`,
+      "Проблему решили. Эстетику не обещали.",
+      "Основную беду убрали. Побочные эффекты оставили."
+    ],
+    [OUTCOMES.INFECTED]: [
+      "Основная болезнь ушла. Зато появилась новая. Бесплатно.",
+      "Во время процедур занесли что-то очень живое.",
+      `После ${t} пациент чувствует… слишком много.`
+    ],
+    [OUTCOMES.WORSENED]: [
+      "Стало хуже. Пациент смотрит как кредитор.",
+      "Нужна повторная процедура. И молитва. Желательно твоя.",
+      "Лечение прошло успешно. Для болезни."
+    ],
+    [OUTCOMES.DEATH]: [
+      "Пациент умер. Бумаги оформлены идеально.",
+      "Смерть наступила внезапно. Для пациента.",
+      "Зато теперь он точно не жалуется."
+    ]
+  };
+
+  const arr = pool[kind] || ["Исход неопределён. Как и твоя судьба врача."];
+  return pick(arr);
+}
+
+function rollOutcome(patientId, treatmentId, wardId){
+  const p = patientById(patientId);
+  const w = wardById(wardId);
+  const disease = getDiseaseById(p.trueDiseaseId);
+
+  // базовый “качество выбора” от метода относительно болезни
+  const methodScore = scoreMethodForDisease(treatmentId, disease); // 0.2..1.3
+  // палата немного бустит успех (по сумме статов)
+  const wardPower = (w.comfort + w.cleanliness + w.ventilation + w.light) / 24; // ~0.16..?
+  // штраф если дежурные не умеют метод
+  const docMul = doctorSkillPenalty(treatmentId);
+
+  // итоговая вероятность хороших исходов
+  // clamp в разумные рамки
+  let goodFactor = (0.55 * methodScore) + (0.20 * wardPower);
+  goodFactor = Math.max(0.15, Math.min(0.95, goodFactor));
+  goodFactor *= docMul;
+
+  const r = Math.random();
+
+  // раскладываем исходы:
+  // больше goodFactor -> больше шансов cure/disfigured/infected
+  // меньше -> worsened/death
+  let kind;
+
+  // вероятность смерти растёт при плохих условиях
+  const deathChance = Math.max(0.04, 0.18 - goodFactor*0.12); // примерно 4%..18%
+  const worsenChance = Math.max(0.10, 0.38 - goodFactor*0.25);
+
+  // часть “успехов” намеренно сомнительная (чёрная комедия)
+  const cureChance = Math.max(0.18, goodFactor*0.45);
+  const disfigChance = Math.max(0.12, goodFactor*0.30);
+  const infectChance = Math.max(0.10, goodFactor*0.22);
+
+  // нормализуем суммы
+  const sum = deathChance + worsenChance + cureChance + disfigChance + infectChance;
+  const a = deathChance/sum;
+  const b = worsenChance/sum;
+  const c = cureChance/sum;
+  const d = disfigChance/sum;
+  const e = infectChance/sum;
+
+  const x = r;
+  if(x < a) kind = OUTCOMES.DEATH;
+  else if(x < a+b) kind = OUTCOMES.WORSENED;
+  else if(x < a+b+c) kind = OUTCOMES.CURE;
+  else if(x < a+b+c+d) kind = OUTCOMES.DISFIGURED;
+  else kind = OUTCOMES.INFECTED;
+
+  // награды/штрафы: деньги зависят и от репутации (чем выше — тем дороже услуги)
+  const repMul = 1 + Math.max(-10, Math.min(50, state.reputation)) * 0.01;
+
+  let coinsDelta=0, repDelta=0, bioDelta=0;
+
+  switch(kind){
+    case OUTCOMES.CURE:
+      coinsDelta = Math.round(10 * repMul);
+      repDelta = +2;
+      break;
+    case OUTCOMES.DISFIGURED:
+      coinsDelta = Math.round(16 * repMul);
+      repDelta = -2;
+      break;
+    case OUTCOMES.INFECTED:
+      coinsDelta = Math.round(20 * repMul);
+      repDelta = -4;
+      break;
+    case OUTCOMES.WORSENED:
+      coinsDelta = Math.round(2 * repMul);
+      repDelta = -5;
+      break;
+    case OUTCOMES.DEATH:
+      coinsDelta = Math.round(4 * repMul);
+      repDelta = -8;
+      bioDelta = 1;
+      break;
+  }
+
+  // XP тип: для клиники/врачей (пока простая схема)
+  const xpKind =
+    kind === OUTCOMES.WORSENED ? "complication" :
+    kind === OUTCOMES.DEATH ? "death" :
+    "success";
+
+  return {
+    kind,
+    xpKind,
+    coinsDelta,
+    reputationDelta: repDelta,
+    biomaterialDelta: bioDelta,
+    flavor: makeFlavor(kind, treatmentId),
+
+    treatmentId,
+    patientId,
+    wardId,
+    at: now()
+  };
+}
+
+/* =========================================================
+   10) XP / LEVEL
+========================================================= */
+
+function xpNeedForLevel(lv){
+  return 50 + (lv-1)*40;
+}
+function gainClinicXP(xpKind){
+  let add = 0;
+  if(xpKind==="success") add=8;
+  else if(xpKind==="complication") add=4;
+  else add=2;
+
+  state.clinicXP += add;
+  while(state.clinicXP >= xpNeedForLevel(state.clinicLevel)){
+    state.clinicXP -= xpNeedForLevel(state.clinicLevel);
+    state.clinicLevel += 1;
+    // рост очереди и потолков как награда
+    if(state.clinicLevel % 3 === 0) state.maxQueue = Math.min(10, state.maxQueue+1);
+  }
+}
+
+function gainDoctorXP(xpKind){
+  // пока заглушка под будущую прокачку врачей
+}
+
+/* =========================================================
+   11) FLOW: assign / complete / pending / discharge
+========================================================= */
+
+let state = loadState();
+
+function assignPatientToWard(patientId, wardId){
+  const w = wardById(wardId);
+  const p = patientById(patientId);
+  if(!w || !p) return false;
+
+  // палата занята
+  if(w.occupiedBy) return false;
+
+  // у палаты есть незабранный результат
+  if(w.pendingResult) return false;
+
+  // убрать из очереди
+  const qi = state.queue.indexOf(patientId);
+  if(qi>=0) state.queue.splice(qi,1);
+
+  w.occupiedBy = patientId;
+
+  // лечение будет назначено позже (на экране пациента)
+  saveState();
+  fillQueue();
+  saveState();
+  return true;
+}
+
+function chooseTreatment(treatmentId){
+  if(!state.selectedPatientId) return;
+  const ward = findWardByPatient(state.selectedPatientId);
+  if(!ward) return;
+
+  const active = getActiveForWard(ward.id);
+  if(active) return; // уже лечится
+
+  const p = patientById(state.selectedPatientId);
+  if(!p) return;
+
+  const endAt = now() + p.treatSec*1000;
+
+  setActiveForWard(ward.id, {
+    patientId: p.id,
+    treatmentId,
+    endAt
+  });
+
+  refreshVisibleUI();
+}
+
+function finishTreatmentToPending(active, outcome){
+  const w = wardById(active.wardId);
+  if(!w) return;
+
+  w.pendingResult = {
+    patientId: active.patientId,
+    wardId: active.wardId,
+    treatmentId: active.treatmentId,
+
+    kind: outcome.kind,
+    xpKind: outcome.xpKind,
+    flavor: outcome.flavor,
+
+    coins: outcome.coinsDelta ?? 0,
+    reputation: outcome.reputationDelta ?? 0,
+    biomaterial: outcome.biomaterialDelta ?? 0,
+
+    time: now()
+  };
+
+  // начисляем сразу (чтобы игрок видел прогресс)
+  state.coins = Math.max(0, state.coins + (outcome.coinsDelta ?? 0));
+  state.reputation = (state.reputation || 0) + (outcome.reputationDelta ?? 0);
+  state.biomaterial = (state.biomaterial || 0) + (outcome.biomaterialDelta ?? 0);
+
+  gainClinicXP(outcome.xpKind);
+  gainDoctorXP(outcome.xpKind);
+
+  saveState();
+}
+
+function completeTreatment(wardId){
+  const active = getActiveForWard(wardId);
+  if(!active) return;
+
+  const outcome = rollOutcome(active.patientId, active.treatmentId, wardId);
+  finishTreatmentToPending({ ...active, wardId }, outcome);
+
+  clearActiveForWard(wardId);
+  saveState();
+  refreshVisibleUI();
+}
+
+function dischargePatient(patientId, wardId){
+  const w = wardById(wardId);
+  if(!w) return;
+
+  // освободить палату и убрать результат
+  w.occupiedBy = null;
+  w.pendingResult = null;
+
+  // удалить пациента
+  state.patients = state.patients.filter(p=>p.id!==patientId);
+
+  fillQueue();
+  saveState();
+  backToClinic();
+}
+
+function openPatientById(patientId){
+  state.selectedPatientId = patientId;
+  saveState();
+  showScreen("patient");
+  renderPatient(patientId);
+}
+
+function backToClinic(){
+  showScreen("clinic");
+  refreshVisibleUI();
+}
+
+function showScreen(name){
+  document.getElementById("screen-clinic").classList.toggle("active", name==="clinic");
+  document.getElementById("screen-patient").classList.toggle("active", name==="patient");
+}
+
+/* =========================================================
+   12) UI RENDER
+========================================================= */
+
+const elCoins = document.getElementById("coins");
+const elRep = document.getElementById("rep");
+const elBio = document.getElementById("bio");
+const elClinicLevel = document.getElementById("clinic-level");
+
+const elWards = document.getElementById("wards");
+const elQueue = document.getElementById("queue");
+const elDuty = document.getElementById("duty");
+
+const elPatientTitle = document.getElementById("patient-title");
+const elPatientSub = document.getElementById("patient-sub");
+const elPatientDisease = document.getElementById("patient-disease");
+const elAdvice = document.getElementById("doctor-advice");
+
+const elTreatPanel = document.getElementById("treat-panel");
+const elTreatmentButtons = document.getElementById("treatment-buttons");
+
+const elActiveTreatment = document.getElementById("active-treatment");
+const elActiveName = document.getElementById("active-treatment-name");
+const elActiveTimer = document.getElementById("active-treatment-timer");
+
+const elResultPanel = document.getElementById("result-panel");
+const elResultText = document.getElementById("result-text");
+
+function renderTop(){
+  elCoins.textContent = state.coins;
+  elRep.textContent = state.reputation;
+  elBio.textContent = state.biomaterial;
+  elClinicLevel.textContent = state.clinicLevel;
+}
+
+function renderClinic(){
+  renderTop();
+
+  // wards
+  elWards.innerHTML = "";
+  for(const w of state.wards){
+    const active = getActiveForWard(w.id);
+
+    let badge = "";
+    if(w.pendingResult){
+      const k = w.pendingResult.kind;
+      badge = k===OUTCOMES.CURE ? `<span class="tag ok">✅ Вылечен</span>` :
+              k===OUTCOMES.DISFIGURED ? `<span class="tag warn">✅ Покалечен</span>` :
+              k===OUTCOMES.INFECTED ? `<span class="tag warn">✅ Инфицирован</span>` :
+              k===OUTCOMES.WORSENED ? `<span class="tag warn">⚠️ Хуже</span>` :
+              `<span class="tag bad">☠️ Смерть</span>`;
+    } else if(w.occupiedBy && active){
+      const left = active.endAt - now();
+      badge = `<span class="tag">⏳ ${formatLeft(left)}</span>`;
+    } else if(w.occupiedBy){
+      badge = `<span class="tag warn">ждёт лечения</span>`;
+    } else {
+      badge = `<span class="tag">свободно</span>`;
+    }
+
+    const p = w.occupiedBy ? patientById(w.occupiedBy) : null;
+    const occ = p ? `Занято: <b>${escapeHtml(p.name)}</b>` : `Свободно`;
+
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="row">
+        <div>
+          <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
+          <div class="listSub">${occ}</div>
+        </div>
+        <div class="right">${badge}</div>
+      </div>
+
+      <div class="hint">
+        Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','comfort')" ${canUpgrade(w,'comfort')?'':'disabled'}>
+          Комфорт +1 (${upgradeCost(w,'comfort')})
+        </button>
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','cleanliness')" ${canUpgrade(w,'cleanliness')?'':'disabled'}>
+          Чистота +1 (${upgradeCost(w,'cleanliness')})
+        </button>
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','ventilation')" ${canUpgrade(w,'ventilation')?'':'disabled'}>
+          Вент +1 (${upgradeCost(w,'ventilation')})
+        </button>
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','light')" ${canUpgrade(w,'light')?'':'disabled'}>
+          Свет +1 (${upgradeCost(w,'light')})
+        </button>
+      </div>
+
+      ${w.pendingResult ? `
+        <div class="sep"></div>
+        <button class="btn ok" onclick="openPatientById('${w.pendingResult.patientId}')">
+          👁 Посмотреть результат
+          <div class="muted">${escapeHtml(w.pendingResult.flavor || "")}</div>
+        </button>
+      ` : (w.occupiedBy ? `
+        <div class="sep"></div>
+        <button class="btn" onclick="openPatientById('${w.occupiedBy}')">
+          🧾 Открыть пациента
+          <div class="muted">Назначить лечение или посмотреть таймер</div>
+        </button>
+      ` : ``)}
+    `;
+    elWards.appendChild(card);
+  }
+
+  // duty doctors
+  elDuty.innerHTML = "";
+  const docs = dutyDoctors();
+  ["slot1","slot2"].forEach((slot, idx)=>{
+    const d = docs[idx];
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <div class="listTitle">Слот ${idx+1}: ${escapeHtml(d.name)}</div>
+          <div class="listSub">${rarityLabel(d.rarity)} • методы: ${d.methods.map(m=>escapeHtml(methodName(m))).join(", ")}</div>
+        </div>
+        <button class="btn small" onclick="rerollDuty('${slot}')">Сменить</button>
+      </div>
+    `;
+    elDuty.appendChild(div);
+  });
+
+  // queue
+  elQueue.innerHTML = "";
+  if(state.queue.length===0){
+    elQueue.innerHTML = `<div class="hint">Очередь пуста. Это подозрительно.</div>`;
+  } else {
+    for(const pid of state.queue){
+      const p = patientById(pid);
+      if(!p) continue;
+      const left = p.leaveAt - now();
+
+      const rarityTag =
+        p.rarity===RARITY.LEGENDARY ? `<span class="tag">✨ legendary</span>` :
+        p.rarity===RARITY.RARE ? `<span class="tag">⭐ rare</span>` :
+        `<span class="tag">common</span>`;
+
+      const div = document.createElement("div");
+      div.className = "listBtn";
+      div.onclick = ()=> tryPlaceOrOpen(pid);
+
+      div.innerHTML = `
+        <div class="row">
+          <div>
+            <div class="listTitle">${escapeHtml(p.name)} ${rarityTag}</div>
+            <div class="listSub">${escapeHtml(p.visibleSymptoms.join(", "))}</div>
+          </div>
+          <div class="right">
+            <div class="timer ${left<15000?'bad':left<40000?'warn':'ok'}">${formatLeft(left)}</div>
+            <div class="muted" style="font-size:12px">до ухода/смерти</div>
+          </div>
+        </div>
+      `;
+      elQueue.appendChild(div);
+    }
+  }
+}
+
+function rerollDuty(slot){
+  if(slot==="slot1"){
+    state.duty.slot1 = pickRandomDoctorId();
+    if(state.duty.slot2===state.duty.slot1) state.duty.slot2 = pickRandomDoctorId(true);
+  } else {
+    state.duty.slot2 = pickRandomDoctorId(true);
+  }
+  saveState();
+  refreshVisibleUI();
+}
+
+function tryPlaceOrOpen(patientId){
+  // если пациент уже в палате/ожидает результата — открыть
+  const ward = findWardByPatient(patientId);
+  if(ward){
+    openPatientById(patientId);
+    return;
+  }
+
+  // иначе пытаемся положить в первую свободную палату
+  const free = state.wards.find(w=>!w.occupiedBy && !w.pendingResult);
+  if(!free){
+    // нет места — просто открыть карточку
+    openPatientById(patientId);
+    return;
+  }
+
+  const ok = assignPatientToWard(patientId, free.id);
+  if(ok){
+    openPatientById(patientId);
+  } else {
+    openPatientById(patientId);
+  }
+}
+
+function renderPatient(patientId){
+  renderTop();
+
+  const p = patientById(patientId);
+  if(!p){
+    backToClinic();
+    return;
+  }
+
+  elPatientTitle.textContent = p.name;
+  elPatientSub.textContent = p.visibleSymptoms.join(", ");
+
+  const disease = getDiseaseById(p.trueDiseaseId);
+  elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
+
+  // советы врачей зависят от 4 опций лечения
+  const options = pickTreatmentOptions(p);
+  const docs = dutyDoctors();
+  elAdvice.innerHTML = docs.map(d=>doctorAdviceText(d, options)).join("<br>");
+
+  // если пациент уже имеет результат в палате — показываем результат
+  const ward = findWardByPatient(patientId);
+  const active = ward ? getActiveForWard(ward.id) : null;
+
+  // если pendingResult
+  if(ward && ward.pendingResult && ward.pendingResult.patientId===patientId){
+    showResult(ward);
+    return;
+  }
+
+  // если активное лечение
+  if(ward && active && active.patientId===patientId){
+    showActive(active);
+    return;
+  }
+
+  // иначе лечить
+  showTreat(options);
+}
+
+function showTreat(options){
+  elTreatPanel.style.display = "block";
+  elActiveTreatment.style.display = "none";
+  elResultPanel.style.display = "none";
+
+  elTreatmentButtons.innerHTML = "";
+
+  for(const mid of options){
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.onclick = ()=> chooseTreatment(mid);
+    b.innerHTML = `
+      ${escapeHtml(methodName(mid))}
+      <div class="muted">Нажми, чтобы назначить</div>
+    `;
+    elTreatmentButtons.appendChild(b);
+  }
+}
+
+function showActive(active){
+  elTreatPanel.style.display = "none";
+  elActiveTreatment.style.display = "block";
+  elResultPanel.style.display = "none";
+
+  elActiveName.textContent = methodName(active.treatmentId);
+  elActiveTimer.textContent = formatLeft(active.endAt - now());
+}
+
+function showResult(ward){
+  elTreatPanel.style.display = "none";
+  elActiveTreatment.style.display = "none";
+  elResultPanel.style.display = "block";
+
+  const r = ward.pendingResult;
+  const kind = r.kind;
+
+  const label =
+    kind===OUTCOMES.CURE ? "✅ Вылечен" :
+    kind===OUTCOMES.DISFIGURED ? "✅ Вылечен (но покалечен)" :
+    kind===OUTCOMES.INFECTED ? "✅ Вылечен (но инфицирован)" :
+    kind===OUTCOMES.WORSENED ? "⚠️ Стало хуже" :
+    "☠️ Смерть";
+
+  const btnText = (kind===OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
+
+  elResultText.innerHTML = `
+    <div style="font-weight:900; font-size:18px">${label}</div>
+    <div class="muted" style="margin-top:6px">${escapeHtml(r.flavor || "")}</div>
+
+    <div class="sep"></div>
+
+    <div class="muted">Метод:</div>
+    <div style="font-weight:900">${escapeHtml(methodName(r.treatmentId))}</div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+      <div>💰 Монеты:</div>
+      <div style="font-weight:900">${r.coins>=0?"+":""}${r.coins}</div>
+    </div>
+    <div class="row">
+      <div>⭐ Репутация:</div>
+      <div style="font-weight:900" class="${r.reputation<0?'bad':'ok'}">${r.reputation>=0?"+":""}${r.reputation}</div>
+    </div>
+    <div class="row">
+      <div>🧫 Биоматериал:</div>
+      <div style="font-weight:900">${r.biomaterial>=0?"+":""}${r.biomaterial}</div>
+    </div>
+
+    <div class="sep"></div>
+
+    <button class="btn ok" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
+      ${btnText}
+      <div class="muted">Освободит палату</div>
+    </button>
+  `;
+}
+
+function refreshVisibleUI(){
+  const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
+  const patientVisible = document.getElementById("screen-patient").classList.contains("active");
+
+  if(clinicVisible) renderClinic();
+  if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
+}
+
+/* =========================================================
+   13) TICKS (queue + treatments + patient timer)
+========================================================= */
+
+let uiTick = null;
+
+function startUITick(){
+  if(uiTick) return;
+  uiTick = setInterval(()=>{
+    // обновляем таймер только на экране пациента, если он открыт
+    const patientVisible = document.getElementById("screen-patient").classList.contains("active");
+    if(patientVisible && state.selectedPatientId){
+      const ward = findWardByPatient(state.selectedPatientId);
+      if(ward){
+        const active = getActiveForWard(ward.id);
+        if(active && active.patientId===state.selectedPatientId){
+          if(now() >= active.endAt){
+            completeTreatment(ward.id);
+          } else {
+            showActive(active);
+          }
+        }
+      }
+    }
+  }, 250);
+}
+
+function processTreatmentsTick(){
+  const map = getActiveMap();
+  const t = now();
+  let changed = false;
+
+  for(const wardId of Object.keys(map)){
+    const a = map[wardId];
+    if(!a) continue;
+    if(t >= a.endAt){
+      completeTreatment(wardId);
+      changed = true;
+    }
+  }
+
+  if(changed) refreshVisibleUI();
+}
+
+setInterval(()=>{
+  processQueueTick();
+  processTreatmentsTick();
+  refreshVisibleUI();
+}, 500);
+
+startUITick();
+
+/* =========================================================
+   14) INIT
+========================================================= */
+
+fillQueue();
+saveState();
+refreshVisibleUI();
+
+/* =========================================================
+   15) GLOBAL EXPORTS (for onclick)
+========================================================= */
+
+window.openPatientById = openPatientById;
+window.backToClinic = backToClinic;
+window.chooseTreatment = chooseTreatment;
+window.finishNowForTest = finishNowForTest;
+window.upgradeWardStat = upgradeWardStat;
+window.dischargePatient = dischargePatient;
+window.rerollDuty = rerollDuty;
+
+function finishNowForTest(){
+  if(!state.selectedPatientId) return;
+  const ward = findWardByPatient(state.selectedPatientId);
+  if(!ward) return;
+  completeTreatment(ward.id);
+}
+</script>
+</body>
+</html>
