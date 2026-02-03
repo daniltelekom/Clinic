@@ -188,6 +188,8 @@
 </div>
 
 <script>
+
+  let state = null;
 /* =========================================================
    0) CONST / ENUMS
 ========================================================= */
@@ -843,7 +845,7 @@ function gainDoctorXP(xpKind){
    11) FLOW: assign / complete / pending / discharge
 ========================================================= */
 
-let state = loadState();
+state = loadState();
 
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
