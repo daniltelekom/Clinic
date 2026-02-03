@@ -226,6 +226,8 @@ const METHODS = [
   { id:"charms", name:"🕯 Заговоры" },
 ];
 
+  let state = null;
+
 function methodName(id){
   const m = METHODS.find(x=>x.id===id);
   return m ? m.name : id;
@@ -840,7 +842,7 @@ function gainDoctorXP(xpKind){
    11) FLOW: assign / complete / pending / discharge
 ========================================================= */
 
-let state = loadState();
+state = loadState();
 
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
