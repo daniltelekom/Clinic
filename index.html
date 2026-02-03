@@ -508,6 +508,8 @@ function makePatient(){
     knownDisease: false,
 
     treatmentOptions: nul,
+
+    doctorAdviceCache: null,
     
   };
 }
@@ -1141,9 +1143,11 @@ function rerollDuty(slot){
   } else {
     state.duty.slot2 = pickRandomDoctorId(true);
   }
-  saveState();
-  refreshVisibleUI();
+  for (const p of state.patients){
+  p.doctorAdviceCache = null;
 }
+saveState();
+refreshVisibleUI();
 
 function tryPlaceOrOpen(patientId){
   // если пациент уже в палате/ожидает результата — открыть
@@ -1185,10 +1189,20 @@ function renderPatient(patientId){
   elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
 
   // советы врачей зависят от 4 опций лечения
-  if(!p.treatmentOptions){
+ // советы врачей зависят от 4 опций лечения
+if(!p.treatmentOptions){
   p.treatmentOptions = pickTreatmentOptions(p);
+}
+
+// ✅ кеш советов, чтобы не скакали
+if(!p.doctorAdviceCache){
+  const docs = dutyDoctors();
+  p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, p.treatmentOptions));
   saveState();
 }
+
+elAdvice.innerHTML = p.doctorAdviceCache.join("<br>");
+  
 const options = p.treatmentOptions;
   const docs = dutyDoctors();
   elAdvice.innerHTML = docs.map(d=>doctorAdviceText(d, options)).join("<br>");
