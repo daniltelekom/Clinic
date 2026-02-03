@@ -175,9 +175,6 @@
       <div class="muted">Осталось:</div>
       <div id="active-treatment-timer" class="timer">--:--</div>
 
-      <button class="btn danger" style="margin-top:12px" onclick="finishNowForTest()">
-        ✅ Завершить сейчас (тест)
-      </button>
     </div>
 
     <!-- Результат -->
@@ -317,8 +314,8 @@ function defaultState(){
     // баланс
     maxQueue: 6,
     baseWaitSec: 120,     // сколько может ждать в очереди
-    baseTreatSecMin: 30,
-    baseTreatSecMax: 60,
+    baseTreatSecMin: 120,
+    baseTreatSecMax: 300,
   };
 }
 
@@ -1373,17 +1370,10 @@ refreshVisibleUI();
 window.openPatientById = openPatientById;
 window.backToClinic = backToClinic;
 window.chooseTreatment = chooseTreatment;
-window.finishNowForTest = finishNowForTest;
 window.upgradeWardStat = upgradeWardStat;
 window.dischargePatient = dischargePatient;
 window.rerollDuty = rerollDuty;
 
-function finishNowForTest(){
-  if(!state.selectedPatientId) return;
-  const ward = findWardByPatient(state.selectedPatientId);
-  if(!ward) return;
-  completeTreatment(ward.id);
-}
 </script>
 </body>
 </html>
