@@ -629,6 +629,7 @@ if(isFemale) ln = toFemaleLastName(ln);
 
     // флаг “известная болезнь”
     knownDisease: false,
+    diagnosisRewarded: false,
 
     treatmentOptions: null,
     doctorAdviceCache: null,
@@ -1569,6 +1570,9 @@ function renderPatient(patientId){
     used >= max ? `Лимит исследований исчерпан (${used}/${max}).` :
     state.coins < cost ? `Не хватает монет (${state.coins}/${cost}). `:
    ` Исследований: ${used}/${max};`
+  if(p.knownDisease){
+  elLabHint.textContent = "Диагноз подтверждён. Теперь ты официально не шарлатан.";
+}
 
   // --- приоритет: результат / активное лечение ---
   const ward = findWardByPatient(patientId);
@@ -1623,6 +1627,22 @@ function labResearchSelected(){
   // важное: после изменения симптомов можно сбросить кеш советов,
   // чтобы врачи "отреагировали" (не обязательно, но вкусно)
   p.doctorAdviceCache = null;
+
+  // Диагноз подтверждён, если сделали 2 исследования (или если симптомов больше не осталось)
+const max = state.lab?.maxPerPatient ?? 2;
+const disease = getDiseaseById(p.trueDiseaseId);
+
+const shown2 = new Set(p.visibleSymptoms || []);
+const hidden2 = (disease.symptoms || []).filter(s => !shown2.has(s));
+
+if((p.labUsed ?? 0) >= max || hidden2.length === 0){
+  p.knownDisease = true;
+}
+if(p.knownDisease && !p.diagnosisRewarded){
+  p.diagnosisRewarded = true;
+  state.reputation = (state.reputation || 0) + 1; // маленький кайф
+  state.coins += 3; // микро-плюшка
+}
 
   saveState();
   renderPatient(p.id);
