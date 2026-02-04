@@ -597,6 +597,18 @@ if(Array.isArray(s.wards) && s.wards.some(w => w.id === "ward_B")){
   }
 }
 
+function normalizeCalendar(){
+  if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
+
+  state.calendar.week = Number(state.calendar.week) || 1;
+  state.calendar.shiftInWeek = Number(state.calendar.shiftInWeek) || 1;
+
+  if(!state.calendar.activeEventId){
+    pickNewWeekEvent();
+  }
+}
+
+  
 function saveState(){
   localStorage.setItem(LS_STATE, JSON.stringify(state));
 }
@@ -1136,10 +1148,10 @@ function renderShiftEnd(){
 }
 
 function startNewShift(){
-  // календарь
-  if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
+  normalizeCalendar();
 
   state.calendar.shiftInWeek += 1;
+
   if(state.calendar.shiftInWeek > 7){
     state.calendar.week += 1;
     state.calendar.shiftInWeek = 1;
@@ -1219,6 +1231,8 @@ function reconcileState(){
 
 state = loadState();
 reconcileState();
+normalizeCalendar();
+applyAllModifiers();  
 
 // если ещё не выбран ивент на первую неделю, выбираем
 if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
