@@ -1225,7 +1225,7 @@ function renderShiftEnd(){
   const el = document.getElementById("shift-summary");
   const s = state.shift;
   ensureShiftRewards();
-  
+
   el.innerHTML = `
     ✅ Вылечено: <b>${s.cured}</b><br>
     ☠️ Смертей: <b>${s.deaths}</b><br>
@@ -1234,49 +1234,49 @@ function renderShiftEnd(){
   `;
 
   // кнопка "следующая смена" блокируется пока не выбрал награду
-const chosen = state.rewards.chosenId;
-elNextShiftBtn.disabled = !chosen;
+  const chosenId = state.rewards.chosenId;
+  elNextShiftBtn.disabled = !chosenId;
 
-elRewardList.innerHTML = "";
+  elRewardList.innerHTML = "";
 
-for(const r of state.rewards.pending){
-  const div = document.createElement("div");
-  div.className = "card";
+  for(const r of state.rewards.pending){
+    const div = document.createElement("div");
+    div.className = "card";
 
-  const row = document.createElement("div");
-  row.className = "row";
+    const row = document.createElement("div");
+    row.className = "row";
 
-  const left = document.createElement("div");
-  const title = document.createElement("div");
-  title.className = "listTitle";
-  title.textContent = r.title + (state.rewards.chosenId === r.id ? " ✅" : "");
+    const left = document.createElement("div");
 
-  const sub = document.createElement("div");
-  sub.className = "listSub";
-  sub.textContent = r.desc;
+    const title = document.createElement("div");
+    title.className = "listTitle";
+    title.textContent = r.title + (chosenId === r.id ? " ✅" : "");
 
-  left.appendChild(title);
-  left.appendChild(sub);
+    const sub = document.createElement("div");
+    sub.className = "listSub";
+    sub.textContent = r.desc;
 
-  const btn = document.createElement("button");
-  btn.className = "btn small ok";
-  btn.type = "button";
-  btn.textContent = "Забрать";
+    left.appendChild(title);
+    left.appendChild(sub);
 
-  const chosen = state.rewards.chosenId;
-  btn.disabled = !!chosen;
+    const btn = document.createElement("button");
+    btn.className = "btn small ok";
+    btn.type = "button";
+    btn.textContent = "Забрать";
+    btn.disabled = !!chosenId;
 
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    chooseReward(r.id);
-  });
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      chooseReward(r.id);
+    });
 
-  row.appendChild(left);
-  row.appendChild(btn);
+    row.appendChild(left);
+    row.appendChild(btn);
 
-  div.appendChild(row);
-  elRewardList.appendChild(div);
-}
+    div.appendChild(row);
+    elRewardList.appendChild(div);
+  }
+} 
 
 function startNewShift(){
   normalizeCalendar();
@@ -2294,6 +2294,10 @@ startUITick();
 if(state.shift?.active) fillQueue();
 saveState();
 refreshVisibleUI();
+  elNextShiftBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  startNewShift();
+});
 
 /* =========================================================
    15) GLOBAL EXPORTS (for onclick)
