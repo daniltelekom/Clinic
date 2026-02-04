@@ -277,9 +277,29 @@
 
   let state = null;
 
-window.onerror = (msg, src, line, col, err) => {
-  alert(`JS упал:\n${msg}\n${src}:${line}:${col}`);
-};
+function showCrash(title, info){
+  console.log(title, info);
+  // чтобы не забивать алертом до смерти, режем длину
+  const text = title + "\n" + JSON.stringify(info, null, 2);
+  alert(text.length > 1200 ? text.slice(0, 1200) + "\n...(cut)" : text);
+}
+
+window.addEventListener("error", (e) => {
+  showCrash("JS упал (error)", {
+    message: e.message,
+    file: e.filename,
+    line: e.lineno,
+    col: e.colno,
+    stack: e.error?.stack || null
+  });
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  showCrash("JS упал (unhandledrejection)", {
+    reason: String(e.reason),
+    stack: e.reason?.stack || null
+  });
+});
 
 document.addEventListener("click", (e) => {
   // чтобы понять, клики вообще доходят или их кто-то жрёт
@@ -2310,17 +2330,22 @@ function processTreatmentsTick(){
 }
 
 setInterval(()=>{
-  ensureShiftTimer();
+  try{
+    ensureShiftTimer();
 
-  const endAt = Number(state.shift?.endAt);
-  if(state.shift?.active && now() >= endAt){
-    endShift();
-    return;
+    const endAt = Number(state.shift?.endAt);
+    if(state.shift?.active && now() >= endAt){
+      endShift();
+      return;
+    }
+
+    processQueueTick();
+    processTreatmentsTick();
+    refreshVisibleUI();
+  }catch(err){
+    console.log("TICK CRASH", err);
+    alert("TICK CRASH:\n" + (err?.stack || err));
   }
-
-  processQueueTick();
-  processTreatmentsTick();
-  refreshVisibleUI();
 }, 500);
 
 startUITick();
