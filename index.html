@@ -980,7 +980,6 @@ function renderShiftEnd(){
 }
 
 function startNewShift(){
-  // сброс смены
   state.shift.active = true;
   state.shift.durationSec = state.shift.durationSec || 8*60;
   state.shift.endAt = now() + state.shift.durationSec*1000;
@@ -988,13 +987,17 @@ function startNewShift(){
   state.shift.deaths = 0;
   state.shift.left = 0;
 
-  // очистка пациентов/очереди, чтобы смена была честной
   state.patients = [];
   state.queue = [];
   state.selectedPatientId = null;
 
   // чистим активные лечения
   localStorage.removeItem(LS_ACTIVE);
+
+  for(const w of state.wards){
+    w.occupiedBy = null;
+    w.pendingResult = null;
+  }
 
   fillQueue();
   saveState();
@@ -1007,6 +1010,35 @@ function startNewShift(){
 ========================================================= */
 
 state = loadState();
+
+function reconcileState(){
+  // если в палате лежит id пациента, которого нет в patients — чистим палату
+  for(const w of state.wards){
+    if(w.occupiedBy && !patientById(w.occupiedBy)){
+      w.occupiedBy = null;
+    }
+    if(w.pendingResult && !patientById(w.pendingResult.patientId)){
+      w.pendingResult = null;
+    }
+  }
+
+  // если лечение активное, но пациент/палата не совпадают — сносим активку
+  const map = getActiveMap();
+  for(const wardId of Object.keys(map)){
+    const a = map[wardId];
+    if(!a) continue;
+    const w = wardById(wardId);
+    if(!w || !patientById(a.patientId)){
+      clearActiveForWard(wardId);
+      continue;
+    }
+  }
+
+  saveState();
+}
+
+state = loadState();
+reconcileState();  
 
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
@@ -1033,6 +1065,7 @@ function assignPatientToWard(patientId, wardId){
 }
 
 function chooseTreatment(treatmentId){
+  if(!state.shift?.active) return; // смена закончилась
   if(!state.selectedPatientId) return;
   const ward = findWardByPatient(state.selectedPatientId);
   if(!ward) return;
@@ -1435,6 +1468,7 @@ refreshVisibleUI();
 }
 
 function tryPlaceOrOpen(patientId){
+  if(!state.shift?.active) { openPatientById(patientId); return; }
   // если пациент уже в палате/ожидает результата — открыть
   const ward = findWardByPatient(patientId);
   if(ward){
