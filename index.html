@@ -28,12 +28,18 @@
       color:var(--text);
     }
     .wrap{max-width:720px; margin:0 auto; padding:16px;}
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 14px; border:1px solid var(--line); border-radius:16px;
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      margin-bottom:12px;
-    }
+.topbar{
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between;
+  flex-wrap: wrap;          /* ← ВАЖНО */
+  gap:10px;                 /* ← ВАЖНО */
+  padding:12px 14px; 
+  border:1px solid var(--line); 
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  margin-bottom:12px;
+}
     .title{display:flex; gap:10px; align-items:center; font-weight:800;}
     .pill{
       padding:6px 10px; border:1px solid var(--line); border-radius:999px;
@@ -136,11 +142,11 @@
 
     <div class="panel">
   <h2>Управление</h2>
-  <button class="btn" onclick="openStaff()">
+  <button class="btn" type="button" onclick="openStaff()">
     👥 Штат
     <div class="muted">Список врачей и назначение на смену</div>
   </button>
-  <button class="btn" onclick="openShop()">
+  <button class="btn" type="button" onclick="openShop()">
   🛒 Лавка
   <div class="muted">Апгрейды клиники за ресурсы</div>
 </button>
@@ -169,7 +175,7 @@
           <div class="listTitle" id="patient-title">Пациент</div>
           <div class="listSub" id="patient-sub">симптомы…</div>
         </div>
-        <button class="btn small" onclick="backToClinic()">← Назад</button>
+        <button class="btn small" type="button" onclick="backToClinic()">← Назад</button>
       </div>
 
       <div class="sep"></div>
@@ -245,7 +251,7 @@
         <div class="listTitle">👥 Штат</div>
         <div class="listSub">Выбери врача и назначь в слот.</div>
       </div>
-      <button class="btn small" onclick="backToClinic()">← Назад</button>
+      <button class="btn small" type="button" onclick="backToClinic()">← Назад</button>
     </div>
     <div class="sep"></div>
     <div id="staff-list"></div>
@@ -260,7 +266,7 @@
         <div class="listTitle">🛒 Лавка</div>
         <div class="listSub">Трать монеты/репу/био и делай вид, что ты менеджер.</div>
       </div>
-      <button class="btn small" onclick="backToClinic()">← Назад</button>
+      <button class="btn small" type="button" onclick="backToClinic()">← Назад</button>
     </div>
     <div class="sep"></div>
     <div id="shop-list"></div>
@@ -270,6 +276,19 @@
 <script>
 
   let state = null;
+
+window.onerror = (msg, src, line, col, err) => {
+  alert(`JS упал:\n${msg}\n${src}:${line}:${col}`);
+};
+
+document.addEventListener("click", (e) => {
+  // чтобы понять, клики вообще доходят или их кто-то жрёт
+  // покажем, по чему тапнули
+  const t = e.target;
+  // не спамим на каждый тик, только по клику
+  console.log("CLICK:", t.tagName, t.className, t.id);
+}, true);
+  
 /* =========================================================
    0) CONST / ENUMS
 ========================================================= */
