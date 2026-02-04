@@ -229,7 +229,7 @@
 
 <div class="sep"></div>
 
-<button class="btn ok" id="btn-next-shift" onclick="startNewShift()">
+<button class="btn ok" id="btn-next-shift">
   🔁 Начать новую смену
   <div class="muted">Очередь обновится, таймер сбросится</div>
 </button>
@@ -1239,32 +1239,43 @@ elNextShiftBtn.disabled = !chosen;
 
 elRewardList.innerHTML = "";
 
-if(chosen){
-  elRewardHint.textContent = "Награда получена ✅";
-} else {
-  elRewardHint.textContent = "Выбери одну из трёх.";
-}
-
 for(const r of state.rewards.pending){
-  const disabled = chosen ? "disabled" : "";
-  const pickedTag = (chosen === r.id) ? `<span class="tag ok">выбрано</span>` : "";
-
   const div = document.createElement("div");
   div.className = "card";
-  div.innerHTML = `
-    <div class="row">
-      <div>
-        <div class="listTitle">${escapeHtml(r.title)} ${pickedTag}</div>
-        <div class="listSub">${escapeHtml(r.desc)}</div>
-      </div>
-      <button class="btn small ok" ${disabled} onclick="chooseReward('${r.id}')">
-        Забрать
-      </button>
-    </div>
-  `;
+
+  const row = document.createElement("div");
+  row.className = "row";
+
+  const left = document.createElement("div");
+  const title = document.createElement("div");
+  title.className = "listTitle";
+  title.textContent = r.title + (state.rewards.chosenId === r.id ? " ✅" : "");
+
+  const sub = document.createElement("div");
+  sub.className = "listSub";
+  sub.textContent = r.desc;
+
+  left.appendChild(title);
+  left.appendChild(sub);
+
+  const btn = document.createElement("button");
+  btn.className = "btn small ok";
+  btn.type = "button";
+  btn.textContent = "Забрать";
+
+  const chosen = state.rewards.chosenId;
+  btn.disabled = !!chosen;
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    chooseReward(r.id);
+  });
+
+  row.appendChild(left);
+  row.appendChild(btn);
+
+  div.appendChild(row);
   elRewardList.appendChild(div);
-}
-  
 }
 
 function startNewShift(){
@@ -1701,6 +1712,10 @@ const elResultText = document.getElementById("result-text");
 const elRewardList = document.getElementById("reward-list");
 const elRewardHint = document.getElementById("reward-hint");
 const elNextShiftBtn = document.getElementById("btn-next-shift");
+  elNextShiftBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  startNewShift();
+});
 
 const elLabBtn = document.getElementById("btn-lab");
 const elLabSub = document.getElementById("lab-sub");
