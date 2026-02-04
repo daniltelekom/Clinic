@@ -221,6 +221,19 @@
     <div class="listTitle">Смена окончена</div>
     <div class="listSub" id="shift-summary">…</div>
     <div class="sep"></div>
+
+<div class="listTitle">🎁 Награда за смену</div>
+<div class="listSub" id="reward-hint">Выбери одну из трёх.</div>
+
+<div id="reward-list"></div>
+
+<div class="sep"></div>
+
+<button class="btn ok" id="btn-next-shift" onclick="startNewShift()">
+  🔁 Начать новую смену
+  <div class="muted">Очередь обновится, таймер сбросится</div>
+</button>
+    <div class="sep"></div>
     <button class="btn ok" onclick="startNewShift()">
       🔁 Начать новую смену
       <div class="muted">Очередь обновится, таймер сбросится</div>
@@ -477,6 +490,11 @@ calendar: {
   activeEventId: null
 },
 
+rewards: {
+  pending: null,   // массив из 3 наград
+  chosenId: null   // какая выбрана
+},
+
     wards: [
       makeWard("A"),
     ],
@@ -562,6 +580,10 @@ function loadState(){
     if(s.base.baseTreatSecMin==null) s.base.baseTreatSecMin = 120;
     if(s.base.baseTreatSecMax==null) s.base.baseTreatSecMax = 300;
     if(s.base.baseLabCost==null) s.base.baseLabCost = 15;
+
+    if(!s.rewards) s.rewards = { pending:null, chosenId:null };
+    if(s.rewards.pending === undefined) s.rewards.pending = null;
+    if(s.rewards.chosenId === undefined) s.rewards.chosenId = null;
     
 
     // --- shift migrate ---
@@ -1121,6 +1143,56 @@ function rollOutcome(patientId, treatmentId, wardId){
   };
 }
 
+  function makeRewardOptions(){
+  // 4 типа наград, выберем 3 разные
+  const pool = [
+    { type:"coins", title:"💰 Кошель", desc:"+60 монет", apply:()=> state.coins += 60 },
+    { type:"rep",   title:"⭐ Похвала", desc:"+3 репутации", apply:()=> state.reputation = (state.reputation||0) + 3 },
+    { type:"bio",   title:"🧫 Образцы", desc:"+2 биоматериала", apply:()=> state.biomaterial = (state.biomaterial||0) + 2 },
+
+    // чуть реже: перк
+    { type:"perk",  title:"🛏️ Улучшение коек", desc:"+10% скорость лечения", apply:()=>{
+        state.perks.treatSpeed = Math.min(40, (state.perks.treatSpeed||0) + 10);
+      }
+    }
+  ];
+
+  // перемешаем и возьмём первые 3
+  shuffle(pool);
+  const chosen = pool.slice(0,3).map((r, i)=>({
+    id: "rw_" + i + "_" + r.type,
+    ...r
+  }));
+
+  return chosen;
+}
+
+function ensureShiftRewards(){
+  // если уже есть награды на эту смену, не трогаем
+  if(state.rewards?.pending && Array.isArray(state.rewards.pending) && state.rewards.pending.length){
+    return;
+  }
+  state.rewards.pending = makeRewardOptions();
+  state.rewards.chosenId = null;
+  saveState();
+}
+
+function chooseReward(rewardId){
+  if(!state.rewards?.pending) return;
+  if(state.rewards.chosenId) return; // уже выбрано
+
+  const r = state.rewards.pending.find(x=>x.id===rewardId);
+  if(!r) return;
+
+  // применяем награду
+  r.apply();
+
+  state.rewards.chosenId = rewardId;
+  saveState();
+  renderShiftEnd();      // перерисуем экран конца смены
+  refreshVisibleUI();    // обновим верхнюю панель
+}
+
 /* =========================================================
    10) XP / LEVEL
 ========================================================= */
@@ -1157,12 +1229,47 @@ function endShift(){
 function renderShiftEnd(){
   const el = document.getElementById("shift-summary");
   const s = state.shift;
+  ensureShiftRewards();
+  
   el.innerHTML = `
     ✅ Вылечено: <b>${s.cured}</b><br>
     ☠️ Смертей: <b>${s.deaths}</b><br>
     🚪 Ушли/умерли в очереди: <b>${s.left}</b><br>
     <div class="hint">Награды добавим после лаборатории/ивентов.</div>
   `;
+
+  // кнопка "следующая смена" блокируется пока не выбрал награду
+const chosen = state.rewards.chosenId;
+elNextShiftBtn.disabled = !chosen;
+
+elRewardList.innerHTML = "";
+
+if(chosen){
+  elRewardHint.textContent = "Награда получена ✅";
+} else {
+  elRewardHint.textContent = "Выбери одну из трёх.";
+}
+
+for(const r of state.rewards.pending){
+  const disabled = chosen ? "disabled" : "";
+  const pickedTag = (chosen === r.id) ? `<span class="tag ok">выбрано</span>` : "";
+
+  const div = document.createElement("div");
+  div.className = "card";
+  div.innerHTML = `
+    <div class="row">
+      <div>
+        <div class="listTitle">${escapeHtml(r.title)} ${pickedTag}</div>
+        <div class="listSub">${escapeHtml(r.desc)}</div>
+      </div>
+      <button class="btn small ok" ${disabled} onclick="chooseReward('${r.id}')">
+        Забрать
+      </button>
+    </div>
+  `;
+  elRewardList.appendChild(div);
+}
+  
 }
 
 function startNewShift(){
@@ -1207,6 +1314,9 @@ function startNewShift(){
 
   // и на всякий случай: очередь не должна быть undefined
   if(!Number.isFinite(state.maxQueue)) state.maxQueue = 6;
+
+  state.rewards.pending = null;
+  state.rewards.chosenId = null;
 
   fillQueue();
   saveState();
@@ -1593,6 +1703,9 @@ const elActiveTimer = document.getElementById("active-treatment-timer");
 
 const elResultPanel = document.getElementById("result-panel");
 const elResultText = document.getElementById("result-text");
+const elRewardList = document.getElementById("reward-list");
+const elRewardHint = document.getElementById("reward-hint");
+const elNextShiftBtn = document.getElementById("btn-next-shift");
 
 const elLabBtn = document.getElementById("btn-lab");
 const elLabSub = document.getElementById("lab-sub");
@@ -2187,6 +2300,7 @@ window.startNewShift = startNewShift;
 window.openStaff = openStaff;
 window.assignDoctorToSlot = assignDoctorToSlot;  
 window.labResearchSelected = labResearchSelected;
+window.chooseReward = chooseReward;  
 
 </script>
 </body>
