@@ -125,6 +125,14 @@
     </div>
 
     <div class="panel">
+  <h2>Управление</h2>
+  <button class="btn" onclick="openStaff()">
+    👥 Штат
+    <div class="muted">Список врачей и назначение на смену</div>
+  </button>
+</div>
+
+    <div class="panel">
       <h2>Дежурные доктора</h2>
       <div id="duty"></div>
       <div class="hint">Дежурные дают советы и штрафуют методы, которые “не умеют”.</div>
@@ -183,25 +191,36 @@
       <h2>Результат</h2>
       <div id="result-text"></div>
     </div>
+   </div>
 
-    <!-- SCREEN: SHIFT END -->
+   <!-- SCREEN: SHIFT END -->
 <div class="screen" id="screen-shiftend">
   <div class="panel">
     <div class="listTitle">Смена окончена</div>
     <div class="listSub" id="shift-summary">…</div>
-
     <div class="sep"></div>
-
     <button class="btn ok" onclick="startNewShift()">
       🔁 Начать новую смену
       <div class="muted">Очередь обновится, таймер сбросится</div>
     </button>
   </div>
-</div>
+ </div>
+</div>  
 
+<!-- SCREEN: STAFF -->
+<div class="screen" id="screen-staff">
+  <div class="panel">
+    <div class="row">
+      <div>
+        <div class="listTitle">👥 Штат</div>
+        <div class="listSub">Выбери врача и назначь в слот.</div>
+      </div>
+      <button class="btn small" onclick="backToClinic()">← Назад</button>
+    </div>
+    <div class="sep"></div>
+    <div id="staff-list"></div>
   </div>
-
-</div>
+</div>  
 
 <script>
 
@@ -334,7 +353,10 @@ function defaultState(){
     coins: 120,
     reputation: 0,
     biomaterial: 0,
-
+unlocks: {
+  wardB: false,
+  staffScreen: true // штат включим сразу, просто пока без магазина
+},
     shift: {
   active: true,
   durationSec: 8*60,     // 8 минут на тест
@@ -425,6 +447,15 @@ if(!s.shift.endAt) s.shift.endAt = Date.now() + s.shift.durationSec*1000;
 if(s.shift.cured==null) s.shift.cured = 0;
 if(s.shift.deaths==null) s.shift.deaths = 0;
 if(s.shift.left==null) s.shift.left = 0;
+
+if(!s.unlocks) s.unlocks = { wardB:false, staffScreen:true };
+if(typeof s.unlocks.wardB !== "boolean") s.unlocks.wardB = false;
+if(typeof s.unlocks.staffScreen !== "boolean") s.unlocks.staffScreen = true;
+
+// если раньше в сейве уже была палата B, считаем что куплена
+if(Array.isArray(s.wards) && s.wards.some(w => w.id === "ward_B")){
+  s.unlocks.wardB = true;
+}
 
     return s;
   }catch{
@@ -597,6 +628,7 @@ function fillQueue(){
 }
 
 function processQueueTick(){
+  if(!state.shift?.active) return;
   const t = now();
   let changed = false;
 
@@ -619,8 +651,6 @@ function processQueueTick(){
       // удалить пациента полностью
       state.patients = state.patients.filter(x=>x.id!==pid);
       changed=true;
-
-     if(!state.shift?.active) return;
       
     }
   }
@@ -655,6 +685,24 @@ function canUpgrade(w, stat){
   return wardStatValue(w, stat) < wardStatCap(w, stat);
 }
 
+  function buyWardB(){
+  if(state.unlocks?.wardB) return;
+
+  const cost = 200;
+  if(state.coins < cost) return;
+
+  state.coins -= cost;
+  state.unlocks.wardB = true;
+
+  // добавить палату B
+  if(!state.wards.some(w => w.id==="ward_B")){
+    state.wards.push(makeWard("B"));
+  }
+
+  saveState();
+  refreshVisibleUI();
+}
+
 function upgradeWardStat(wardId, stat){
   const w = wardById(wardId);
   if(!w) return;
@@ -681,8 +729,8 @@ function upgradeWardStat(wardId, stat){
 
 function dutyDoctors(){
   const d1 = getDoctorById(state.duty.slot1);
-  const d2 = getDoctorById(state.duty.slot2);
-  return [d1,d2];
+  const d2 = state.duty.slot2 ? getDoctorById(state.duty.slot2) : null;
+  return [d1, d2];
 }
 
 function doctorConfidence(persona){
@@ -937,7 +985,7 @@ function startNewShift(){
   state.shift.endAt = now() + state.shift.durationSec*1000;
   state.shift.cured = 0;
   state.shift.deaths = 0;
-  state.shift.left += 1;
+  state.shift.left = 0;
 
   // очистка пациентов/очереди, чтобы смена была честной
   state.patients = [];
@@ -1085,8 +1133,67 @@ function showScreen(name){
   document.getElementById("screen-clinic").classList.toggle("active", name==="clinic");
   document.getElementById("screen-patient").classList.toggle("active", name==="patient");
   document.getElementById("screen-shiftend").classList.toggle("active", name==="shiftend");
+  document.getElementById("screen-staff").classList.toggle("active", name==="staff");
 }
 
+const elStaffList = document.getElementById("staff-list");
+
+function openStaff(){
+  showScreen("staff");
+  renderStaff();
+}
+
+function renderStaff(){
+  renderTop();
+  elStaffList.innerHTML = "";
+
+  const slot2Unlocked = state.unlocks?.wardB; // простой логикой: купил B -> появился слот 2
+
+  for(const doc of DOCTOR_POOL){
+    const isSlot1 = state.duty.slot1 === doc.id;
+    const isSlot2 = state.duty.slot2 === doc.id;
+
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <div class="listTitle">${escapeHtml(doc.name)} ${isSlot1 ? '<span class="tag ok">slot1</span>' : ''} ${isSlot2 ? '<span class="tag ok">slot2</span>' : ''}</div>
+          <div class="listSub">${rarityLabel(doc.rarity)} • ${doc.methods.map(m=>escapeHtml(methodName(m))).join(", ")}</div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn small" onclick="assignDoctorToSlot('${doc.id}',1)" ${isSlot1?'disabled':''}>
+          В слот 1
+        </button>
+        <button class="btn small" onclick="assignDoctorToSlot('${doc.id}',2)" ${(!slot2Unlocked || isSlot2)?'disabled':''}>
+          В слот 2
+        </button>
+      </div>
+    `;
+    elStaffList.appendChild(div);
+  }
+}
+
+function assignDoctorToSlot(docId, slot){
+  if(slot === 1){
+    state.duty.slot1 = docId;
+    if(state.duty.slot2 === docId) state.duty.slot2 = null;
+  } else {
+    if(!state.unlocks?.wardB) return; // слот 2 закрыт
+    state.duty.slot2 = docId;
+    if(state.duty.slot1 === docId) state.duty.slot1 = pickRandomDoctorId();
+  }
+
+  // сбросить советы пациентам (чтобы не было “старых советов”)
+  for(const p of state.patients) p.doctorAdviceCache = null;
+
+  saveState();
+  renderStaff();
+  refreshVisibleUI();
+}
+  
 /* =========================================================
    12) UI RENDER
 ========================================================= */
@@ -1203,22 +1310,55 @@ function renderClinic(){
 
   // duty doctors
   elDuty.innerHTML = "";
-  const docs = dutyDoctors();
-  ["slot1","slot2"].forEach((slot, idx)=>{
-    const d = docs[idx];
-    const div = document.createElement("div");
-    div.className = "card";
+  const [d1, d2] = dutyDoctors();
+
+// слот 1
+renderDutySlot(1, d1);
+
+// слот 2
+if(state.unlocks?.wardB){
+  renderDutySlot(2, d2);
+} else {
+  const div = document.createElement("div");
+  div.className = "card";
+  div.innerHTML = `
+    <div class="row">
+      <div>
+        <div class="listTitle">Слот 2: 🔒 Закрыт</div>
+        <div class="listSub">Открой Палату B, чтобы назначать второго врача.</div>
+      </div>
+      <button class="btn small" onclick="buyWardB()">Купить палату</button>
+    </div>
+  `;
+  elDuty.appendChild(div);
+}
+
+function renderDutySlot(idx, d){
+  const div = document.createElement("div");
+  div.className = "card";
+  if(!d){
     div.innerHTML = `
       <div class="row">
         <div>
-          <div class="listTitle">Слот ${idx+1}: ${escapeHtml(d.name)}</div>
-          <div class="listSub">${rarityLabel(d.rarity)} • методы: ${d.methods.map(m=>escapeHtml(methodName(m))).join(", ")}</div>
+          <div class="listTitle">Слот ${idx}: пусто</div>
+          <div class="listSub">Назначь врача в “Штате”.</div>
         </div>
-        <button class="btn small" onclick="rerollDuty('${slot}')">Сменить</button>
+        <button class="btn small" onclick="openStaff()">Назначить</button>
       </div>
     `;
-    elDuty.appendChild(div);
-  });
+  } else {
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <div class="listTitle">Слот ${idx}: ${escapeHtml(d.name)}</div>
+          <div class="listSub">${rarityLabel(d.rarity)} • методы: ${d.methods.map(m=>escapeHtml(methodName(m))).join(", ")}</div>
+        </div>
+        <button class="btn small" onclick="openStaff()">Сменить</button>
+      </div>
+    `;
+  }
+  elDuty.appendChild(div);
+}
 
   // queue
   elQueue.innerHTML = "";
@@ -1254,6 +1394,29 @@ function renderClinic(){
       elQueue.appendChild(div);
     }
   }
+
+  // кнопка покупки второй палаты
+if(!state.unlocks?.wardB){
+  const cost = 200;
+  const disabled = state.coins < cost ? "disabled" : "";
+  const div = document.createElement("div");
+  div.className = "card";
+  div.innerHTML = `
+    <div class="row">
+      <div>
+        <div class="listTitle">🔒 Палата B</div>
+        <div class="listSub">Открой вторую палату, чтобы лечить параллельно.</div>
+      </div>
+      <div class="right">
+        <button class="btn small ok" onclick="buyWardB()" ${disabled}>
+          Купить (${cost})
+        </button>
+      </div>
+    </div>
+  `;
+  elWards.appendChild(div);
+}
+  
 }
 
 function rerollDuty(slot){
@@ -1501,6 +1664,10 @@ window.chooseTreatment = chooseTreatment;
 window.upgradeWardStat = upgradeWardStat;
 window.dischargePatient = dischargePatient;
 window.rerollDuty = rerollDuty;
+window.buyWardB = buyWardB;
+window.startNewShift = startNewShift;  
+window.openStaff = openStaff;
+window.assignDoctorToSlot = assignDoctorToSlot;  
 
 </script>
 </body>
