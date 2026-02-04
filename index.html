@@ -231,6 +231,25 @@ function methodName(id){
   return m ? m.name : id;
 }
 
+  function toFemaleLastName(last){
+  // Нерегулярные/неизменяемые (на всякий)
+  const indeclinable = ["Сквозняк"];
+  if(indeclinable.includes(last)) return last;
+
+  // -ый / -ий -> -ая
+  if(last.endsWith("ый")) return last.slice(0, -2) + "ая";
+  if(last.endsWith("ий")) return last.slice(0, -2) + "ая";
+
+  // -ой -> -ая (редко, но пусть будет)
+  if(last.endsWith("ой")) return last.slice(0, -2) + "ая";
+
+  // если уже похоже на женское (на всякий случай)
+  if(last.endsWith("ая")) return last;
+
+  // по умолчанию не трогаем
+  return last;
+}
+
 // Болезни: симптомы + веса методов (чем выше, тем “лучше шанс”)
 const DISEASES = [
   {
@@ -270,8 +289,9 @@ const DISEASES = [
   }
 ];
 
-const FIRST_NAMES = ["Ганс","Марта","Пахом","Виллем","Фрида","Зигмунд","Грета","Ян","Август","Ида","Каспар","Лотта"];
-const LAST_NAMES  = ["Сопливый","Сквозняк","Невезучий","Шаткий","Криповая","Чешуйчатый","Кислая","Бледный","Скрипучий","Плесневый","Сумрачный","Угрюмый"];
+const FIRST_NAMES = ["Ганс","Марта","Пахом","Виллем","Иван","Зигмунд","Лупа","Ян","Август","Пупа","Каспар","Саня","Михаил","Заруб","Каспар"];
+const FEMALE_FIRST_NAMES = new Set(["Марта","Фрида","Грета","Ида","Лотта","Зухра","Санина","Мария",]);  
+const LAST_NAMES  = ["Сопливый","Сквозняк","Невезучий","Шаткий","Криповый","Чешуйчатый","Кислый","Бледный","Скрипучий","Плесневый","Сумрачный","Угрюмый"];
 
 const DOCTOR_POOL = [
   // common: 1 метод
@@ -452,13 +472,18 @@ function findWardByPatient(patientId){
   return state.wards.find(w=>w.occupiedBy===patientId) || null;
 }
 
+  
+
 /* =========================================================
    5) PATIENT GENERATION + QUEUE
 ========================================================= */
 
 function makePatient(){
   const fn = pick(FIRST_NAMES);
-  const ln = pick(LAST_NAMES);
+const isFemale = FEMALE_FIRST_NAMES.has(fn);
+
+let ln = pick(LAST_NAMES);
+if(isFemale) ln = toFemaleLastName(ln);
 
   // шанс на редкость пациента
   const pr = Math.random();
@@ -492,6 +517,7 @@ function makePatient(){
   return {
     id,
     name: `${fn} ${ln}`,
+    gender: isFemale ? "f" : "m",
     rarity: patientRarity,
 
     trueDiseaseId: disease.id,
