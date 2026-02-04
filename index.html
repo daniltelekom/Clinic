@@ -639,6 +639,24 @@ function clearActiveForWard(wardId){
   saveActiveMap(map);
 }
 
+  function ensureShiftTimer(){
+  if(!state.shift) return;
+
+  // durationSec тоже может быть кривой
+  const dur = Number(state.shift.durationSec);
+  if(!Number.isFinite(dur) || dur <= 0){
+    state.shift.durationSec = 20*60; // твои 20 минут
+  }
+
+  const endAt = Number(state.shift.endAt);
+
+  // если endAt отсутствует/битый — создаём заново
+  if(!Number.isFinite(endAt) || endAt <= 0){
+    state.shift.endAt = now() + Number(state.shift.durationSec) * 1000;
+    saveState();
+  }
+}
+
 /* =========================================================
    4) HELPERS
 ========================================================= */
@@ -2070,6 +2088,15 @@ function showResult(ward){
 }
 
 function refreshVisibleUI(){
+  // если смена закончилась, но мы не на экране итогов — перекидываем
+  if(!state.shift?.active){
+    const shiftEndVisible = document.getElementById("screen-shiftend").classList.contains("active");
+    if(!shiftEndVisible){
+      renderShiftEnd();
+      showScreen("shiftend");
+    }
+  }
+
   const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
   const patientVisible = document.getElementById("screen-patient").classList.contains("active");
 
@@ -2122,11 +2149,14 @@ function processTreatmentsTick(){
 }
 
 setInterval(()=>{
+  ensureShiftTimer();
+
   const endAt = Number(state.shift?.endAt);
-if(state.shift?.active && Number.isFinite(endAt) && now() >= endAt){
-  endShift();
-  return;
-}
+  if(state.shift?.active && now() >= endAt){
+    endShift();
+    return;
+  }
+
   processQueueTick();
   processTreatmentsTick();
   refreshVisibleUI();
