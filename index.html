@@ -1515,25 +1515,24 @@ function renderPatient(patientId){
   }
 
   elPatientTitle.textContent = p.name;
-  elPatientSub.textContent = p.visibleSymptoms.join(", ");
-
-  const d = getDiseaseById(p.trueDiseaseId);
-
-const hintMap = {
-  herbalism: "Пахнет травами и сыростью. Организм просит настой.",
-  prayer: "Шепчет молитвы даже во сне. Тут без святости никак.",
-  bloodletting: "Пульс тяжёлый, кровь будто густая. Пиявки облизываются.",
-  demonology: "Тени в углах двигаются быстрее нормы. Это уже не медицина.",
-  hypnosis: "Глаза стеклянные, реагирует на голос странно. Можно “внушать”.",
-  amputation: "Гниёт локально. Пахнет решением без сантиментов.",
-  charms: "Боится слов и символов. Странно, но работает."
-};
-
-const clue = hintMap[d.cureBy] || "Симптомы намекают на что-то очевидное. Но ты же врач.";
-elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
   const disease = getDiseaseById(p.trueDiseaseId);
-  elPatientDisease.textContent = p.knownDisease ? disease.name :` ? (${disease.name} под вопросом)`;
+
+  // --- подсказка в тексте ---
+  const hintMap = {
+    herbalism: "Пахнет травами и сыростью. Организм просит настой.",
+    prayer: "Шепчет молитвы даже во сне. Тут без святости никак.",
+    bloodletting: "Пульс тяжёлый, кровь будто густая. Пиявки облизываются.",
+    demonology: "Тени в углах двигаются быстрее нормы. Это уже не медицина.",
+    hypnosis: "Глаза стеклянные, реагирует на голос странно. Можно “внушать”.",
+    amputation: "Гниёт локально. Пахнет решением без сантиментов.",
+    charms: "Боится слов и символов. Странно, но работает."
+  };
+
+  const clue = hintMap[disease.cureBy] || "Симптомы намекают на что-то очевидное. Но ты же врач.";
+  elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
+
+  elPatientDisease.textContent = p.knownDisease `? disease.name : ? (${disease.name} под вопросом)`;
 
   // 1) фиксируем 4 опции лечения один раз на пациента
   if(!p.treatmentOptions){
@@ -1544,13 +1543,34 @@ elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
   // 2) фиксируем советы один раз, пока не сменили врачей
   if(!p.doctorAdviceCache){
-  const docs = dutyDoctors().filter(Boolean); // <-- важно
-  p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, options));
-  saveState();
-}
+    const docs = dutyDoctors().filter(Boolean);
+    p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, options));
+    saveState();
+  }
   elAdvice.innerHTML = p.doctorAdviceCache.join("<br>");
 
-  // если пациент уже имеет результат в палате — показываем результат
+  // --- LAB UI (обновляем состояние кнопки) ---
+  const max = state.lab?.maxPerPatient ?? 2;
+  const used = p.labUsed ?? 0;
+  const cost = state.lab?.costCoins ?? 15;
+
+  const shown = new Set(p.visibleSymptoms || []);
+  const hidden = (disease.symptoms || []).filter(s => !shown.has(s));
+
+  const canLab = state.shift?.active
+    && used < max
+    && state.coins >= cost
+    && hidden.length > 0;
+
+  elLabBtn.disabled = !canLab;
+  elLabSub.textContent =` Откроет новый симптом • Цена: ${cost} монет`;
+  elLabHint.textContent =
+    hidden.length === 0 ? "Все симптомы уже известны. Пациент почти как учебник." :
+    used >= max ? `Лимит исследований исчерпан (${used}/${max}).` :
+    state.coins < cost ? `Не хватает монет (${state.coins}/${cost}). `:
+   ` Исследований: ${used}/${max};`
+
+  // --- приоритет: результат / активное лечение ---
   const ward = findWardByPatient(patientId);
   const active = ward ? getActiveForWard(ward.id) : null;
 
@@ -1563,6 +1583,10 @@ elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
     showActive(active);
     return;
   }
+
+  // иначе показываем варианты лечения
+  showTreat(options);
+}
 
   // --- LAB UI ---
 const max = state.lab?.maxPerPatient ?? 2;
@@ -1591,6 +1615,7 @@ elLabHint.textContent =
 }
 
 function labResearchSelected(){
+  if(!state.shift?.active) return;
   if(!state.selectedPatientId) return;
   const p = patientById(state.selectedPatientId);
   if(!p) return;
