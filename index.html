@@ -300,12 +300,16 @@ const DISEASES = [
     name:"Миазменная лихорадка",
     rarity: RARITY.COMMON,
     symptoms:["Жар","Озноб","Тяжесть в груди"],
+    cureBy: "herbalism",
+  badBy: "bloodletting",
     weights:{ herbalism: 1.2, prayer: 1.0, bloodletting: 0.8, hypnosis: 0.9, charms: 1.0, demonology: 0.6, amputation: 0.2 }
   },
   {
     id:"black_spots",
     name:"Чёрные пятна",
     rarity: RARITY.RARE,
+    cureBy: "bloodletting",
+  badBy: "amputation",
     symptoms:["Чёрные пятна","Слабость","Мрачные речи"],
     weights:{ bloodletting: 1.3, demonology: 1.1, herbalism: 0.9, prayer: 0.8, hypnosis: 0.7, charms: 1.0, amputation: 0.3 }
   },
@@ -314,6 +318,8 @@ const DISEASES = [
     name:"Стеклянный кашель",
     rarity: RARITY.COMMON,
     symptoms:["Кашель","Сухость","Головная муть"],
+   cureBy: "herbalism",
+  badBy: "amputation",
     weights:{ herbalism: 1.2, hypnosis: 1.0, prayer: 0.9, bloodletting: 0.7, charms: 0.8, demonology: 0.5, amputation: 0.1 }
   },
   {
@@ -321,6 +327,8 @@ const DISEASES = [
     name:"Святые черви",
     rarity: RARITY.LEGENDARY,
     symptoms:["Шепчет молитвы","Пустой взгляд","Зуд под кожей"],
+    cureBy: "prayer",
+  badBy: "bloodletting",
     weights:{ prayer: 1.3, demonology: 1.2, charms: 1.1, hypnosis: 0.9, herbalism: 0.7, bloodletting: 0.6, amputation: 0.4 }
   },
   {
@@ -328,6 +336,8 @@ const DISEASES = [
     name:"Костяная плесень",
     rarity: RARITY.RARE,
     symptoms:["Боль в костях","Плесень на повязках","Скрип в суставах"],
+    cureBy: "amputation",
+  badBy: "hypnosis",
     weights:{ amputation: 1.2, herbalism: 0.9, bloodletting: 0.8, prayer: 0.8, demonology: 0.9, hypnosis: 0.6, charms: 0.7 }
   }
 ];
@@ -857,51 +867,36 @@ function rollOutcome(patientId, treatmentId, wardId){
   const w = wardById(wardId);
   const disease = getDiseaseById(p.trueDiseaseId);
 
-  // базовый “качество выбора” от метода относительно болезни
-  const methodScore = scoreMethodForDisease(treatmentId, disease); // 0.2..1.3
-  // палата немного бустит успех (по сумме статов)
-  const wardPower = (w.comfort + w.cleanliness + w.ventilation + w.light) / 24; // ~0.16..?
-  // штраф если дежурные не умеют метод
-  const docMul = doctorSkillPenalty(treatmentId);
-
-  // итоговая вероятность хороших исходов
-  // clamp в разумные рамки
-  let goodFactor = (0.55 * methodScore) + (0.20 * wardPower);
-  goodFactor = Math.max(0.15, Math.min(0.95, goodFactor));
-  goodFactor *= docMul;
-
-  const r = Math.random();
-
-  // раскладываем исходы:
-  // больше goodFactor -> больше шансов cure/disfigured/infected
-  // меньше -> worsened/death
+  // 1) базовый исход по правилу болезни
   let kind;
 
-  // вероятность смерти растёт при плохих условиях
-  const deathChance = Math.max(0.04, 0.18 - goodFactor*0.12); // примерно 4%..18%
-  const worsenChance = Math.max(0.10, 0.38 - goodFactor*0.25);
+  if(treatmentId === disease.cureBy){
+    kind = OUTCOMES.CURE;
+  } else if(treatmentId === disease.badBy){
+    // плохой метод: гарантированно плохо, но палата может "смягчить"
+    kind = OUTCOMES.WORSENED;
+  } else {
+    // нейтральный метод: "помог частично, но с приколом"
+    // чистота палаты влияет: чем чище, тем меньше INFECTED
+    const clean = w.cleanliness ?? 1;
+    kind = (clean >= 4) ? OUTCOMES.DISFIGURED : OUTCOMES.INFECTED;
+  }
 
-  // часть “успехов” намеренно сомнительная (чёрная комедия)
-  const cureChance = Math.max(0.18, goodFactor*0.45);
-  const disfigChance = Math.max(0.12, goodFactor*0.30);
-  const infectChance = Math.max(0.10, goodFactor*0.22);
+  // 2) Комбо палаты: смягчение плохих исходов
+  // Комфорт 5+ может превратить WORSENED -> DISFIGURED (пациент выжил, но с минусами)
+  if(kind === OUTCOMES.WORSENED){
+    const comfort = w.comfort ?? 1;
+    if(comfort >= 5) kind = OUTCOMES.DISFIGURED;
+  }
 
-  // нормализуем суммы
-  const sum = deathChance + worsenChance + cureChance + disfigChance + infectChance;
-  const a = deathChance/sum;
-  const b = worsenChance/sum;
-  const c = cureChance/sum;
-  const d = disfigChance/sum;
-  const e = infectChance/sum;
+  // 3) Доктора: если никто не умеет метод, нейтральный становится хуже
+  const docMul = doctorSkillPenalty(treatmentId);
+  if(docMul < 1.0){
+    if(kind === OUTCOMES.DISFIGURED) kind = OUTCOMES.INFECTED;
+    else if(kind === OUTCOMES.INFECTED) kind = OUTCOMES.WORSENED;
+  }
 
-  const x = r;
-  if(x < a) kind = OUTCOMES.DEATH;
-  else if(x < a+b) kind = OUTCOMES.WORSENED;
-  else if(x < a+b+c) kind = OUTCOMES.CURE;
-  else if(x < a+b+c+d) kind = OUTCOMES.DISFIGURED;
-  else kind = OUTCOMES.INFECTED;
-
-  // награды/штрафы: деньги зависят и от репутации (чем выше — тем дороже услуги)
+  // 4) Награды/штрафы можно оставить как у тебя (switch(kind))
   const repMul = 1 + Math.max(-10, Math.min(50, state.reputation)) * 0.01;
 
   let coinsDelta=0, repDelta=0, bioDelta=0;
@@ -930,7 +925,6 @@ function rollOutcome(patientId, treatmentId, wardId){
       break;
   }
 
-  // XP тип: для клиники/врачей (пока простая схема)
   const xpKind =
     kind === OUTCOMES.WORSENED ? "complication" :
     kind === OUTCOMES.DEATH ? "death" :
@@ -943,7 +937,6 @@ function rollOutcome(patientId, treatmentId, wardId){
     reputationDelta: repDelta,
     biomaterialDelta: bioDelta,
     flavor: makeFlavor(kind, treatmentId),
-
     treatmentId,
     patientId,
     wardId,
@@ -1523,6 +1516,21 @@ function renderPatient(patientId){
 
   elPatientTitle.textContent = p.name;
   elPatientSub.textContent = p.visibleSymptoms.join(", ");
+
+  const d = getDiseaseById(p.trueDiseaseId);
+
+const hintMap = {
+  herbalism: "Пахнет травами и сыростью. Организм просит настой.",
+  prayer: "Шепчет молитвы даже во сне. Тут без святости никак.",
+  bloodletting: "Пульс тяжёлый, кровь будто густая. Пиявки облизываются.",
+  demonology: "Тени в углах двигаются быстрее нормы. Это уже не медицина.",
+  hypnosis: "Глаза стеклянные, реагирует на голос странно. Можно “внушать”.",
+  amputation: "Гниёт локально. Пахнет решением без сантиментов.",
+  charms: "Боится слов и символов. Странно, но работает."
+};
+
+const clue = hintMap[d.cureBy] || "Симптомы намекают на что-то очевидное. Но ты же врач.";
+elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
   const disease = getDiseaseById(p.trueDiseaseId);
   elPatientDisease.textContent = p.knownDisease ? disease.name :` ? (${disease.name} под вопросом)`;
