@@ -1532,7 +1532,7 @@ function renderPatient(patientId){
   const clue = hintMap[disease.cureBy] || "Симптомы намекают на что-то очевидное. Но ты же врач.";
   elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
-  elPatientDisease.textContent = p.knownDisease `? disease.name : ? (${disease.name} под вопросом)`;
+  elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
 
   // 1) фиксируем 4 опции лечения один раз на пациента
   if(!p.treatmentOptions){
@@ -1585,32 +1585,6 @@ function renderPatient(patientId){
   }
 
   // иначе показываем варианты лечения
-  showTreat(options);
-}
-
-  // --- LAB UI ---
-const max = state.lab?.maxPerPatient ?? 2;
-const used = p.labUsed ?? 0;
-const cost = state.lab?.costCoins ?? 15;
-
-const d = getDiseaseById(p.trueDiseaseId);
-const shown = new Set(p.visibleSymptoms || []);
-const hidden = (d.symptoms || []).filter(s => !shown.has(s));
-
-const canLab = state.shift?.active
-  && used < max
-  && state.coins >= cost
-  && hidden.length > 0;
-
-elLabBtn.disabled = !canLab;
-
-elLabSub.textContent = `Откроет новый симптом • Цена: ${cost} монет`;
-elLabHint.textContent =
-  hidden.length === 0 ? "Все симптомы уже известны. Пациент почти как учебник." :
-  used >= max ? `Лимит исследований исчерпан (${used}/${max}). `:
-  state.coins < cost ?` Не хватает монет (${state.coins}/${cost}). `:
-  `Исследований: ${used}/${max}`;
-
   showTreat(options);
 }
 
