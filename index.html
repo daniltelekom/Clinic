@@ -105,7 +105,7 @@
 
   <!-- TOP -->
   <div class="topbar">
-    <div class="title">🧪 Чумная клиника 23</div>
+    <div class="title">🧪 Чумная клиника </div>
     <div style="display:flex; gap:8px; align-items:center;">
       <div class="pill">🏥 Ур. <span id="clinic-level">1</span></div>
       <div class="pill">💰 <span id="coins">0</span></div>
@@ -168,6 +168,14 @@
       <div class="muted">Советы дежурных:</div>
       <div id="doctor-advice" class="hint"></div>
     </div>
+
+      <div class="sep"></div>
+
+<button class="btn" id="btn-lab" onclick="labResearchSelected()">
+  🔬 Исследовать в лаборатории
+  <div class="muted" id="lab-sub">Откроет новый симптом</div>
+</button>
+<div class="hint" id="lab-hint"></div>
 
     <!-- Назначить лечение -->
     <div class="panel" id="treat-panel">
@@ -243,8 +251,8 @@ const RARITY = {
   LEGENDARY: "legendary"
 };
 
-const LS_STATE = "plague_state_v3";
-const LS_ACTIVE = "plague_active_map_v3";
+const LS_STATE = "plague_state_v4";
+const LS_ACTIVE = "plague_active_map_v4";
 
 /* =========================================================
    1) DATA: methods / diseases / doctors / names
@@ -359,8 +367,8 @@ unlocks: {
 },
     shift: {
   active: true,
-  durationSec: 8*60,     // 8 минут на тест
-  endAt: now() + 8*60*1000,
+  durationSec: 20*60,     // 8 минут на тест
+  endAt: now() + 20*60*1000,
   cured: 0,
   deaths: 0,
   left: 0
@@ -374,6 +382,11 @@ unlocks: {
       slot1: pickRandomDoctorId(),
   slot2: null, // второй слот заблокирован на старте
     },
+
+    lab: {
+  costCoins: 15,      // цена исследования
+  maxPerPatient: 2    // сколько раз можно ковыряться в одном пациенте
+},
 
     patients: [],
     queue: [],
@@ -429,6 +442,9 @@ function loadState(){
     if(!s.baseWaitSec) s.baseWaitSec=120;
     if(!s.baseTreatSecMin) s.baseTreatSecMin=30;
     if(!s.baseTreatSecMax) s.baseTreatSecMax=60;
+    if(!s.lab) s.lab = { costCoins: 15, maxPerPatient: 2 };
+    if(s.lab.costCoins==null) s.lab.costCoins = 15;
+    if(s.lab.maxPerPatient==null) s.lab.maxPerPatient = 2;
 
     // --- shift migrate ---
 if(!s.shift){
@@ -605,8 +621,8 @@ if(isFemale) ln = toFemaleLastName(ln);
     knownDisease: false,
 
     treatmentOptions: null,
-
     doctorAdviceCache: null,
+    labUsed: 0,
     
   };
 }
@@ -1257,6 +1273,10 @@ const elActiveTimer = document.getElementById("active-treatment-timer");
 const elResultPanel = document.getElementById("result-panel");
 const elResultText = document.getElementById("result-text");
 
+const elLabBtn = document.getElementById("btn-lab");
+const elLabSub = document.getElementById("lab-sub");
+const elLabHint = document.getElementById("lab-hint");
+
 function renderTop(){
   elCoins.textContent = state.coins;
   elRep.textContent = state.reputation;
@@ -1536,7 +1556,70 @@ function renderPatient(patientId){
     return;
   }
 
+  // --- LAB UI ---
+const max = state.lab?.maxPerPatient ?? 2;
+const used = p.labUsed ?? 0;
+const cost = state.lab?.costCoins ?? 15;
+
+const d = getDiseaseById(p.trueDiseaseId);
+const shown = new Set(p.visibleSymptoms || []);
+const hidden = (d.symptoms || []).filter(s => !shown.has(s));
+
+const canLab = state.shift?.active
+  && used < max
+  && state.coins >= cost
+  && hidden.length > 0;
+
+elLabBtn.disabled = !canLab;
+
+elLabSub.textContent = `Откроет новый симптом • Цена: ${cost} монет`;
+elLabHint.textContent =
+  hidden.length === 0 ? "Все симптомы уже известны. Пациент почти как учебник." :
+  used >= max ? `Лимит исследований исчерпан (${used}/${max}). `:
+  state.coins < cost ?` Не хватает монет (${state.coins}/${cost}). `:
+  `Исследований: ${used}/${max}`;
+
   showTreat(options);
+}
+
+function labResearchSelected(){
+  if(!state.selectedPatientId) return;
+  const p = patientById(state.selectedPatientId);
+  if(!p) return;
+
+  // лимит на пациента
+  const max = state.lab?.maxPerPatient ?? 2;
+  if((p.labUsed ?? 0) >= max) return;
+
+  const cost = state.lab?.costCoins ?? 15;
+  if(state.coins < cost) return;
+
+  const d = getDiseaseById(p.trueDiseaseId);
+
+  // какие симптомы уже показаны
+  const shown = new Set(p.visibleSymptoms || []);
+  const hidden = (d.symptoms || []).filter(s => !shown.has(s));
+
+  // если нечего открывать
+  if(hidden.length === 0) return;
+
+  // списываем оплату
+  state.coins -= cost;
+
+  // открываем 1 новый симптом
+  const newSym = pick(hidden);
+  p.visibleSymptoms.push(newSym);
+
+  // счетчик
+  p.labUsed = (p.labUsed ?? 0) + 1;
+
+  // важное: после изменения симптомов можно сбросить кеш советов,
+  // чтобы врачи "отреагировали" (не обязательно, но вкусно)
+  p.doctorAdviceCache = null;
+
+  saveState();
+  renderPatient(p.id);
+  refreshVisibleUI();
 }
 
 function showTreat(options){
@@ -1703,6 +1786,7 @@ window.buyWardB = buyWardB;
 window.startNewShift = startNewShift;  
 window.openStaff = openStaff;
 window.assignDoctorToSlot = assignDoctorToSlot;  
+window.labResearchSelected = labResearchSelected;
 
 </script>
 </body>
