@@ -742,6 +742,7 @@ function doctorConfidence(persona){
 }
 
 function doctorAdviceText(doc, options){
+  if(!doc) return `— <b>Пустой слот</b>: “Назначь врача, иначе лечи на ощупь.”`;
   // doc советует метод, который он знает, если он в options
   const knows = options.filter(o=>doc.methods.includes(o));
   const conf = doctorConfidence(doc.persona);
@@ -764,9 +765,9 @@ function doctorAdviceText(doc, options){
 
 function doctorSkillPenalty(selectedMethod){
   // если ни один дежурный не умеет метод — штраф
-  const docs = dutyDoctors();
-  const any = docs.some(d=>d.methods.includes(selectedMethod));
-  return any ? 1.0 : 0.78; // множитель “шанса хорошего исхода”
+  const docs = dutyDoctors().filter(Boolean); // <-- важно
+  const any = docs.some(d => d.methods.includes(selectedMethod));
+  return any ? 1.0 : 0.78;
 }
 
 /* =========================================================
@@ -1481,10 +1482,10 @@ function renderPatient(patientId){
 
   // 2) фиксируем советы один раз, пока не сменили врачей
   if(!p.doctorAdviceCache){
-    const docs = dutyDoctors();
-    p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, options));
-    saveState();
-  }
+  const docs = dutyDoctors().filter(Boolean); // <-- важно
+  p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, options));
+  saveState();
+}
   elAdvice.innerHTML = p.doctorAdviceCache.join("<br>");
 
   // если пациент уже имеет результат в палате — показываем результат
