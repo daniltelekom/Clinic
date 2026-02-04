@@ -112,6 +112,8 @@
       <div class="pill">⭐ Реп. <span id="rep">0</span></div>
       <div class="pill">🧫 <span id="bio">0</span></div>
       <div class="pill">⏳ <span id="shift-timer">--:--</span></div>
+      <div class="pill">📅 <span id="week-pill">1</span></div>
+      <div class="pill">🎲 <span id="event-pill">—</span></div>
     </div>
   </div>
 
@@ -375,8 +377,52 @@ const DOCTOR_POOL = [
   { id:"doc_hypno", name:"Гипнотизёр Нитка", rarity:RARITY.COMMON,    methods:["hypnosis"], persona:"uncertain" },
 ];
 
+
 function rarityLabel(r){
   return r===RARITY.LEGENDARY ? "Legendary" : r===RARITY.RARE ? "Rare" : "Common";
+}
+
+    const WEEK_EVENTS = [
+  {
+    id: "rat_week",
+    name: "Неделя чумных крыс",
+    desc: "+1 очередь, пациенты быстрее уходят, больше био за смерти в очереди",
+    apply(){
+      state.maxQueue = Math.min(10, state.maxQueue + 1);
+      state.baseWaitSec = Math.max(60, state.baseWaitSec - 25);
+      // бонус био за смерть в очереди реализуем в processQueueTick (см. ниже)
+    }
+  },
+  {
+    id: "fog_week",
+    name: "Неделя густых миазмов",
+    desc: "Очередь терпеливее, но лечить дольше",
+    apply(){
+      state.baseWaitSec = Math.min(220, state.baseWaitSec + 25);
+      state.baseTreatSecMin = Math.round(state.baseTreatSecMin * 1.10);
+      state.baseTreatSecMax = Math.round(state.baseTreatSecMax * 1.10);
+    }
+  },
+  {
+    id: "holy_week",
+    name: "Неделя святого шествия",
+    desc: "Лаборатория дешевле, диагноз даёт больше репутации",
+    apply(){
+      state.lab.costCoins = Math.max(1, state.lab.costCoins - 3);
+      // бонус репутации за диагноз сделаем в labResearchSelected (см. ниже)
+    }
+  },
+];
+
+  function getCurrentEvent(){
+  const id = state?.calendar?.activeEventId;
+  if(!id) return null;
+  return WEEK_EVENTS.find(e => e.id === id) || null;
+}
+
+function pickNewWeekEvent(){
+  const e = pick(WEEK_EVENTS);
+  state.calendar.activeEventId = e.id;
 }
 
 /* =========================================================
@@ -408,6 +454,19 @@ unlocks: {
   labDiscount: 0,     // % скидка 0..50
   queueBuffer: 0,     // +maxQueue
   treatSpeed: 0       // % ускорение лечения
+},
+    base: {
+  maxQueue: 6,
+  baseWaitSec: 120,
+  baseTreatSecMin: 120,
+  baseTreatSecMax: 300,
+  baseLabCost: 15
+},
+
+calendar: {
+  week: 1,
+  shiftInWeek: 1,      // 1..7
+  activeEventId: null
 },
 
     wards: [
@@ -460,6 +519,11 @@ function makeWard(letter){
   };
 }
 
+  function applyPerks(){
+  // очередь
+  state.maxQueue = Math.min(10, 6 + (state.perks?.queueBuffer ?? 0));
+}
+
 function loadState(){
   try{
     const raw = localStorage.getItem(LS_STATE);
@@ -482,6 +546,19 @@ function loadState(){
     if(s.lab.costCoins==null) s.lab.costCoins = 15;
     if(s.lab.maxPerPatient==null) s.lab.maxPerPatient = 2;
     if(!s.perks) s.perks = { labExtra:0, labDiscount:0, queueBuffer:0, treatSpeed:0 };
+    // --- calendar migrate ---
+    if(!s.calendar) s.calendar = { week:1, shiftInWeek:1, activeEventId:null };
+    if(!s.calendar.week) s.calendar.week = 1;
+    if(!s.calendar.shiftInWeek) s.calendar.shiftInWeek = 1;
+    if(s.calendar.activeEventId === undefined) s.calendar.activeEventId = null;
+    // --- base migrate ---
+    if(!s.base) s.base = { maxQueue:6, baseWaitSec:120, baseTreatSecMin:120, baseTreatSecMax:300, baseLabCost:15 };
+    if(s.base.maxQueue==null) s.base.maxQueue = 6;
+    if(s.base.baseWaitSec==null) s.base.baseWaitSec = 120;
+    if(s.base.baseTreatSecMin==null) s.base.baseTreatSecMin = 120;
+    if(s.base.baseTreatSecMax==null) s.base.baseTreatSecMax = 300;
+    if(s.base.baseLabCost==null) s.base.baseLabCost = 15;
+    
 
     // --- shift migrate ---
 if(!s.shift){
@@ -552,6 +629,34 @@ function clearActiveForWard(wardId){
 
 function randInt(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function resetToBase(){
+  // база
+  state.maxQueue = state.base?.maxQueue ?? 6;
+  state.baseWaitSec = state.base?.baseWaitSec ?? 120;
+  state.baseTreatSecMin = state.base?.baseTreatSecMin ?? 120;
+  state.baseTreatSecMax = state.base?.baseTreatSecMax ?? 300;
+
+  // лаба базовая
+  if(!state.lab) state.lab = { costCoins: 15, maxPerPatient: 2 };
+  state.lab.costCoins = state.base?.baseLabCost ?? 15;
+}
+
+function applyPerks(){
+  // очередь из перков лавки
+  state.maxQueue = Math.min(10, (state.base?.maxQueue ?? 6) + (state.perks?.queueBuffer ?? 0));
+  // остальное (лаба скидка/экстра, скорость лечения) ты считаешь на лету в нужных местах и это норм
+}
+
+function applyAllModifiers(){
+  resetToBase();
+  applyPerks();
+
+  const e = getCurrentEvent();
+  if(e && typeof e.apply === "function"){
+    e.apply();
+  }
+}  
 
 function formatLeft(ms){
   ms = Math.max(0, ms);
@@ -703,10 +808,18 @@ function processQueueTick(){
       }else{
         state.reputation -= 1;
       }
+
+      const ev = getCurrentEvent();
+if(ev?.id === "rat_week"){
+  state.biomaterial += 1; // ещё +1 био, крысы довольны
+}
+      
       state.queue.splice(i,1);
       // удалить пациента полностью
       state.patients = state.patients.filter(x=>x.id!==pid);
       changed=true;
+
+      if(state.shift?.active) state.shift.left += 1;
       
     }
   }
@@ -1019,6 +1132,15 @@ function renderShiftEnd(){
 }
 
 function startNewShift(){
+  // --- календарь: продвигаем смены/недели ---
+if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
+
+state.calendar.shiftInWeek += 1;
+if(state.calendar.shiftInWeek > 7){
+  state.calendar.week += 1;
+  state.calendar.shiftInWeek = 1;
+  pickNewWeekEvent();
+}
   state.shift.active = true;
   state.shift.durationSec = state.shift.durationSec || 8*60;
   state.shift.endAt = now() + state.shift.durationSec*1000;
@@ -1038,6 +1160,8 @@ function startNewShift(){
     w.pendingResult = null;
   }
 
+  applyAllModifiers();
+  applyPerks();
   fillQueue();
   saveState();
   showScreen("clinic");
@@ -1077,9 +1201,14 @@ function reconcileState(){
 }
 
 state = loadState();
-reconcileState();  
-// применяем перки к размеру очереди
-state.maxQueue = Math.min(10, 6 + (state.perks?.queueBuffer ?? 0));  
+reconcileState();
+
+// если ещё не выбран ивент на первую неделю, выбираем
+if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
+if(!state.calendar.activeEventId) pickNewWeekEvent();
+
+// применяем базу + перки + ивент
+applyAllModifiers();
 
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
@@ -1391,6 +1520,8 @@ const elRep = document.getElementById("rep");
 const elBio = document.getElementById("bio");
 const elClinicLevel = document.getElementById("clinic-level");
 const elShiftTimer = document.getElementById("shift-timer");
+const elWeekPill = document.getElementById("week-pill");
+const elEventPill = document.getElementById("event-pill");
 
 const elWards = document.getElementById("wards");
 const elQueue = document.getElementById("queue");
@@ -1422,11 +1553,20 @@ function renderTop(){
   elClinicLevel.textContent = state.clinicLevel;
   const left = (state.shift?.endAt ?? now()) - now();
 elShiftTimer.textContent = state.shift?.active ? formatLeft(left) : "END";
+
+  if(elWeekPill) elWeekPill.textContent = state.calendar?.week ?? 1;
+
+const ev = getCurrentEvent();
+if(elEventPill) elEventPill.textContent = ev ? ev.name : "—";
   
 }
 
 function renderClinic(){
   renderTop();
+
+  const ev = getCurrentEvent();
+if(ev){
+}
 
   // wards
   elWards.innerHTML = "";
@@ -1795,7 +1935,12 @@ if((p.labUsed ?? 0) >= max || hidden2.length === 0){
 
 if(p.knownDisease && !p.diagnosisRewarded){
   p.diagnosisRewarded = true;
-  state.reputation = (state.reputation || 0) + 1;
+
+  let repBonus = 1;
+  const ev = getCurrentEvent();
+  if(ev?.id === "holy_week") repBonus = 2; // святость в кредит
+
+  state.reputation = (state.reputation || 0) + repBonus;
   state.coins += 3;
 }
 
