@@ -196,6 +196,7 @@
   <div class="muted" id="lab-sub">Откроет новый симптом</div>
 </button>
 <div class="hint" id="lab-hint"></div>
+    <div class="panel" id="patient-actions"></div>
 
     <!-- Назначить лечение -->
     <div class="panel" id="treat-panel">
@@ -315,6 +316,8 @@ document.addEventListener("click", (e) => {
    0) CONST / ENUMS
 ========================================================= */
 
+const elPatientActions = document.getElementById("patient-actions");
+  
 const OUTCOMES = {
   CURE: "cure",
   DISFIGURED: "disfigured",
@@ -1974,7 +1977,7 @@ function renderClinic(){
 
       const div = document.createElement("div");
       div.className = "listBtn";
-      div.onclick = ()=> tryPlaceOrOpen(pid);
+      div.onclick = ()=> openPatientById(pid);
 
       div.innerHTML = `
         <div class="row">
@@ -2041,6 +2044,7 @@ function tryPlaceOrOpen(patientId){
   if(!state.shift?.active) { openPatientById(patientId); return; }
   // если пациент уже в палате/ожидает результата — открыть
   const ward = findWardByPatient(patientId);
+  const inWard = !!ward;
   if(ward){
     openPatientById(patientId);
     return;
@@ -2090,6 +2094,29 @@ function renderPatient(patientId){
   elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
   elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
+
+  elPatientActions.innerHTML = "";
+
+if(!inWard){
+  const free = state.wards.find(w=>!w.occupiedBy && !w.pendingResult);
+
+  elPatientActions.innerHTML = `
+    <h2>Действия</h2>
+    <button class="btn ok" ${free ? "" : "disabled"} onclick="placeSelectedToFreeWard()">
+      🛏 Положить в палату
+      <div class="muted">${free ? "Отправит в первую свободную палату" : "Нет свободных палат"}</div>
+    </button>
+    <button class="btn" onclick="backToClinic()">
+      ✖ Закрыть карточку
+      <div class="muted">Вернуться в клинику</div>
+    </button>
+  `;
+} else {
+  elPatientActions.innerHTML = `
+    <h2>Действия</h2>
+    <div class="hint">Пациент уже в палате: ${escapeHtml(ward.name)}</div>
+ ` ;
+}
 
   // 1) фиксируем 4 опции лечения один раз на пациента
   if(!p.treatmentOptions){
@@ -2153,6 +2180,23 @@ if(p.knownDisease){
   // иначе показываем варианты лечения
   showTreat(options);
 }
+
+  function placeSelectedToFreeWard(){
+  if(!state.shift?.active) return;
+  const pid = state.selectedPatientId;
+  if(!pid) return;
+
+  const free = state.wards.find(w=>!w.occupiedBy && !w.pendingResult);
+  if(!free) return;
+
+  const ok = assignPatientToWard(pid, free.id);
+  if(ok){
+    saveState();
+    renderPatient(pid);
+    refreshVisibleUI();
+  }
+}
+window.placeSelectedToFreeWard = placeSelectedToFreeWard;
 
 function labResearchSelected(){
   if(!state.shift?.active) return;
