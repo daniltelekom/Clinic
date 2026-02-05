@@ -279,11 +279,22 @@
 
 function showCrash(title, info){
   console.log(title, info);
-  // чтобы не забивать алертом до смерти, режем длину
+
+  const isBlankScriptError =
+    info?.message === "Script error." &&
+    (!info?.file || info.file === "") &&
+    (info?.line === 0) &&
+    (info?.col === 0) &&
+    (!info?.stack);
+
+  if(isBlankScriptError){
+    console.log("IGNORED blank Script error (Telegram/WebView).");
+    return;
+  }
+
   const text = title + "\n" + JSON.stringify(info, null, 2);
   alert(text.length > 1200 ? text.slice(0, 1200) + "\n...(cut)" : text);
 }
-
 window.addEventListener("error", (e) => {
   showCrash("JS упал (error)", {
     message: e.message,
@@ -1393,8 +1404,6 @@ function startNewShift(){
    11) FLOW: assign / complete / pending / discharge
 ========================================================= */
 
-state = loadState();
-
 function reconcileState(){
   // если в палате лежит id пациента, которого нет в patients — чистим палату
   for(const w of state.wards){
@@ -1743,8 +1752,6 @@ const elRep = document.getElementById("rep");
 const elBio = document.getElementById("bio");
 const elClinicLevel = document.getElementById("clinic-level");
 const elShiftTimer = document.getElementById("shift-timer");
-const elWeekPill = document.getElementById("week-pill");
-const elEventPill = document.getElementById("event-pill");
 const elWeekTitle = document.getElementById("week-title");
 const elWeekDesc  = document.getElementById("week-desc");
 const elWeekShift = document.getElementById("week-shift");
@@ -1788,10 +1795,7 @@ function renderTop(){
   const left = (state.shift?.endAt ?? now()) - now();
   elShiftTimer.textContent = state.shift?.active ? formatLeft(left) : "END";
 
-  if(elWeekPill) elWeekPill.textContent = state.calendar?.week ?? 1;
-
   const ev = getCurrentEvent();
-  if(elEventPill) elEventPill.textContent = ev ? ev.name : "—";
 
   const week = state.calendar?.week ?? 1;
   const shiftInWeek = state.calendar?.shiftInWeek ?? 1;
