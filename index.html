@@ -1840,49 +1840,64 @@ if(ev){
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="row">
-        <div>
-          <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
-          <div class="listSub">${occ}</div>
-        </div>
-        <div class="right">${badge}</div>
-      </div>
+  <div class="row">
+    <div>
+      <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
+      <div class="listSub">${occ}</div>
+    </div>
+    <div class="right">${badge}</div>
+  </div>
 
-      <div class="hint">
-        Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
-      </div>
+  <div class="hint">
+    Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
+  </div>
 
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','comfort')" ${canUpgrade(w,'comfort')?'':'disabled'}>
-          Комфорт +1 (${upgradeCost(w,'comfort')})
-        </button>
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','cleanliness')" ${canUpgrade(w,'cleanliness')?'':'disabled'}>
-          Чистота +1 (${upgradeCost(w,'cleanliness')})
-        </button>
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','ventilation')" ${canUpgrade(w,'ventilation')?'':'disabled'}>
-          Вент +1 (${upgradeCost(w,'ventilation')})
-        </button>
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','light')" ${canUpgrade(w,'light')?'':'disabled'}>
-          Свет +1 (${upgradeCost(w,'light')})
-        </button>
-      </div>
+  <div class="grid2" style="margin-top:10px">
+    <button class="btn small" onclick="upgradeWardStat('${w.id}','comfort')" ${canUpgrade(w,'comfort')?'':'disabled'}>
+      Комфорт +1 (${upgradeCost(w,'comfort')})
+    </button>
+    <button class="btn small" onclick="upgradeWardStat('${w.id}','cleanliness')" ${canUpgrade(w,'cleanliness')?'':'disabled'}>
+      Чистота +1 (${upgradeCost(w,'cleanliness')})
+    </button>
+    <button class="btn small" onclick="upgradeWardStat('${w.id}','ventilation')" ${canUpgrade(w,'ventilation')?'':'disabled'}>
+      Вент +1 (${upgradeCost(w,'ventilation')})
+    </button>
+    <button class="btn small" onclick="upgradeWardStat('${w.id}','light')" ${canUpgrade(w,'light')?'':'disabled'}>
+      Свет +1 (${upgradeCost(w,'light')})
+    </button>
+  </div>
 
-      ${w.pendingResult ? `
-        <div class="sep"></div>
-        <button class="btn ok" onclick="openPatientById('${w.pendingResult.patientId}')">
-          👁 Посмотреть результат
-          <div class="muted">${escapeHtml(w.pendingResult.flavor || "")}</div>
-        </button>
-      ` : (w.occupiedBy ? `
-        <div class="sep"></div>
-        <button class="btn" onclick="openPatientById('${w.occupiedBy}')">
-          🧾 Открыть пациента
-          <div class="muted">Назначить лечение или посмотреть таймер</div>
-        </button>
-      ` : ``)}
-    `;
-    elWards.appendChild(card);
+  ${
+    w.pendingResult ? `
+      <div class="sep"></div>
+      <button class="btn ok" onclick="openPatientById('${w.pendingResult.patientId}')">
+        👁 Посмотреть результат
+        <div class="muted">${escapeHtml(w.pendingResult.flavor || "")}</div>
+      </button>
+    ` : (w.occupiedBy ? `
+      <div class="sep"></div>
+      ${
+        (() => {
+          const active2 = getActiveForWard(w.id);
+          if(active2 && (active2.endAt - now()) <= 0){
+            return `
+              <button class="btn ok" onclick="completeTreatment('${w.id}')">
+                ✅ Забрать результат
+                <div class="muted">Лечение закончено</div>
+              </button>
+           ` ;
+          }
+          return `
+            <button class="btn" onclick="openPatientById('${w.occupiedBy}')">
+              🧾 Открыть пациента
+              <div class="muted">Назначить лечение или посмотреть таймер</div>
+            </button>
+         ` ;
+        })()
+      }
+   `  : ``)
   }
+`;
 
   // duty doctors
   elDuty.innerHTML = "";
@@ -2273,14 +2288,19 @@ function showResult(ward){
 }
 
 function refreshVisibleUI(){
-  // если смена закончилась, но мы не на экране итогов — перекидываем
+  // если смена закончилась — всегда показываем итоги и стопаем остальной рендер
   if(!state.shift?.active){
-    const shiftEndVisible = document.getElementById("screen-shiftend").classList.contains("active");
-    if(!shiftEndVisible){
-      renderShiftEnd();
-      showScreen("shiftend");
-    }
+    renderShiftEnd();
+    showScreen("shiftend");
+    return;
   }
+
+  const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
+  const patientVisible = document.getElementById("screen-patient").classList.contains("active");
+
+  if(clinicVisible) renderClinic();
+  if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
+}
 
   const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
   const patientVisible = document.getElementById("screen-patient").classList.contains("active");
