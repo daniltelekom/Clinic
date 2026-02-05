@@ -2075,6 +2075,9 @@ function renderPatient(patientId){
     return;
   }
 
+   const ward = findWardByPatient(patientId);
+  const inWard = !!ward;
+
   elPatientTitle.textContent = p.name;
 
   const disease = getDiseaseById(p.trueDiseaseId);
@@ -2164,7 +2167,6 @@ if(p.knownDisease){
 }
 
   // --- приоритет: результат / активное лечение ---
-  const ward = findWardByPatient(patientId);
   const active = ward ? getActiveForWard(ward.id) : null;
 
   if(ward && ward.pendingResult && ward.pendingResult.patientId===patientId){
