@@ -586,30 +586,36 @@ function loadState(){
   try{
     const raw = localStorage.getItem(LS_STATE);
     if(!raw) return defaultState();
+
     const s = JSON.parse(raw);
 
     // миграции на случай старых версий
     if(s.coins==null) s.coins=0;
     if(s.reputation==null) s.reputation=0;
     if(s.biomaterial==null) s.biomaterial=0;
-    if(!s.wards || !Array.isArray(s.wards)) s.wards = [makeWard("A"), makeWard("B")];
+
+    if(!s.wards || !Array.isArray(s.wards)) s.wards = [makeWard("A")];
     if(!s.queue) s.queue=[];
     if(!s.patients) s.patients=[];
     if(!s.duty) s.duty={slot1:pickRandomDoctorId(), slot2:pickRandomDoctorId(true)};
     if(!s.maxQueue) s.maxQueue=6;
     if(!s.baseWaitSec) s.baseWaitSec=120;
-    if(!s.baseTreatSecMin) s.baseTreatSecMin=30;
-    if(!s.baseTreatSecMax) s.baseTreatSecMax=60;
+    if(!s.baseTreatSecMin) s.baseTreatSecMin=120;
+    if(!s.baseTreatSecMax) s.baseTreatSecMax=300;
+
     if(!s.lab) s.lab = { costCoins: 15, maxPerPatient: 2 };
     if(s.lab.costCoins==null) s.lab.costCoins = 15;
     if(s.lab.maxPerPatient==null) s.lab.maxPerPatient = 2;
+
     if(!s.perks) s.perks = { labExtra:0, labDiscount:0, queueBuffer:0, treatSpeed:0 };
-    // --- calendar migrate ---
+
+    // calendar migrate
     if(!s.calendar) s.calendar = { week:1, shiftInWeek:1, activeEventId:null };
     if(!s.calendar.week) s.calendar.week = 1;
     if(!s.calendar.shiftInWeek) s.calendar.shiftInWeek = 1;
     if(s.calendar.activeEventId === undefined) s.calendar.activeEventId = null;
-    // --- base migrate ---
+
+    // base migrate
     if(!s.base) s.base = { maxQueue:6, baseWaitSec:120, baseTreatSecMin:120, baseTreatSecMax:300, baseLabCost:15 };
     if(s.base.maxQueue==null) s.base.maxQueue = 6;
     if(s.base.baseWaitSec==null) s.base.baseWaitSec = 120;
@@ -619,52 +625,48 @@ function loadState(){
 
     if(!s.rewards) s.rewards = { pending:null, chosenId:null };
     if(s.rewards.chosenId === undefined) s.rewards.chosenId = null;
-    // если в старом сейве были rewards.pending с apply (которого уже нет) — просто пересоздаём
-if(s.rewards?.pending && Array.isArray(s.rewards.pending)){
-  const hasLegacyApply = s.rewards.pending.some(x => x && x.apply !== undefined);
-  const missingFields = s.rewards.pending.some(x => 
-    !x || x.type === undefined || x.title === undefined || x.desc === undefined || x.value === undefined
-  );
 
-  // если в pending лежит старая структура (там когда-то был apply или нет нужных полей)
-  if(hasLegacyApply || missingFields){
-    s.rewards.pending = null;
-    s.rewards.chosenId = null;
-  }
-}
-  }
-}
-    
+    // если в pending старая структура — сброс
+    if(s.rewards?.pending && Array.isArray(s.rewards.pending)){
+      const hasLegacyApply = s.rewards.pending.some(x => x && x.apply !== undefined);
+      const missingFields = s.rewards.pending.some(x =>
+        !x || x.type === undefined || x.title === undefined || x.desc === undefined || x.value === undefined
+      );
+      if(hasLegacyApply || missingFields){
+        s.rewards.pending = null;
+        s.rewards.chosenId = null;
+      }
+    }
 
-    // --- shift migrate ---
-if(!s.shift){
-  s.shift = {
-    active: true,
-    durationSec: 8*60,
-    endAt: Date.now() + 8*60*1000,
-    cured: 0,
-    deaths: 0,
-    left: 0
-  };
-}
-if(typeof s.shift.active !== "boolean") s.shift.active = true;
-if(!s.shift.durationSec) s.shift.durationSec = 8*60;
-if(!s.shift.endAt) s.shift.endAt = Date.now() + s.shift.durationSec*1000;
-if(s.shift.cured==null) s.shift.cured = 0;
-if(s.shift.deaths==null) s.shift.deaths = 0;
-if(s.shift.left==null) s.shift.left = 0;
+    // shift migrate
+    if(!s.shift){
+      s.shift = {
+        active: true,
+        durationSec: 20*60,
+        endAt: Date.now() + 20*60*1000,
+        cured: 0,
+        deaths: 0,
+        left: 0
+      };
+    }
+    if(typeof s.shift.active !== "boolean") s.shift.active = true;
+    if(!s.shift.durationSec) s.shift.durationSec = 20*60;
+    if(!s.shift.endAt) s.shift.endAt = Date.now() + s.shift.durationSec*1000;
+    if(s.shift.cured==null) s.shift.cured = 0;
+    if(s.shift.deaths==null) s.shift.deaths = 0;
+    if(s.shift.left==null) s.shift.left = 0;
 
-if(!s.unlocks) s.unlocks = { wardB:false, staffScreen:true };
-if(typeof s.unlocks.wardB !== "boolean") s.unlocks.wardB = false;
-if(typeof s.unlocks.staffScreen !== "boolean") s.unlocks.staffScreen = true;
+    if(!s.unlocks) s.unlocks = { wardB:false, staffScreen:true };
+    if(typeof s.unlocks.wardB !== "boolean") s.unlocks.wardB = false;
+    if(typeof s.unlocks.staffScreen !== "boolean") s.unlocks.staffScreen = true;
 
-// если раньше в сейве уже была палата B, считаем что куплена
-if(Array.isArray(s.wards) && s.wards.some(w => w.id === "ward_B")){
-  s.unlocks.wardB = true;
-}
+    // если раньше была палата B — считаем купленной
+    if(Array.isArray(s.wards) && s.wards.some(w => w.id === "ward_B")){
+      s.unlocks.wardB = true;
+    }
 
     return s;
-  }catch{
+  } catch(e){
     return defaultState();
   }
 }
@@ -1895,6 +1897,7 @@ if(ev){
               <div class="muted">Назначить лечение или посмотреть таймер</div>
             </button>
          ` ;
+          elWards.appendChild(card);
         })()
       }
    `  : ``)
