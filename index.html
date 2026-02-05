@@ -1013,6 +1013,7 @@ const treatSec = Math.max(10, Math.round(baseTreat * (1 - speed/100)));
     // флаг “известная болезнь”
     knownDisease: false,
     diagnosisRewarded: false,
+    clue: null,
 
     treatmentOptions: null,
     doctorAdviceCache: null,
@@ -2213,9 +2214,14 @@ function renderPatient(patientId){
 
   elPatientTitle.textContent = p.name;
 
-  const disease = getDiseaseById(p.trueDiseaseId);
-const clue = pickClueForDisease(disease);
-elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${clue}`;
+const disease = getDiseaseById(p.trueDiseaseId);
+
+if(!p.clue){
+  p.clue = pickClueForDisease(disease);
+  saveState();
+}
+
+elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}`;
 
   elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
 
@@ -2361,6 +2367,7 @@ if(state.coins < cost) return;
   // важное: после изменения симптомов можно сбросить кеш советов,
   // чтобы врачи "отреагировали" (не обязательно, но вкусно)
   p.doctorAdviceCache = null;
+  p.clue = null;
 
   // Диагноз подтверждён, если сделали max исследований ИЛИ если скрытых симптомов больше нет
 const disease2 = getDiseaseById(p.trueDiseaseId);
