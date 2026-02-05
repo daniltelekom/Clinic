@@ -555,13 +555,89 @@ const FEMALE_FIRST_NAMES = new Set(["Марта","Фрида","Грета","Ид
 const LAST_NAMES  = ["Сопливый","Сквозняк","Невезучий","Шаткий","Криповый","Чешуйчатый","Кислый","Бледный","Скрипучий","Плесневый","Сумрачный","Угрюмый"];
 
 const DOCTOR_POOL = [
-  // common: 1 метод
-  { id:"doc_herb",  name:"Доктор Травник",   rarity:RARITY.RARE,      methods:["herbalism","charms"], persona:"confident" },
-  { id:"doc_blood", name:"Доктор Пиявка",    rarity:RARITY.COMMON,    methods:["bloodletting"], persona:"fanatic" },
-  { id:"doc_priest",name:"Отец Кадило",      rarity:RARITY.RARE,      methods:["prayer","charms"], persona:"confident" },
-  { id:"doc_demo",  name:"Маг Пепел",        rarity:RARITY.LEGENDARY, methods:["demonology","hypnosis","charms"], persona:"trickster" },
-  { id:"doc_amput", name:"Мастер Пила",      rarity:RARITY.RARE,      methods:["amputation","bloodletting"], persona:"cold" },
-  { id:"doc_hypno", name:"Гипнотизёр Нитка", rarity:RARITY.COMMON,    methods:["hypnosis"], persona:"uncertain" },
+  // ===== existing (слегка расширим данными) =====
+  { id:"doc_herb",  name:"Доктор Травник",   title:"Знахарь с дипломом от леса", rarity:RARITY.RARE,
+    methods:["herbalism","charms"], persona:"confident",
+    likes:["herbalism"], hates:["amputation"], portrait:"[img]" ,
+    bio:"Пахнет аптекой и превосходством. Лечит листьями, словами и пассивной агрессией."
+  },
+  { id:"doc_blood", name:"Доктор Пиявка",    title:"Фанат красного", rarity:RARITY.COMMON,
+    methods:["bloodletting"], persona:"fanatic",
+    likes:["bloodletting"], hates:["hypnosis"], portrait:"[img]",
+    bio:"Считает, что проблема всегда в лишней крови. Иногда он прав. Иногда пациент просто кончается."
+  },
+  { id:"doc_priest",name:"Отец Кадило",      title:"Священник-практик", rarity:RARITY.RARE,
+    methods:["prayer","charms"], persona:"confident",
+    likes:["prayer"], hates:["demonology"], portrait:"[img]",
+    bio:"Лечит молитвой, дымом и моральным давлением. Иногда помогает. Иногда только ему."
+  },
+  { id:"doc_demo",  name:"Маг Пепел",        title:"Юрист по аду", rarity:RARITY.LEGENDARY,
+    methods:["demonology","hypnosis","charms"], persona:"trickster",
+    likes:["demonology"], hates:["herbalism"], portrait:"[img]",
+    bio:"Обещает 'быстро и эффективно'. В договоре мелким шрифтом: 'возможно, не вам'."
+  },
+  { id:"doc_amput", name:"Мастер Пила",      title:"Хирург без сантиментов", rarity:RARITY.RARE,
+    methods:["amputation","bloodletting"], persona:"cold",
+    likes:["amputation"], hates:["prayer"], portrait:"[img]",
+    bio:"Уверен, что лишнее мешает жить. У него есть пила и аргументы."
+  },
+  { id:"doc_hypno", name:"Гипнотизёр Нитка", title:"Психотерапия до изобретения психотерапии", rarity:RARITY.COMMON,
+    methods:["hypnosis"], persona:"uncertain",
+    likes:["hypnosis"], hates:["bloodletting"], portrait:"[img]",
+    bio:"Говорит тихо, смотрит странно, работает непредсказуемо. Как и жизнь."
+  },
+
+  // ===== NEW (ещё 10 штук) =====
+  { id:"doc_leech", name:"Сестра Жало", title:"Пиявки, банки, уверенность", rarity:RARITY.COMMON,
+    methods:["bloodletting","herbalism"], persona:"confident",
+    likes:["bloodletting"], hates:["demonology"], portrait:"[img]",
+    bio:"Считает, что баланс жидкостей решает всё. На жалобы отвечает банкой."
+  },
+  { id:"doc_candle", name:"Мать Свеча", title:"Заговоры и восковые диагнозы", rarity:RARITY.RARE,
+    methods:["charms","prayer"], persona:"confident",
+    likes:["charms"], hates:["amputation"], portrait:"[img]",
+    bio:"Лечит символами, узлами и косым взглядом. В её комнате всегда пахнет воском и тайнами."
+  },
+  { id:"doc_bell", name:"Доктор Колокол", title:"Успокоит даже смерть", rarity:RARITY.RARE,
+    methods:["hypnosis","charms"], persona:"cold",
+    likes:["hypnosis"], hates:["bloodletting"], portrait:"[img]",
+    bio:"Его голос ровный как приговор. Пациенты перестают паниковать. Некоторые перестают вообще."
+  },
+  { id:"doc_ash", name:"Провизор Сажа", title:"Аптекарь с грязной совестью", rarity:RARITY.COMMON,
+    methods:["herbalism","hypnosis"], persona:"trickster",
+    likes:["herbalism"], hates:["prayer"], portrait:"[img]",
+    bio:"Размешивает настои так, будто варит судьбу. Иногда варит реально судьбу."
+  },
+  { id:"doc_sawbones", name:"Костоправ Гвоздь", title:"Руки как тиски", rarity:RARITY.COMMON,
+    methods:["amputation","herbalism"], persona:"fanatic",
+    likes:["amputation"], hates:["charms"], portrait:"[img]",
+    bio:"Ненавидит 'шарлатанские свечки'. Верит только в железо, бинт и хруст."
+  },
+  { id:"doc_inquis", name:"Инквизитор Печать", title:"Святость с протоколом", rarity:RARITY.LEGENDARY,
+    methods:["prayer","hypnosis"], persona:"cold",
+    likes:["prayer"], hates:["demonology"], portrait:"[img]",
+    bio:"Требует порядок, чистые отчёты и чистую душу. Не обязательно пациента."
+  },
+  { id:"doc_grave", name:"Доктор Могильник", title:"Патологоанатом заранее", rarity:RARITY.RARE,
+    methods:["bloodletting","charms"], persona:"uncertain",
+    likes:["charms"], hates:["herbalism"], portrait:"[img]",
+    bio:"Всегда готов к худшему. Иногда это помогает. Иногда просто настроение такое."
+  },
+  { id:"doc_salt", name:"Солевар Седой", title:"Лечит 'простым'", rarity:RARITY.COMMON,
+    methods:["herbalism","prayer"], persona:"uncertain",
+    likes:["herbalism"], hates:["hypnosis"], portrait:"[img]",
+    bio:"Говорит: 'ничего лишнего'. Потом даёт траву и молитву. И уходит, пока ты не спросил почему."
+  },
+  { id:"doc_night", name:"Ночной Псаломщик", title:"Поёт, пока не полегчает", rarity:RARITY.RARE,
+    methods:["prayer","demonology"], persona:"trickster",
+    likes:["prayer"], hates:["bloodletting"], portrait:"[img]",
+    bio:"Умеет и молиться, и спорить с тьмой. Пугает всех, включая результат."
+  },
+  { id:"doc_worm", name:"Доктор Червяк", title:"Специалист по 'зуду судьбы'", rarity:RARITY.LEGENDARY,
+    methods:["charms","demonology"], persona:"fanatic",
+    likes:["demonology"], hates:["amputation"], portrait:"[img]",
+    bio:"Смотрит на симптомы как на послания. Иногда послания отвечают."
+  },
 ];
 
 
@@ -675,15 +751,18 @@ rewards: {
   maxPerPatient: 2    // сколько раз можно ковыряться в одном пациенте
 },
 
-    patients: [],
-    queue: [],
-    selectedPatientId: null,
+   patients: [],
+queue: [],
+selectedPatientId: null,
 
-    // баланс
-    maxQueue: 6,
-    baseWaitSec: 120,     // сколько может ждать в очереди
-    baseTreatSecMin: 120,
-    baseTreatSecMax: 300,
+spawn: {
+  nextAt: now()
+
+},
+maxQueue: 4,
+baseWaitSec: 180,
+baseTreatSecMin: 90,
+baseTreatSecMax: 210,
   };
 }
 
@@ -1031,11 +1110,28 @@ function shuffle(arr){
 }
 
 function fillQueue(){
-  while(state.queue.length < state.maxQueue){
-    const p = makePatient();
-    state.patients.push(p);
-    state.queue.push(p.id);
+  const t = now();
+
+  // если по какой-то причине spawn ещё нет (старый сейв)
+  if(!state.spawn){
+    state.spawn = { nextAt: t };
   }
+
+  // рано спавнить нового пациента
+  if(t < state.spawn.nextAt) return;
+
+  // очередь уже полная
+  if(state.queue.length >= state.maxQueue) return;
+
+  // создаём ОДНОГО пациента
+  const p = makePatient();
+  state.patients.push(p);
+  state.queue.push(p.id);
+
+  // следующий пациент через 6–10 секунд
+  state.spawn.nextAt = t + randInt(6000, 10000);
+
+  saveState();
 }
 
 function processQueueTick(){
@@ -1051,12 +1147,12 @@ function processQueueTick(){
 
     if(t >= p.leaveAt){
       // 20% шанс умереть в очереди, иначе уйти
-      const died = Math.random() < 0.20;
+      const died = Math.random() < 0.10;
       if(died){
         state.reputation -= 2;
         state.biomaterial += 1;
       }else{
-        state.reputation -= 1;
+        state.reputation -= 0;
       }
 
       const ev = getCurrentEvent();
@@ -1179,6 +1275,13 @@ function doctorAdviceText(doc, options){
     }
   }
 
+// усиленная неприязнь: если в опциях есть нелюбимый метод, чаще предостерегает
+const hated = options.filter(o => (doc.hates||[]).includes(o));
+if(hated.length && Math.random() < 0.55){
+  const m = pick(hated);
+  return `— <b>${escapeHtml(doc.name)}</b>: “Если хочешь проблем, выбери <b>${escapeHtml(methodName(m))}</b>.”`;
+}
+  
   return `— <b>${escapeHtml(doc.name)}</b>: “Ситуация… атмосферная. Решай сам.”`;
 }
 
@@ -1737,7 +1840,14 @@ function renderStaff(){
       <div class="row">
         <div>
           <div class="listTitle">${escapeHtml(doc.name)} ${isSlot1 ? '<span class="tag ok">slot1</span>' : ''} ${isSlot2 ? '<span class="tag ok">slot2</span>' : ''}</div>
-          <div class="listSub">${rarityLabel(doc.rarity)} • ${doc.methods.map(m=>escapeHtml(methodName(m))).join(", ")}</div>
+         <div class="listSub">
+  ${rarityLabel(doc.rarity)} • умеет: ${doc.methods.map(m=>escapeHtml(methodName(m))).join(", ")}
+</div>
+<div class="hint">
+  Любит: ${doc.likes?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"} •
+  Не любит: ${doc.hates?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"}
+</div>
+<div class="hint">${escapeHtml(doc.bio || "")}</div>
         </div>
       </div>
 
