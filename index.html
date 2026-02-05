@@ -426,7 +426,7 @@ const DISEASES = [
       "Лучше чего то лишиться, чем терпеть."
     ],
     weights:{ amputation: 1.2, herbalism: 0.9, bloodletting: 0.8, prayer: 0.8, demonology: 0.9, hypnosis: 0.6, charms: 0.7 }
-  }
+  },
   // ===== NEW DISEASES (8 шт) =====
 
   {
@@ -2216,10 +2216,6 @@ function renderPatient(patientId){
   const disease = getDiseaseById(p.trueDiseaseId);
 const clue = pickClueForDisease(disease);
 elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${clue}`;
-
-
- const clue = pickClueForDisease(disease);
-  elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
   elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
 
