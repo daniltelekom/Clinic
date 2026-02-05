@@ -1812,122 +1812,130 @@ function renderTop(){
 function renderClinic(){
   renderTop();
 
-  const ev = getCurrentEvent();
-if(ev){
-}
-
-  // wards
+  // ========== ПАЛАТЫ ==========
   elWards.innerHTML = "";
+
   for(const w of state.wards){
     const active = getActiveForWard(w.id);
 
+    // ---------- бейдж ----------
     let badge = "";
     if(w.pendingResult){
       const k = w.pendingResult.kind;
-      badge = k===OUTCOMES.CURE ? `<span class="tag ok">✅ Вылечен</span>` :
-              k===OUTCOMES.DISFIGURED ? `<span class="tag warn">✅ Покалечен</span>` :
-              k===OUTCOMES.INFECTED ? `<span class="tag warn">✅ Инфицирован</span>` :
-              k===OUTCOMES.WORSENED ? `<span class="tag warn">⚠️ Хуже</span>` :
-              `<span class="tag bad">☠️ Смерть</span>`;
-    } else if(w.occupiedBy && active){
-      const left = active.endAt - now();
-      badge = `<span class="tag">⏳ ${formatLeft(left)}</span>`;
-    } else if(w.occupiedBy){
+      badge =
+        k===OUTCOMES.CURE        ?` <span class="tag ok">✅ Вылечен</span> `:
+        k===OUTCOMES.DISFIGURED  ?` <span class="tag warn">✅ Покалечен</span> `:
+        k===OUTCOMES.INFECTED    ?` <span class="tag warn">✅ Инфицирован</span> `:
+        k===OUTCOMES.WORSENED    ?` <span class="tag warn">⚠️ Хуже</span> `:
+                                 ` <span class="tag bad">☠️ Смерть</span>`;
+    }
+    else if(w.occupiedBy && active){
+      badge = `<span class="tag">⏳ ${formatLeft(active.endAt - now())}</span>`;
+    }
+    else if(w.occupiedBy){
       badge = `<span class="tag warn">ждёт лечения</span>`;
-    } else {
+    }
+    else{
       badge = `<span class="tag">свободно</span>`;
     }
 
+    // ---------- занятость ----------
     const p = w.occupiedBy ? patientById(w.occupiedBy) : null;
-    const occ = p ? `Занято: <b>${escapeHtml(p.name)}</b>` : `Свободно`;
+    const occ = p
+      ? `Занято: <b>${escapeHtml(p.name)}</b>`
+      : `Свободно`;
 
+    // ---------- кнопка действия ----------
+    let actionHtml = "";
+
+    if(w.pendingResult){
+      actionHtml = `
+        <div class="sep"></div>
+        <button class="btn ok" onclick="openPatientById('${w.pendingResult.patientId}')">
+          👁 Посмотреть результат
+          <div class="muted">${escapeHtml(w.pendingResult.flavor || "")}</div>
+        </button>
+      `;
+    }
+    else if(w.occupiedBy){
+      if(active && active.endAt <= now()){
+        actionHtml = `
+          <div class="sep"></div>
+          <button class="btn ok" onclick="completeTreatment('${w.id}')">
+            ✅ Забрать результат
+            <div class="muted">Лечение закончено</div>
+          </button>
+       ` ;
+      } else {
+        actionHtml = `
+          <div class="sep"></div>
+          <button class="btn" onclick="openPatientById('${w.occupiedBy}')">
+            🧾 Открыть пациента
+            <div class="muted">Назначить лечение или посмотреть таймер</div>
+          </button>
+       `;
+      }
+    }
+
+    // ---------- карточка ----------
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-  <div class="row">
-    <div>
-      <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
-      <div class="listSub">${occ}</div>
-    </div>
-    <div class="right">${badge}</div>
-  </div>
+      <div class="row">
+        <div>
+          <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
+          <div class="listSub">${occ}</div>
+        </div>
+        <div class="right">${badge}</div>
+      </div>
 
-  <div class="hint">
-    Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
-  </div>
+      <div class="hint">
+        Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
+      </div>
 
-  <div class="grid2" style="margin-top:10px">
-    <button class="btn small" onclick="upgradeWardStat('${w.id}','comfort')" ${canUpgrade(w,'comfort')?'':'disabled'}>
-      Комфорт +1 (${upgradeCost(w,'comfort')})
-    </button>
-    <button class="btn small" onclick="upgradeWardStat('${w.id}','cleanliness')" ${canUpgrade(w,'cleanliness')?'':'disabled'}>
-      Чистота +1 (${upgradeCost(w,'cleanliness')})
-    </button>
-    <button class="btn small" onclick="upgradeWardStat('${w.id}','ventilation')" ${canUpgrade(w,'ventilation')?'':'disabled'}>
-      Вент +1 (${upgradeCost(w,'ventilation')})
-    </button>
-    <button class="btn small" onclick="upgradeWardStat('${w.id}','light')" ${canUpgrade(w,'light')?'':'disabled'}>
-      Свет +1 (${upgradeCost(w,'light')})
-    </button>
-  </div>
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','comfort')" ${canUpgrade(w,'comfort')?'':'disabled'}>
+          Комфорт +1 (${upgradeCost(w,'comfort')})
+        </button>
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','cleanliness')" ${canUpgrade(w,'cleanliness')?'':'disabled'}>
+          Чистота +1 (${upgradeCost(w,'cleanliness')})
+        </button>
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','ventilation')" ${canUpgrade(w,'ventilation')?'':'disabled'}>
+          Вент +1 (${upgradeCost(w,'ventilation')})
+        </button>
+        <button class="btn small" onclick="upgradeWardStat('${w.id}','light')" ${canUpgrade(w,'light')?'':'disabled'}>
+          Свет +1 (${upgradeCost(w,'light')})
+        </button>
+      </div>
 
-  ${
-    w.pendingResult ? `
-      <div class="sep"></div>
-      <button class="btn ok" onclick="openPatientById('${w.pendingResult.patientId}')">
-        👁 Посмотреть результат
-        <div class="muted">${escapeHtml(w.pendingResult.flavor || "")}</div>
-      </button>
-    ` : (w.occupiedBy ? `
-      <div class="sep"></div>
-      ${
-        (() => {
-          const active2 = getActiveForWard(w.id);
-          if(active2 && (active2.endAt - now()) <= 0){
-            return `
-              <button class="btn ok" onclick="completeTreatment('${w.id}')">
-                ✅ Забрать результат
-                <div class="muted">Лечение закончено</div>
-              </button>
-           ` ;
-          }
-          return `
-            <button class="btn" onclick="openPatientById('${w.occupiedBy}')">
-              🧾 Открыть пациента
-              <div class="muted">Назначить лечение или посмотреть таймер</div>
-            </button>
-         ` ;
-        })()
-      }
-   `  : ``)
+      ${actionHtml}
+   ` ;
+
     elWards.appendChild(card);
   }
-`;
 
-  // duty doctors
+  // ========== ДЕЖУРНЫЕ ВРАЧИ ==========
   elDuty.innerHTML = "";
   const [d1, d2] = dutyDoctors();
 
-// слот 1
-renderDutySlot(1, d1);
+  renderDutySlot(1, d1);
 
-// слот 2
-if(state.unlocks?.wardB){
-  renderDutySlot(2, d2);
-} else {
-  const div = document.createElement("div");
-  div.className = "card";
-  div.innerHTML = `
-    <div class="row">
-      <div>
-        <div class="listTitle">Слот 2: 🔒 Закрыт</div>
-        <div class="listSub">Открой Палату B, чтобы назначать второго врача.</div>
+  if(state.unlocks?.wardB){
+    renderDutySlot(2, d2);
+  } else {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <div class="listTitle">Слот 2: 🔒 Закрыт</div>
+          <div class="listSub">Открой Палату B, чтобы назначать второго врача.</div>
+        </div>
+        <button class="btn small" onclick="buyWardB()">Купить палату</button>
       </div>
-      <button class="btn small" onclick="buyWardB()">Купить палату</button>
-    </div>
-  `;
-  elDuty.appendChild(div);
-  
+   ` ;
+    elDuty.appendChild(div);
+  }
 }
 
 function renderDutySlot(idx, d){
