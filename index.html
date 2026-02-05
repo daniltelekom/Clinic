@@ -278,19 +278,10 @@
   let state = null;
 
 function showCrash(title, info){
-  console.log(title, info);
-
-  const isBlankScriptError =
-    info?.message === "Script error." &&
-    (!info?.file || info.file === "") &&
-    (info?.line === 0) &&
-    (info?.col === 0) &&
-    (!info?.stack);
-
-  if(isBlankScriptError){
-    console.log("IGNORED blank Script error (Telegram/WebView).");
-    return;
-  }
+  if(info?.message === "Script error.") {
+  console.log("Ignored Script error (WebView):", info);
+  return;
+}
 
   const text = title + "\n" + JSON.stringify(info, null, 2);
   alert(text.length > 1200 ? text.slice(0, 1200) + "\n...(cut)" : text);
@@ -630,11 +621,17 @@ function loadState(){
     if(s.rewards.chosenId === undefined) s.rewards.chosenId = null;
     // если в старом сейве были rewards.pending с apply (которого уже нет) — просто пересоздаём
 if(s.rewards?.pending && Array.isArray(s.rewards.pending)){
-  const bad = s.rewards.pending.some(x => x && x.apply); // раньше могло быть, но сейчас бессмысленно
-  const missingValue = s.rewards.pending.some(x => x && x.value === undefined);
-  if(missingValue){
+  const hasLegacyApply = s.rewards.pending.some(x => x && x.apply !== undefined);
+  const missingFields = s.rewards.pending.some(x => 
+    !x || x.type === undefined || x.title === undefined || x.desc === undefined || x.value === undefined
+  );
+
+  // если в pending лежит старая структура (там когда-то был apply или нет нужных полей)
+  if(hasLegacyApply || missingFields){
     s.rewards.pending = null;
     s.rewards.chosenId = null;
+  }
+}
   }
 }
     
@@ -677,6 +674,11 @@ function normalizeCalendar(){
 
   state.calendar.week = Number(state.calendar.week) || 1;
   state.calendar.shiftInWeek = Number(state.calendar.shiftInWeek) || 1;
+
+  // защита: activeEventId должен быть строкой
+  if(typeof state.calendar.activeEventId !== "string"){
+    state.calendar.activeEventId = null;
+  }
 
   if(!state.calendar.activeEventId){
     pickNewWeekEvent();
@@ -2297,16 +2299,13 @@ function refreshVisibleUI(){
 
   const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
   const patientVisible = document.getElementById("screen-patient").classList.contains("active");
+  const staffVisible = document.getElementById("screen-staff").classList.contains("active");
+  const shopVisible  = document.getElementById("screen-shop").classList.contains("active");
 
   if(clinicVisible) renderClinic();
   if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
-}
-
-  const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
-  const patientVisible = document.getElementById("screen-patient").classList.contains("active");
-
-  if(clinicVisible) renderClinic();
-  if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
+  if(staffVisible) renderStaff();
+  if(shopVisible) renderShop();
 }
 
 /* =========================================================
