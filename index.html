@@ -410,6 +410,7 @@ const DISEASES = [
     symptoms:["Шепчет молитвы","Пустой взгляд","Зуд под кожей"],
     cureBy: "prayer",
   badBy: "bloodletting",
+    
     weights:{ prayer: 1.3, demonology: 1.2, charms: 1.1, hypnosis: 0.9, herbalism: 0.7, bloodletting: 0.6, amputation: 0.4 }
   },
   {
@@ -419,8 +420,134 @@ const DISEASES = [
     symptoms:["Боль в костях","Плесень на повязках","Скрип в суставах"],
     cureBy: "amputation",
   badBy: "hypnosis",
+    hints:[
+      "При ходьбе скрипит как дверь.",
+      "Каждый сгиб вызывает крик боли.",
+      "Лучше чего то лишиться, чем терпеть."
+    ],
     weights:{ amputation: 1.2, herbalism: 0.9, bloodletting: 0.8, prayer: 0.8, demonology: 0.9, hypnosis: 0.6, charms: 0.7 }
   }
+  // ===== NEW DISEASES (8 шт) =====
+
+  {
+    id:"ashen_tongue",
+    name:"Пепельный язык",
+    rarity: RARITY.COMMON,
+    symptoms:["Язык серый","Горечь во рту","Жажда"],
+    cureBy:"herbalism",
+    badBy:"demonology",
+    hints:[
+      "Во рту будто костёр давно потух, но дым остался.",
+      "Слова выходят сухими и колючими.",
+      "Запах здесь уместнее, чем пафос и свечи."
+    ],
+    weights:{ herbalism: 1.25, prayer: 0.9, bloodletting: 0.75, hypnosis: 0.95, charms: 0.95, demonology: 0.35, amputation: 0.2 }
+  },
+
+  {
+    id:"bell_ringing",
+    name:"Звон в костях",
+    rarity: RARITY.RARE,
+    symptoms:["Звон в ушах","Дрожь в пальцах","Свет режет глаза"],
+    cureBy:"hypnosis",
+    badBy:"amputation",
+    hints:[
+      "Будто колокол звенит не в башне, а внутри.",
+      "Глаза ищут тень даже при свете.",
+      "Тут надо успокоить голову, а не пилить человека."
+    ],
+    weights:{ hypnosis: 1.25, charms: 1.05, prayer: 0.95, herbalism: 0.85, demonology: 0.9, bloodletting: 0.75, amputation: 0.25 }
+  },
+
+  {
+    id:"ink_lungs",
+    name:"Чернильные лёгкие",
+    rarity: RARITY.RARE,
+    symptoms:["Кашель тёмный","Тяжёлое дыхание","Голос хрипит"],
+    cureBy:"bloodletting",
+    badBy:"herbalism",
+    hints:[
+      "Дыхание будто вязнет, как перо в чернилах.",
+      "Голос стал ниже, словно кто-то его утопил.",
+      "Иногда лишнее надо… выпустить."
+    ],
+    weights:{ bloodletting: 1.25, prayer: 0.9, hypnosis: 0.85, demonology: 1.0, charms: 0.95, herbalism: 0.4, amputation: 0.25 }
+  },
+
+  {
+    id:"saintly_static",
+    name:"Святое шуршание",
+    rarity: RARITY.LEGENDARY,
+    symptoms:["Шёпот в тишине","Мурашки без холода","Сны как проповедь"],
+    cureBy:"prayer",
+    badBy:"hypnosis",
+    hints:[
+      "Тишина ведёт себя слишком громко.",
+      "Сны будто кто-то диктует с кафедры.",
+      "Здесь важны слова, но не любые."
+    ],
+    weights:{ prayer: 1.3, charms: 1.15, demonology: 1.05, herbalism: 0.75, bloodletting: 0.65, hypnosis: 0.35, amputation: 0.3 }
+  },
+
+  {
+    id:"candle_wax_skin",
+    name:"Восковая кожа",
+    rarity: RARITY.COMMON,
+    symptoms:["Кожа липкая","Бледность","Озноб"],
+    cureBy:"charms",
+    badBy:"bloodletting",
+    hints:[
+      "Кожа будто решила стать свечой.",
+      "Холод не снаружи, холод под кожей.",
+      "Иногда знаки лечат лучше железа."
+    ],
+    weights:{ charms: 1.25, herbalism: 0.95, prayer: 0.9, hypnosis: 0.8, demonology: 0.65, bloodletting: 0.45, amputation: 0.2 }
+  },
+
+  {
+    id:"witch_mark_rot",
+    name:"Гниль ведьминого знака",
+    rarity: RARITY.RARE,
+    symptoms:["Пятно растёт","Боль локально","Запах сырости"],
+    cureBy:"amputation",
+    badBy:"prayer",
+    hints:[
+      "Проблема ведёт себя так, будто у неё есть границы.",
+      "Запах говорит громче пациента.",
+      "Иногда доброта не работает. Работает решительность."
+    ],
+    weights:{ amputation: 1.25, bloodletting: 0.95, herbalism: 0.8, demonology: 0.85, charms: 0.75, hypnosis: 0.7, prayer: 0.35 }
+  },
+
+  {
+    id:"mirror_fever",
+    name:"Зеркальная горячка",
+    rarity: RARITY.COMMON,
+    symptoms:["Лицо 'плывёт'","Путает имена","Жар волнами"],
+    cureBy:"hypnosis",
+    badBy:"demonology",
+    hints:[
+      "Человек будто смотрит на мир через кривое стекло.",
+      "Имена ускользают, как отражения в воде.",
+      "Не зови лишних сущностей. Тут и так тесно."
+    ],
+    weights:{ hypnosis: 1.2, herbalism: 0.9, charms: 0.95, prayer: 0.85, bloodletting: 0.7, demonology: 0.3, amputation: 0.2 }
+  },
+
+  {
+    id:"devils_contract",
+    name:"Дьявольский контракт",
+    rarity: RARITY.LEGENDARY,
+    symptoms:["Тень живёт отдельно","Смех не к месту","Глаза 'чужие'"],
+    cureBy:"demonology",
+    badBy:"herbalism",
+    hints:[
+      "Тень торгуется. Это уже диагноз.",
+      "Смех появляется там, где ему не рады.",
+      "Иногда, чтобы выгнать гостя, надо говорить на его языке."
+    ],
+    weights:{ demonology: 1.3, charms: 1.1, prayer: 0.9, hypnosis: 0.95, bloodletting: 0.65, herbalism: 0.35, amputation: 0.4 }
+  },
 ];
 
 const FIRST_NAMES = ["Ганс","Марта","Пахом","Виллем","Иван","Зигмунд","Лупа","Ян","Август","Пупа","Каспар","Саня","Михаил","Заруб","Каспар"];
@@ -797,6 +924,12 @@ function pickRandomDoctorId(avoidSame=false){
   const base = state ? state.duty?.slot1 : null;
   const filtered = all.filter(x=>x!==base);
   return pick(filtered.length?filtered:all);
+}
+
+  function pickClueForDisease(disease){
+  const hints = disease?.hints;
+  if(Array.isArray(hints) && hints.length) return pick(hints);
+  return "Симптомы складываются в узор. Но узоры любят врать.";
 }
 
 function getDoctorById(id){
@@ -2081,19 +2214,11 @@ function renderPatient(patientId){
   elPatientTitle.textContent = p.name;
 
   const disease = getDiseaseById(p.trueDiseaseId);
+const clue = pickClueForDisease(disease);
+elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${clue}`;
 
-  // --- подсказка в тексте ---
-  const hintMap = {
-    herbalism: "Пахнет травами и сыростью. Организм просит настой.",
-    prayer: "Шепчет молитвы даже во сне. Тут без святости никак.",
-    bloodletting: "Пульс тяжёлый, кровь будто густая. Пиявки облизываются.",
-    demonology: "Тени в углах двигаются быстрее нормы. Это уже не медицина.",
-    hypnosis: "Глаза стеклянные, реагирует на голос странно. Можно “внушать”.",
-    amputation: "Гниёт локально. Пахнет решением без сантиментов.",
-    charms: "Боится слов и символов. Странно, но работает."
-  };
 
-  const clue = hintMap[disease.cureBy] || "Симптомы намекают на что-то очевидное. Но ты же врач.";
+ const clue = pickClueForDisease(disease);
   elPatientSub.textContent =` ${p.visibleSymptoms.join(", ")} • ${clue}`;
 
   elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
