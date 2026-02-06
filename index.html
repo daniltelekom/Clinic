@@ -141,6 +141,28 @@
   pointer-events:none;
   z-index:9999;
 }
+
+    .methodBtn{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.methodIcon{
+  width:40px;
+  height:40px;
+  flex:0 0 40px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+  object-fit:contain;
+}
+
+.methodMeta{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
     
   </style>
 </head>
@@ -450,6 +472,16 @@ const METHOD_HINTS = {
     tags: ["воск", "знаки", "липания", "символы"],
     examples: ["восковая кожа", "странные кожные штуки", "когда надо ‘снять порчу’", "когда пациент похож на свечу"]
   },
+};
+
+  const METHOD_ICONS = {
+  bloodletting: "icons/methods/bloodletting.png",
+  herbalism: "icons/methods/herbalism.png",
+  prayer: "icons/methods/prayer.png",
+  demonology: "icons/methods/demonology.png",
+  amputation: "icons/methods/amputation.png",
+  hypnosis: "icons/methods/hypnosis.png",
+  charms: "icons/methods/charms.png",
 };
 
 function methodHintLine(methodId){
@@ -3276,10 +3308,18 @@ function showTreat(options){
     b.onclick = ()=> chooseTreatment(mid);
     const hint = methodHintLine(mid);
 
+const icon = METHOD_ICONS[mid] || "";
+
+b.classList.add("methodBtn");
+
 b.innerHTML = `
-  ${escapeHtml(methodName(mid))}
-  <div class="muted">Нажми, чтобы назначить</div>
-  ${hint ? `<div class="hint">${escapeHtml(hint)}</div> `: ""}
+  <img class="methodIcon" src="${icon}" alt="${mid}" loading="lazy"
+       onerror="this.style.display='none'">
+  <div class="methodMeta">
+    <div style="font-weight:900">${escapeHtml(methodName(mid))}</div>
+    <div class="muted">Нажми, чтобы назначить</div>
+    ${hint ? `<div class="hint">${escapeHtml(hint)}</div>` : ""}
+  </div>
 `;
     elTreatmentButtons.appendChild(b);
   }
