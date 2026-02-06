@@ -1058,6 +1058,29 @@ function clearActiveForWard(wardId){
 function randInt(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function reduceDoctorFatigue(docId, amount){
+  const d = getDoctorById(docId);
+  if(!d) return false;
+  const before = Number(d.fatigue || 0);
+  d.fatigue = clamp(before - Number(amount || 0), 0, 100);
+  return d.fatigue !== before;
+}
+
+function reduceAllDoctorsFatigue(amount, onlyNonDuty=false){
+  const dutyIds = new Set(dutyDoctors().filter(Boolean).map(d=>d.id));
+  let changed = 0;
+
+  for(const d of DOCTOR_POOL){
+    if(onlyNonDuty && dutyIds.has(d.id)) continue;
+    const before = Number(d.fatigue || 0);
+    d.fatigue = clamp(before - Number(amount || 0), 0, 100);
+    if(d.fatigue !== before) changed++;
+  }
+  return changed;
+}
+
 function resetToBase(){
   // база
   state.maxQueue = state.base?.maxQueue ?? 6;
@@ -2053,6 +2076,8 @@ function renderStaff(){
   const slot2Unlocked = state.unlocks?.wardB; // простой логикой: купил B -> появился слот 2
 
   for(const doc of DOCTOR_POOL){
+    const hasSmall = (state._shopRestToken || 0) > 0;
+    const hasBig   = (state._shopRestTokenBig || 0) > 0;
     const isSlot1 = state.duty.slot1 === doc.id;
     const isSlot2 = state.duty.slot2 === doc.id;
 
@@ -2070,6 +2095,14 @@ function renderStaff(){
   Не любит: ${doc.hates?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"}
 </div>
 <div class="hint">Усталость: <b>${Math.round(doc.fatigue || 0)}%</b></div>
+<div class="grid2" style="margin-top:10px">
+  <button class="btn small ok" onclick="useRestOnDoctor('${doc.id}', 'small')" ${hasSmall ? "" : "disabled"}>
+    🫖 -20% (x${state._shopRestToken || 0})
+  </button>
+  <button class="btn small ok" onclick="useRestOnDoctor('${doc.id}', 'big')" ${hasBig ? "" : "disabled"}>
+    🛌 -35% (x${state._shopRestTokenBig || 0})
+  </button>
+</div>
 <div class="hint">${escapeHtml(doc.bio || "")}</div>
         </div>
       </div>
@@ -2093,6 +2126,26 @@ function openShop(){
   showScreen("shop");
   renderShop();
 }
+
+
+function useRestOnDoctor(docId, type){
+  if(type === "small"){
+    if((state._shopRestToken || 0) <= 0) return;
+    const ok = reduceDoctorFatigue(docId, 20);
+    if(!ok) return;
+    state._shopRestToken -= 1;
+  } else {
+    if((state._shopRestTokenBig || 0) <= 0) return;
+    const ok = reduceDoctorFatigue(docId, 35);
+    if(!ok) return;
+    state._shopRestTokenBig -= 1;
+  }
+
+  saveState();
+  renderStaff();
+  refreshVisibleUI();
+}
+window.useRestOnDoctor = useRestOnDoctor;
 
 function renderShop(){
   renderTop();
@@ -2131,6 +2184,38 @@ function renderShop(){
       can: ()=> (state.perks.treatSpeed < 30),
       buy: ()=> { state.perks.treatSpeed += 10; }
     },
+    {
+  id:"rest_small",
+  title:"🫖 Отвар для персонала",
+  desc:"-20% усталости выбранному врачу (в Штате появится кнопка)",
+  cost:{ coins: 70 },
+  can: ()=> true,
+  buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }
+},
+{
+  id:"rest_big",
+  title:"🛌 Выходной по приказу",
+  desc:"-35% усталости выбранному врачу (в Штате появится кнопка)",
+  cost:{ coins: 140, rep: 1 },
+  can: ()=> true,
+  buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }
+},
+{
+  id:"rest_all",
+  title:"🍲 Каша для всех",
+  desc:"-12% усталости всем врачам",
+  cost:{ coins: 220, bio: 1 },
+  can: ()=> true,
+  buy: ()=> { reduceAllDoctorsFatigue(12, false); }
+},
+{
+  id:"rest_backline",
+  title:"😴 Сон для не-дежурных",
+  desc:"-18% усталости всем, кто НЕ дежурит",
+  cost:{ coins: 180 },
+  can: ()=> true,
+  buy: ()=> { reduceAllDoctorsFatigue(18, true); }
+},
   ];
 
   for(const it of items){
@@ -2174,15 +2259,24 @@ function payCost(c){
 }
 
 function buyPerk(id){
-  const map = {
-    lab_extra: { buy: ()=> state.perks.labExtra += 1, cost:{ bio:2, rep:2 }, can:()=> state.perks.labExtra<2 },
-    lab_discount: { buy: ()=> state.perks.labDiscount += 10, cost:{ coins:60, rep:1 }, can:()=> state.perks.labDiscount<30 },
-    queue_buffer: { buy: ()=> state.perks.queueBuffer += 1, cost:{ coins:80 }, can:()=> state.perks.queueBuffer<4 },
-    treat_speed: { buy: ()=> state.perks.treatSpeed += 10, cost:{ coins:90, bio:1 }, can:()=> state.perks.treatSpeed<30 },
+  // единый каталог покупок лавки
+  const catalog = {
+    // перки
+    lab_extra:     { buy: ()=> state.perks.labExtra += 1,    cost:{ bio:2, rep:2 },  can:()=> state.perks.labExtra<2 },
+    lab_discount:  { buy: ()=> state.perks.labDiscount += 10,cost:{ coins:60, rep:1 }, can:()=> state.perks.labDiscount<30 },
+    queue_buffer:  { buy: ()=> state.perks.queueBuffer += 1, cost:{ coins:80 },      can:()=> state.perks.queueBuffer<4 },
+    treat_speed:   { buy: ()=> state.perks.treatSpeed += 10, cost:{ coins:90, bio:1 }, can:()=> state.perks.treatSpeed<30 },
+
+    // восстановление
+    rest_small:    { buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }, cost:{ coins:70 }, can:()=> true },
+    rest_big:      { buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }, cost:{ coins:140, rep:1 }, can:()=> true },
+    rest_all:      { buy: ()=> { reduceAllDoctorsFatigue(12, false); }, cost:{ coins:220, bio:1 }, can:()=> true },
+    rest_backline: { buy: ()=> { reduceAllDoctorsFatigue(18, true); }, cost:{ coins:180 }, can:()=> true },
   };
-  const it = map[id];
+
+  const it = catalog[id];
   if(!it) return;
-  if(!it.can()) return;
+  if(it.can && !it.can()) return;
   if(!canAfford(it.cost)) return;
 
   payCost(it.cost);
@@ -2195,7 +2289,6 @@ function buyPerk(id){
   renderShop();
   refreshVisibleUI();
 }
-
 window.openShop = openShop;
 window.buyPerk = buyPerk;
 
