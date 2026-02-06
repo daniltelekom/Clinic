@@ -1265,11 +1265,67 @@ function lootApplyTextRu(loot){
       return `📋 Очередь: +${loot.value||1}`;
 
     case "doctor_unlock":
-      return `🧑‍⚕️ Новый врач: (позже добавим)`;
+      return grantDoctorUnlock(loot);
 
-    default:
-      return `🎲 Получено: ${String(loot.type)}`;
+   default:
+      return { title:"🎲 Награда", text:`Получено: <b>${escapeHtml(String(loot.type))}</b>`, hint:"Не спрашивай." };
   }
+}
+
+  function ownedDoctorIdsSet(){
+  return new Set((state.doctorsOwned || []).filter(Boolean));
+}
+
+function pickDoctorForUnlock(rarityRule){
+  const owned = ownedDoctorIdsSet();
+
+  // не выдаём дежурных/уже купленных. Только новых.
+  let pool = DOCTOR_POOL.filter(d => !owned.has(d.id));
+
+  if(rarityRule === "rare_plus"){
+    pool = pool.filter(d => d.rarity === RARITY.RARE || d.rarity === RARITY.LEGENDARY);
+  } else if(rarityRule === "legendary_only"){
+    pool = pool.filter(d => d.rarity === RARITY.LEGENDARY);
+  } else if(rarityRule === "common_only"){
+    pool = pool.filter(d => d.rarity === RARITY.COMMON);
+  } 
+  // иначе "any" = без фильтра
+
+  if(!pool.length) return null;
+  return pick(pool);
+}
+
+function grantDoctorUnlock(loot){
+  const rule = loot?.rarity || "any";
+  const doc = pickDoctorForUnlock(rule);
+
+  if(!doc){
+    // если не осталось новых докторов под правило — дадим компенсацию монетами
+    const comp = 120;
+    state.coins += comp;
+    return {
+      kind: "comp",
+      title: "🧑‍⚕️ Доктор не нашёлся",
+      text: `Все подходящие врачи уже у тебя. Получи компенсацию: <b>💰 +${comp}</b>`,
+      hint: "Коллекционирование завершено. Потрогай траву."
+    };
+  }
+
+  state.doctorsOwned = state.doctorsOwned || [];
+  state.doctorsOwned.push(doc.id);
+
+  return {
+    kind: "doctor",
+    doc,
+    title: "🧑‍⚕️ Новый сотрудник!",
+    text: `
+      <div class="listTitle">${escapeHtml(doc.name)} <span class="tag">${rarityLabel(doc.rarity)}</span></div>
+      <div class="listSub">${escapeHtml(doc.title || "")}</div>
+      <div class="hint">Методы: ${doc.methods.map(m => escapeHtml(methodName(m))).join(", ")}</div>
+      <div class="hint">${escapeHtml(doc.bio || "")}</div>
+    `,
+    hint: "Он уже в “Штате”. Назначай на дежурство и делай вид, что контролируешь ситуацию."
+  };
 }
 
 function openChest(kind){
@@ -1278,14 +1334,22 @@ function openChest(kind){
 
   const loot = weightedPick(chest.loot);
 
-  // применяем и получаем красивую строку
-  const gotText = lootApplyTextRu(loot);
+  // применяем награду и получаем контент модалки
+  const modal = lootApplyTextRu(loot);
+
+  // перки могут влиять на maxQueue и т.д. 
+  // например, чтобы очередь сразу пересчиталась:
+  state.maxQueue = Math.min(10, (state.base?.maxQueue ?? 6) + (state.perks?.queueBuffer ?? 0));
 
   saveState();
 
-  alert(`🎁 ${chest.title}\nВыпало: ${lootTitleRu(loot)}\n\n${gotText}`);
+  showLootModal({
+    title: `🎁 ${chest.title}`,
+    text: modal?.text || "",
+    hint: modal?.hint || ""
+  });
 
-  renderShop();
+  // если выпал доктор, приятно сразу обновить штат
   refreshVisibleUI();
 }
 window.openChest = openChest;
@@ -1879,6 +1943,7 @@ const CHESTS = {
       { type:"coins", min:40, max:120, weight:35 },
       { type:"bio",   min:1,  max:3,   weight:15 },
       { type:"rep",   min:1,  max:3,   weight:15 },
+      { type:"doctor_unlock", rarity:"any", weight:4 },
 
       // отдых-токены под твою уже сделанную механику
       { type:"rest_small", value:1, weight:20 },
@@ -3422,6 +3487,31 @@ window.addEventListener("scroll",  ()=> { if(tut.active) renderTutorialStep(); }
 // экспорт
 window.startTutorial = startTutorial;
 
+  
+const elLootOverlay = document.getElementById("loot-overlay");
+const elLootTitle   = document.getElementById("loot-title");
+const elLootText    = document.getElementById("loot-text");
+const elLootHint    = document.getElementById("loot-hint");
+const elLootOk      = document.getElementById("loot-ok");
+
+function showLootModal({ title, text, hint }){
+  elLootTitle.textContent = title || "Награда";
+  elLootText.innerHTML = text || "";
+  elLootHint.textContent = hint || "";
+
+  elLootOverlay.style.display = "block";
+  elLootOverlay.classList.add("active");
+}
+
+function closeLootModal(){
+  elLootOverlay.classList.remove("active");
+  elLootOverlay.style.display = "none";
+}
+
+elLootOk.addEventListener("click", (e)=>{
+  e.preventDefault();
+  closeLootModal();
+});
 /* =========================================================
    14) INIT
 ========================================================= */
@@ -3453,5 +3543,18 @@ window.labResearchSelected = labResearchSelected;
 window.chooseReward = chooseReward;  
 
 </script>
+<!-- LOOT MODAL -->
+<div id="loot-overlay" class="tutOverlay" style="display:none;">
+  <div class="tutCard">
+    <div class="tutTitle" id="loot-title">Награда</div>
+    <div class="tutText" id="loot-text"></div>
+    <div class="tutHint" id="loot-hint"></div>
+
+    <div class="tutNav">
+      <button class="btn small ok" id="loot-ok">Забрать</button>
+    </div>
+  </div>
+</div>
+  
 </body>
 </html>
