@@ -990,6 +990,8 @@ function loadState(){
     if(s.base.baseTreatSecMax==null) s.base.baseTreatSecMax = 300;
     if(s.base.baseLabCost==null) s.base.baseLabCost = 15;
 
+    
+
     if(!s.rewards) s.rewards = { pending:null, chosenId:null };
     if(s.rewards.chosenId === undefined) s.rewards.chosenId = null;
 
@@ -1030,6 +1032,15 @@ function loadState(){
     // если раньше была палата B — считаем купленной
     if(Array.isArray(s.wards) && s.wards.some(w => w.id === "ward_B")){
       s.unlocks.wardB = true;
+
+      // --- spawn migrate ---
+if(!s.spawn) s.spawn = { nextAt: Date.now() };
+if(!Number.isFinite(Number(s.spawn.nextAt))) s.spawn.nextAt = Date.now();
+
+// если nextAt улетел слишком далеко в будущее (например, из-за бага/часов)
+if(Number(s.spawn.nextAt) > Date.now() + 30_000){
+  s.spawn.nextAt = Date.now();
+}
     }
 
     return s;
@@ -1329,24 +1340,22 @@ function shuffle(arr){
 function fillQueue(){
   const t = now();
 
-  // если по какой-то причине spawn ещё нет (старый сейв)
-  if(!state.spawn){
-    state.spawn = { nextAt: t };
+  if(!state.spawn) state.spawn = { nextAt: t };
+  if(!Number.isFinite(Number(state.spawn.nextAt))) state.spawn.nextAt = t;
+
+  let guard = 0;
+
+  while(guard++ < 20){
+    if(state.queue.length >= state.maxQueue) break;
+    if(t < state.spawn.nextAt) break;
+
+    const p = makePatient();
+    state.patients.push(p);
+    state.queue.push(p.id);
+
+    // следующий пациент через 6–10 секунд
+    state.spawn.nextAt = t + randInt(6000, 10000);
   }
-
-  // рано спавнить нового пациента
-  if(t < state.spawn.nextAt) return;
-
-  // очередь уже полная
-  if(state.queue.length >= state.maxQueue) return;
-
-  // создаём ОДНОГО пациента
-  const p = makePatient();
-  state.patients.push(p);
-  state.queue.push(p.id);
-
-  // следующий пациент через 6–10 секунд
-  state.spawn.nextAt = t + randInt(6000, 10000);
 
   saveState();
 }
