@@ -847,6 +847,7 @@ function defaultState(){
     coins: 120,
     reputation: 0,
     biomaterial: 0,
+    doctorsOwned: [], // id врачей, которые есть у игрока
 unlocks: {
   wardB: false,
   staffScreen: true // штат включим сразу, просто пока без магазина
@@ -909,6 +910,18 @@ spawn: {
 },
 
   };
+}
+
+  function initStartingDoctors(){
+  if(state.doctorsOwned && state.doctorsOwned.length) return;
+
+  const commons = DOCTOR_POOL.filter(d => d.rarity === RARITY.COMMON);
+  shuffle(commons);
+
+  state.doctorsOwned = commons.slice(0,3).map(d => d.id);
+
+  // первый сразу на дежурство
+  state.duty.slot1 = state.doctorsOwned[0];
 }
 
 function makeWard(letter){
@@ -1928,6 +1941,7 @@ function reconcileState(){
 
 state = loadState();
 normalizeDoctorsFatigue();
+initStartingDoctors();
 reconcileState();
 normalizeCalendar();
 applyAllModifiers();  
@@ -2114,7 +2128,8 @@ function renderStaff(){
 
   const slot2Unlocked = state.unlocks?.wardB; // простой логикой: купил B -> появился слот 2
 
-  for(const doc of DOCTOR_POOL){
+  for(const docId of state.doctorsOwned){
+  const doc = getDoctorById(docId);
     const hasSmall = (state._shopRestToken || 0) > 0;
     const hasBig   = (state._shopRestTokenBig || 0) > 0;
     const isSlot1 = state.duty.slot1 === doc.id;
@@ -2885,7 +2900,7 @@ function showTreat(options){
 b.innerHTML = `
   ${escapeHtml(methodName(mid))}
   <div class="muted">Нажми, чтобы назначить</div>
-  ${hint ? <div class="hint">${escapeHtml(hint)}</div> : ""}
+  ${hint ? `<div class="hint">${escapeHtml(hint)}</div> `: ""}
 `;
     elTreatmentButtons.appendChild(b);
   }
