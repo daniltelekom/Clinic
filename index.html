@@ -2079,12 +2079,6 @@ function endShift(){
   showScreen("shiftend");
 }
 
-  function applyDoctorFatigueAfterShift(){
-  const docs = dutyDoctors().filter(Boolean);
-  for(const d of docs){
-    d.fatigue = Math.min(100, (d.fatigue || 0) + d.fatigueGain);
-  }
-}
 
 function renderShiftEnd(){
   const el = document.getElementById("shift-summary");
@@ -2236,9 +2230,6 @@ applyAllModifiers();
 // если ещё не выбран ивент на первую неделю, выбираем
 if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
 if(!state.calendar.activeEventId) pickNewWeekEvent();
-
-// применяем базу + перки + ивент
-applyAllModifiers();
 
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
