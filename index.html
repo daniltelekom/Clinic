@@ -2719,7 +2719,7 @@ function renderTop(){
   elCoins.textContent = state.coins;
   elRep.textContent = state.reputation;
   elBio.textContent = state.biomaterial;
-  elClinicLevel.textContent = state.clinicLevel;
+
 
   const left = (state.shift?.endAt ?? now()) - now();
   elShiftTimer.textContent = state.shift?.active ? formatLeft(left) : "END";
