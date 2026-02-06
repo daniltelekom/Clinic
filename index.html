@@ -392,8 +392,8 @@ const RARITY = {
   LEGENDARY: "legendary"
 };
 
-const LS_STATE = "plague_state_v4";
-const LS_ACTIVE = "plague_active_map_v4";
+const LS_STATE = "plague_state_v5";
+const LS_ACTIVE = "plague_active_map_v5";
 
 /* =========================================================
    1) DATA: methods / diseases / doctors / names
@@ -909,6 +909,15 @@ spawn: {
 
 },
 
+flags: {
+  showStarShop: false // легендарный сундук скрыт
+},
+
+chests: {
+  common: 0,
+  legendary: 0
+},
+
   };
 }
 
@@ -990,7 +999,12 @@ function loadState(){
     if(s.base.baseTreatSecMax==null) s.base.baseTreatSecMax = 300;
     if(s.base.baseLabCost==null) s.base.baseLabCost = 15;
 
-    
+    if(!s.flags) s.flags = { showStarShop:false };
+    if(typeof s.flags.showStarShop !== "boolean") s.flags.showStarShop = false;
+
+    if(!s.chests) s.chests = { common:0, legendary:0 };
+    if(s.chests.common == null) s.chests.common = 0;
+    if(s.chests.legendary == null) s.chests.legendary = 0;
 
     if(!s.rewards) s.rewards = { pending:null, chosenId:null };
     if(s.rewards.chosenId === undefined) s.rewards.chosenId = null;
@@ -1143,6 +1157,82 @@ function reduceAllDoctorsFatigue(amount, onlyNonDuty=false){
   }
   return changed;
 }
+
+function weightedPick(items){
+  const total = items.reduce((s,x)=>s + (x.weight||1), 0);
+  let r = Math.random() * total;
+  for(const it of items){
+    r -= (it.weight||1);
+    if(r <= 0) return it;
+  }
+  return items[items.length-1];
+}
+
+function randBetween(a,b){
+  a = Number(a); b = Number(b);
+  return Math.floor(a + Math.random() * (b - a + 1));
+}
+
+function applyChestLoot(loot){
+  switch(loot.type){
+    case "coins":
+      state.coins += randBetween(loot.min, loot.max);
+      break;
+    case "bio":
+      state.biomaterial = (state.biomaterial||0) + randBetween(loot.min, loot.max);
+      break;
+    case "rep":
+      state.reputation = (state.reputation||0) + randBetween(loot.min, loot.max);
+      break;
+
+    // твои токены отдыха из магазина
+    case "rest_small":
+      state._shopRestToken = (state._shopRestToken || 0) + (loot.value||1);
+      break;
+    case "rest_big":
+      state._shopRestTokenBig = (state._shopRestTokenBig || 0) + (loot.value||1);
+      break;
+
+    case "perk_treatSpeed":
+      state.perks.treatSpeed = Math.min(40, (state.perks.treatSpeed||0) + (loot.value||10));
+      break;
+
+    // будущие кейсы
+    case "perk_labExtra":
+      state.perks.labExtra = Math.min(2, (state.perks.labExtra||0) + (loot.value||1));
+      break;
+    case "perk_queueBuffer":
+      state.perks.queueBuffer = Math.min(4, (state.perks.queueBuffer||0) + (loot.value||1));
+      break;
+  }
+}
+
+function openChest(kind){
+  const chest = CHESTS[kind];
+  if(!chest) return;
+
+  // списываем из инвентаря
+  if(kind === "common"){
+    if((state.chests.common||0) <= 0) return;
+    state.chests.common -= 1;
+  } else {
+    if((state.chests.legendary||0) <= 0) return;
+    state.chests.legendary -= 1;
+  }
+
+  const loot = weightedPick(chest.loot);
+  applyChestLoot(loot);
+
+  saveState();
+
+  // по-простому: алерт. Потом сделаем красивый экран/модалку.
+  alert(`🎁 ${chest.title}\nВыпало: ${loot.type}`);
+  renderShop();
+  refreshVisibleUI();
+}
+
+window.openChest = openChest;
+  
 
 function resetToBase(){
   // база
@@ -1722,6 +1812,39 @@ if((p.treatAttempts || 0) >= 2){
   }));
 }
 
+  
+const CHESTS = {
+  common: {
+    title: "🧰 Обычный сундук",
+    desc: "Шанс на полезняк. Иногда даже без боли.",
+    costCoins: 120,
+    loot: [
+      { type:"coins", min:40, max:120, weight:35 },
+      { type:"bio",   min:1,  max:3,   weight:15 },
+      { type:"rep",   min:1,  max:3,   weight:15 },
+
+      // отдых-токены под твою уже сделанную механику
+      { type:"rest_small", value:1, weight:20 },
+      { type:"rest_big",   value:1, weight:8 },
+
+      // маленький шанс на перк
+      { type:"perk_treatSpeed", value:10, weight:7 },
+    ]
+  },
+
+  legendary: {
+    title: "✨ Легендарный сундук",
+    desc: "Покупается за Stars. Слишком жирно, чтобы показывать всем сразу.",
+    costStars: 25,
+    loot: [
+      { type:"perk_treatSpeed", value:10, weight:20 },
+      { type:"perk_labExtra",   value:1,  weight:20 },
+      { type:"perk_queueBuffer",value:1,  weight:20 },
+      { type:"rest_big",        value:2,  weight:20 },
+      { type:"doctor_unlock",   rarity:"rare_plus", weight:20 }, // на будущее
+    ]
+  }
+};
 
 function ensureShiftRewards(){
   // если уже есть награды на эту смену, не трогаем
@@ -2225,6 +2348,16 @@ function renderShop(){
       can: ()=> (state.perks.labExtra < 2),
       buy: ()=> { state.perks.labExtra += 1; }
     },
+
+    {
+     id:"chest_common",
+     title:"🧰 Обычный сундук",
+     desc:"Купи и открой в лавке. Лут: ресурсы/отдых/иногда перк.",
+     cost:{ coins: CHESTS.common.costCoins },
+     can: ()=> true,
+     buy: ()=> { state.chests.common = (state.chests.common||0) + 1; }
+    },
+    
     {
       id:"lab_discount",
       title:"🧪 Скидка на реагенты",
@@ -2281,7 +2414,32 @@ function renderShop(){
   can: ()=> true,
   buy: ()=> { reduceAllDoctorsFatigue(18, true); }
 },
+
+    if(state.flags?.showStarShop){
+  items.push({
+    id:"chest_legendary",
+    title:"✨ Легендарный сундук",
+    desc:"Покупка за Telegram Stars (пока в разработке).",
+    cost:{}, // не через coins/rep/bio
+    can: ()=> false, // пока нельзя
+    buy: ()=> {}
+  });
+}
   ];
+
+// секция открытия
+const inv = document.createElement("div");
+inv.className = "card";
+inv.innerHTML = `
+  <div class="listTitle">🎁 Твои сундуки</div>
+  <div class="listSub">Обычных: <b>${state.chests.common||0}</b></div>
+  <div style="margin-top:10px" class="grid2">
+    <button class="btn small ok" onclick="openChest('common')" ${(state.chests.common||0)>0?"":"disabled"}>
+      Открыть обычный
+    </button>
+  </div>
+`;
+elShopList.appendChild(inv);  
 
   for(const it of items){
     const disabled = !it.can() || !canAfford(it.cost);
@@ -2337,6 +2495,12 @@ function buyPerk(id){
     rest_big:      { buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }, cost:{ coins:140, rep:1 }, can:()=> true },
     rest_all:      { buy: ()=> { reduceAllDoctorsFatigue(12, false); }, cost:{ coins:220, bio:1 }, can:()=> true },
     rest_backline: { buy: ()=> { reduceAllDoctorsFatigue(18, true); }, cost:{ coins:180 }, can:()=> true },
+
+    chest_common: {
+  buy: ()=> { state.chests.common = (state.chests.common||0) + 1; },
+  cost:{ coins: CHESTS.common.costCoins },
+  can: ()=> true
+    },
   };
 
   const it = catalog[id];
