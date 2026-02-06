@@ -237,6 +237,53 @@
   font-size:11px;
   color:var(--muted);
 }
+
+.controlGrid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.controlCard{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  background:linear-gradient(
+    180deg,
+    rgba(255,255,255,.05),
+    rgba(0,0,0,.12)
+  );
+  cursor:pointer;
+  transition:transform .05s ease, box-shadow .05s ease;
+}
+
+.controlCard:hover{
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+
+.controlCard:active{
+  transform:scale(.985);
+}
+
+.controlIcon{
+  width:44px;
+  height:44px;
+  image-rendering:pixelated;
+}
+
+.controlTitle{
+  font-weight:900;
+  font-size:15px;
+}
+
+.controlSub{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
     
   </style>
 </head>
@@ -289,20 +336,34 @@
 
     <div class="panel">
   <h2>Управление</h2>
-  <button class="btn" type="button" onclick="openStaff()">
-    👥 Штат
-    <div class="muted">Список врачей и назначение на смену</div>
-  </button>
-  <button class="btn" type="button" onclick="openShop()">
-  🛒 Лавка
-  <div class="muted">Апгрейды клиники за ресурсы</div>
-</button>
 
- <button class="btn" type="button" onclick="startTutorial(true)">
-  ❓ Обучение
-  <div class="muted">Что тут вообще происходит и почему люди умирают</div>
-</button>
-    
+  <div class="controlGrid">
+
+    <div class="controlCard" onclick="openStaff()">
+      <img src="img/control/staff.png" class="controlIcon">
+      <div>
+        <div class="controlTitle">Штат</div>
+        <div class="controlSub">Врачи, усталость и назначения</div>
+      </div>
+    </div>
+
+    <div class="controlCard" onclick="openShop()">
+      <img src="img/control/shop.png" class="controlIcon">
+      <div>
+        <div class="controlTitle">Лавка</div>
+        <div class="controlSub">Апгрейды, отдых и сундуки</div>
+      </div>
+    </div>
+
+    <div class="controlCard" onclick="startTutorial(true)">
+      <img src="img/control/tutorial.png" class="controlIcon">
+      <div>
+        <div class="controlTitle">Обучение</div>
+        <div class="controlSub">Как тут выжить и не сойти с ума</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
     <div class="panel">
