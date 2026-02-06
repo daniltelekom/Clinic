@@ -180,6 +180,21 @@
   filter: brightness(1.2) contrast(1.2);
   opacity:0.95;
 }
+
+.wardIcon{
+  width:36px;
+  height:36px;
+  flex-shrink:0;
+  opacity:0.95;
+  filter: contrast(1.2) brightness(1.1);
+}
+
+.wardCard{
+  background:
+    url("img/wards/ward_bg.png") center/cover no-repeat,
+    rgba(0,0,0,.18);
+  border:1px solid rgba(255,255,255,.12);
+}
     
   </style>
 </head>
@@ -2869,15 +2884,18 @@ function renderClinic(){
 
     // ---------- карточка ----------
     const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="row">
-        <div>
-          <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
-          <div class="listSub">${occ}</div>
-        </div>
-        <div class="right">${badge}</div>
+card.className = "card wardCard";
+   card.innerHTML = `
+  <div class="row">
+    <div style="display:flex; gap:10px; align-items:center;">
+      <img src="img/wards/ward_icon.png" class="wardIcon" alt="">
+      <div>
+        <div class="listTitle">${escapeHtml(w.name)} • Ур. ${w.level}</div>
+        <div class="listSub">${occ}</div>
       </div>
+    </div>
+    <div class="right">${badge}</div>
+  </div>
 
       <div class="hint">
         Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
