@@ -195,6 +195,48 @@
     rgba(0,0,0,.18);
   border:1px solid rgba(255,255,255,.12);
 }
+
+.wardUpgrade {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.15));
+  cursor:pointer;
+  font-weight:700;
+}
+
+.wardUpgrade:active {
+  transform: scale(.98);
+}
+
+.wardUpgrade.disabled {
+  opacity:.45;
+  pointer-events:none;
+}
+
+.wardIconStat {
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  image-rendering: crisp-edges;
+}
+
+.wardUpgradeText {
+  display:flex;
+  flex-direction:column;
+}
+
+.wardUpgradeTitle {
+  font-size:14px;
+}
+
+.wardUpgradeSub {
+  font-size:11px;
+  color:var(--muted);
+}
     
   </style>
 </head>
@@ -1233,6 +1275,28 @@ function repCoinsMultiplier(rep){
   if(rep < 25)  return 1.10;
   if(rep < 50)  return 1.20;
   return 1.30;
+}
+
+function renderWardUpgradeBtn(w, stat, title, hint){
+  const can = canUpgrade(w, stat);
+  const cost = can ? upgradeCost(w, stat) : "MAX";
+
+  return `
+    <div
+      class="wardUpgrade ${can ? "" : "disabled"}"
+      onclick="${can ? `upgradeWardStat('${w.id}','${stat}')` : ""}"
+    >
+      <img
+        src="img/stats/${stat}.png"
+        class="wardIconStat"
+        alt=""
+      >
+      <div class="wardUpgradeText">
+        <div class="wardUpgradeTitle">${title} +1</div>
+        <div class="wardUpgradeSub">${hint} • ${cost}</div>
+      </div>
+    </div>
+  `;
 }
 
 function reduceDoctorFatigue(docId, amount){
@@ -2901,20 +2965,17 @@ card.className = "card wardCard";
         Комфорт: ${w.comfort} • Чистота: ${w.cleanliness} • Вент: ${w.ventilation} • Свет: ${w.light}
       </div>
 
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','comfort')" ${canUpgrade(w,'comfort')?'':'disabled'}>
-          Комфорт +1 (${upgradeCost(w,'comfort')})
-        </button>
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','cleanliness')" ${canUpgrade(w,'cleanliness')?'':'disabled'}>
-          Чистота +1 (${upgradeCost(w,'cleanliness')})
-        </button>
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','ventilation')" ${canUpgrade(w,'ventilation')?'':'disabled'}>
-          Вент +1 (${upgradeCost(w,'ventilation')})
-        </button>
-        <button class="btn small" onclick="upgradeWardStat('${w.id}','light')" ${canUpgrade(w,'light')?'':'disabled'}>
-          Свет +1 (${upgradeCost(w,'light')})
-        </button>
-      </div>
+     <div class="grid2" style="margin-top:10px">
+
+  ${renderWardUpgradeBtn(w, "comfort", "Комфорт", "Меньше страданий пациента")}
+
+  ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
+
+  ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
+
+  ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
+
+</div>
 
       ${actionHtml}
     `;
