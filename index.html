@@ -104,6 +104,44 @@
     .listSub{color:var(--muted); margin-top:4px}
     .hint{font-size:12px; color:var(--muted); margin-top:8px}
     .sep{height:1px; background:var(--line); margin:10px 0}
+
+    .tutOverlay{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.62);
+  display:none;
+  z-index:9999;
+}
+.tutOverlay.active{ display:block; }
+
+.tutCard{
+  position:fixed;
+  left:50%; top:14%;
+  transform:translateX(-50%);
+  width:min(560px, calc(100% - 24px));
+  background:linear-gradient(180deg, rgba(17,26,51,.98), rgba(15,23,48,.98));
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px;
+  z-index:10000;
+  box-shadow:0 18px 60px rgba(0,0,0,.45);
+}
+
+.tutTitle{ font-weight:900; font-size:16px; margin-bottom:8px; }
+.tutText{ color:var(--text); line-height:1.35; }
+.tutHint{ color:var(--muted); font-size:12px; margin-top:8px; }
+
+.tutNav{ display:flex; gap:10px; margin-top:12px; }
+.tutNav .btn{ width:auto; }
+
+.tutSpot{
+  position:fixed;
+  border:2px solid rgba(91,124,255,.9);
+  border-radius:16px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.55);
+  pointer-events:none;
+  z-index:9999;
+}
+    
   </style>
 </head>
 <body>
@@ -150,6 +188,12 @@
   🛒 Лавка
   <div class="muted">Апгрейды клиники за ресурсы</div>
 </button>
+
+ <button class="btn" type="button" onclick="startTutorial(true)">
+  ❓ Обучение
+  <div class="muted">Что тут вообще происходит и почему люди умирают</div>
+</button>
+    
 </div>
 
     <div class="panel">
@@ -558,32 +602,47 @@ const DOCTOR_POOL = [
   // ===== existing (слегка расширим данными) =====
   { id:"doc_herb",  name:"Доктор Травник",   title:"Знахарь с дипломом от леса", rarity:RARITY.RARE,
     methods:["herbalism","charms"], persona:"confident",
+   
     likes:["herbalism"], hates:["amputation"], portrait:"[img]" ,
+   fatigue: 0,      // 0–100
+fatigueGain: 15, // сколько усталости за смену
     bio:"Пахнет аптекой и превосходством. Лечит листьями, словами и пассивной агрессией."
+   
+   
   },
   { id:"doc_blood", name:"Доктор Пиявка",    title:"Фанат красного", rarity:RARITY.COMMON,
     methods:["bloodletting"], persona:"fanatic",
     likes:["bloodletting"], hates:["hypnosis"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Считает, что проблема всегда в лишней крови. Иногда он прав. Иногда пациент просто кончается."
   },
   { id:"doc_priest",name:"Отец Кадило",      title:"Священник-практик", rarity:RARITY.RARE,
     methods:["prayer","charms"], persona:"confident",
     likes:["prayer"], hates:["demonology"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Лечит молитвой, дымом и моральным давлением. Иногда помогает. Иногда только ему."
   },
   { id:"doc_demo",  name:"Маг Пепел",        title:"Юрист по аду", rarity:RARITY.LEGENDARY,
     methods:["demonology","hypnosis","charms"], persona:"trickster",
     likes:["demonology"], hates:["herbalism"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Обещает 'быстро и эффективно'. В договоре мелким шрифтом: 'возможно, не вам'."
   },
   { id:"doc_amput", name:"Мастер Пила",      title:"Хирург без сантиментов", rarity:RARITY.RARE,
     methods:["amputation","bloodletting"], persona:"cold",
     likes:["amputation"], hates:["prayer"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Уверен, что лишнее мешает жить. У него есть пила и аргументы."
   },
   { id:"doc_hypno", name:"Гипнотизёр Нитка", title:"Психотерапия до изобретения психотерапии", rarity:RARITY.COMMON,
     methods:["hypnosis"], persona:"uncertain",
     likes:["hypnosis"], hates:["bloodletting"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Говорит тихо, смотрит странно, работает непредсказуемо. Как и жизнь."
   },
 
@@ -591,55 +650,89 @@ const DOCTOR_POOL = [
   { id:"doc_leech", name:"Сестра Жало", title:"Пиявки, банки, уверенность", rarity:RARITY.COMMON,
     methods:["bloodletting","herbalism"], persona:"confident",
     likes:["bloodletting"], hates:["demonology"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Считает, что баланс жидкостей решает всё. На жалобы отвечает банкой."
   },
   { id:"doc_candle", name:"Мать Свеча", title:"Заговоры и восковые диагнозы", rarity:RARITY.RARE,
     methods:["charms","prayer"], persona:"confident",
     likes:["charms"], hates:["amputation"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Лечит символами, узлами и косым взглядом. В её комнате всегда пахнет воском и тайнами."
   },
   { id:"doc_bell", name:"Доктор Колокол", title:"Успокоит даже смерть", rarity:RARITY.RARE,
     methods:["hypnosis","charms"], persona:"cold",
     likes:["hypnosis"], hates:["bloodletting"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Его голос ровный как приговор. Пациенты перестают паниковать. Некоторые перестают вообще."
   },
   { id:"doc_ash", name:"Провизор Сажа", title:"Аптекарь с грязной совестью", rarity:RARITY.COMMON,
     methods:["herbalism","hypnosis"], persona:"trickster",
     likes:["herbalism"], hates:["prayer"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Размешивает настои так, будто варит судьбу. Иногда варит реально судьбу."
   },
   { id:"doc_sawbones", name:"Костоправ Гвоздь", title:"Руки как тиски", rarity:RARITY.COMMON,
     methods:["amputation","herbalism"], persona:"fanatic",
     likes:["amputation"], hates:["charms"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Ненавидит 'шарлатанские свечки'. Верит только в железо, бинт и хруст."
   },
   { id:"doc_inquis", name:"Инквизитор Печать", title:"Святость с протоколом", rarity:RARITY.LEGENDARY,
     methods:["prayer","hypnosis"], persona:"cold",
     likes:["prayer"], hates:["demonology"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Требует порядок, чистые отчёты и чистую душу. Не обязательно пациента."
   },
   { id:"doc_grave", name:"Доктор Могильник", title:"Патологоанатом заранее", rarity:RARITY.RARE,
     methods:["bloodletting","charms"], persona:"uncertain",
     likes:["charms"], hates:["herbalism"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Всегда готов к худшему. Иногда это помогает. Иногда просто настроение такое."
   },
   { id:"doc_salt", name:"Солевар Седой", title:"Лечит 'простым'", rarity:RARITY.COMMON,
     methods:["herbalism","prayer"], persona:"uncertain",
     likes:["herbalism"], hates:["hypnosis"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Говорит: 'ничего лишнего'. Потом даёт траву и молитву. И уходит, пока ты не спросил почему."
   },
   { id:"doc_night", name:"Ночной Псаломщик", title:"Поёт, пока не полегчает", rarity:RARITY.RARE,
     methods:["prayer","demonology"], persona:"trickster",
     likes:["prayer"], hates:["bloodletting"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Умеет и молиться, и спорить с тьмой. Пугает всех, включая результат."
   },
   { id:"doc_worm", name:"Доктор Червяк", title:"Специалист по 'зуду судьбы'", rarity:RARITY.LEGENDARY,
     methods:["charms","demonology"], persona:"fanatic",
     likes:["demonology"], hates:["amputation"], portrait:"[img]",
+   fatigue: 0,      // 0–100
+fatigueGain: 15, 
     bio:"Смотрит на симптомы как на послания. Иногда послания отвечают."
   },
 ];
 
+function defaultFatigueGainByRarity(r){
+  if(r === RARITY.LEGENDARY) return 10;
+  if(r === RARITY.RARE) return 12;
+  return 15; // common
+}
+
+// гарантирует поля усталости у всех врачей
+function normalizeDoctorsFatigue(){
+  for(const d of DOCTOR_POOL){
+    if(d.fatigue == null) d.fatigue = 0;                 // 0..100
+    if(d.fatigueGain == null) d.fatigueGain = defaultFatigueGainByRarity(d.rarity);
+  }
+}
+  
 
 function rarityLabel(r){
   return r===RARITY.LEGENDARY ? "Legendary" : r===RARITY.RARE ? "Rare" : "Common";
@@ -759,10 +852,7 @@ spawn: {
   nextAt: now()
 
 },
-maxQueue: 4,
-baseWaitSec: 180,
-baseTreatSecMin: 90,
-baseTreatSecMax: 210,
+
   };
 }
 
@@ -970,6 +1060,26 @@ function applyPerks(){
   // остальное (лаба скидка/экстра, скорость лечения) ты считаешь на лету в нужных местах и это норм
 }
 
+function applyDoctorFatigueAfterShift(){
+  normalizeDoctorsFatigue();
+
+  const dutyIds = new Set(
+    dutyDoctors().filter(Boolean).map(d => d.id)
+  );
+
+  for(const d of DOCTOR_POOL){
+    const f = Number(d.fatigue || 0);
+
+    if(dutyIds.has(d.id)){
+      // работал смену -> устал
+      d.fatigue = Math.min(100, f + Number(d.fatigueGain || 15));
+    } else {
+      // не работал -> отдохнул
+      d.fatigue = Math.max(0, f - 12);
+    }
+  }
+}
+
 function applyAllModifiers(){
   resetToBase();
   applyPerks();
@@ -986,6 +1096,21 @@ function formatLeft(ms){
   const m = Math.floor(s/60);
   const r = s%60;
   return `${m}:${String(r).padStart(2,"0")}`;
+}
+
+  function fatigueLabel(f){
+  f = Math.round(Number(f || 0));
+  if(f >= 90) return "☠️ выжат";
+  if(f >= 70) return "🥴 устал";
+  if(f >= 40) return "😐 норм";
+  return "🟢 бодр";
+}
+
+function fatigueClass(f){
+  f = Number(f || 0);
+  if(f >= 90) return "bad";
+  if(f >= 70) return "warn";
+  return "ok";
 }
 
 function escapeHtml(str){
@@ -1080,7 +1205,8 @@ const treatSec = Math.max(10, Math.round(baseTreat * (1 - speed/100)));
     name: `${fn} ${ln}`,
     gender: isFemale ? "f" : "m",
     rarity: patientRarity,
-
+    treatAttempts: 0,
+ 
     trueDiseaseId: disease.id,
     visibleSymptoms: vis,
 
@@ -1248,30 +1374,43 @@ function dutyDoctors(){
   return [d1, d2];
 }
 
-function doctorConfidence(persona){
-  if(persona==="fanatic") return 0.90;
-  if(persona==="confident") return 0.75;
-  if(persona==="trickster") return 0.65;
-  if(persona==="cold") return 0.60;
-  return 0.45; // uncertain
+function doctorConfidence(doc){
+  if(!doc) return 0.4;
+
+  let base = 0.45;
+  if(doc.persona==="fanatic") base = 0.90;
+  else if(doc.persona==="confident") base = 0.75;
+  else if(doc.persona==="trickster") base = 0.65;
+  else if(doc.persona==="cold") base = 0.60;
+
+  const fatigue = Number(doc.fatigue || 0);
+  if(fatigue > 60) base -= 0.18;
+  if(fatigue > 85) base -= 0.25;
+
+  return Math.max(0.15, base);
 }
 
 function doctorAdviceText(doc, options){
   if(!doc) return `— <b>Пустой слот</b>: “Назначь врача, иначе лечи на ощупь.”`;
+  const f = Math.round(doc.fatigue || 0);
+  const fCls = fatigueClass(f);
   // doc советует метод, который он знает, если он в options
   const knows = options.filter(o=>doc.methods.includes(o));
-  const conf = doctorConfidence(doc.persona);
+  const conf = doctorConfidence(doc);
 
-  if(knows.length && Math.random() < conf){
+  const fatigue = Number(doc.fatigue || 0);
+const fatigueMul = fatigue >= 90 ? 0.55 : fatigue >= 70 ? 0.75 : 1.0;
+
+if(knows.length && Math.random() < (conf * fatigueMul)){
     const m = pick(knows);
-    return `— <b>${escapeHtml(doc.name)}</b>: “Я бы взял <b>${escapeHtml(methodName(m))}</b>.”`;
+    return `— <b>${escapeHtml(doc.name)}</b> <span class="tag ${fCls}">${f}%</span>: “Я бы взял <b>${escapeHtml(methodName(m))}</b>.”`;
   }
 
   // иногда критикует метод, который не любит (просто выбираем рандомный не-его)
   if(Math.random() < 0.35){
     const m = pick(options);
     if(!doc.methods.includes(m)){
-      return `— <b>${escapeHtml(doc.name)}</b>: “Только не <b>${escapeHtml(methodName(m))}</b>… это пахнет провалом.”`;
+      return `— <b>${escapeHtml(doc.name)}</b> <span class="tag ${fCls}">${f}%</span>: “Только не <b>${escapeHtml(methodName(m))}</b>… это пахнет провалом.”`;
     }
   }
 
@@ -1279,17 +1418,30 @@ function doctorAdviceText(doc, options){
 const hated = options.filter(o => (doc.hates||[]).includes(o));
 if(hated.length && Math.random() < 0.55){
   const m = pick(hated);
-  return `— <b>${escapeHtml(doc.name)}</b>: “Если хочешь проблем, выбери <b>${escapeHtml(methodName(m))}</b>.”`;
+  return `— <b>${escapeHtml(doc.name)}</b> <span class="tag ${fCls}">${f}%</span>: “Если хочешь проблем, выбери <b>${escapeHtml(methodName(m))}</b>.”`;
 }
   
-  return `— <b>${escapeHtml(doc.name)}</b>: “Ситуация… атмосферная. Решай сам.”`;
+  return `— <b>${escapeHtml(doc.name)}</b> <span class="tag ${fCls}">${f}%</span>: “Ситуация… атмосферная. Решай сам.”`;
 }
 
 function doctorSkillPenalty(selectedMethod){
-  // если ни один дежурный не умеет метод — штраф
-  const docs = dutyDoctors().filter(Boolean); // <-- важно
-  const any = docs.some(d => d.methods.includes(selectedMethod));
-  return any ? 1.0 : 0.78;
+  const docs = dutyDoctors().filter(Boolean);
+  if(!docs.length) return 0.78; // никого нет = боль
+
+  let mul = 1.0;
+
+  // если никто не умеет метод — базовый штраф
+  const anyKnow = docs.some(d => d.methods.includes(selectedMethod));
+  if(!anyKnow) mul *= 0.78;
+
+  // усталость каждого дежурного ухудшает результат
+  for(const d of docs){
+    const f = Number(d.fatigue || 0);
+    if(f > 60) mul *= 0.92;
+    if(f > 85) mul *= 0.88;
+  }
+
+  return Math.max(0.55, mul);
 }
 
 /* =========================================================
@@ -1384,6 +1536,19 @@ function rollOutcome(patientId, treatmentId, wardId){
     const comfort = w.comfort ?? 1;
     if(comfort >= 5) kind = OUTCOMES.DISFIGURED;
   }
+
+  // если пациент уже ухудшался раньше, второй раз не "хуже", а либо вытаскиваем, либо теряем
+if((p.treatAttempts || 0) >= 2){
+  if(kind === OUTCOMES.WORSENED){
+    // шанс выжить зависит от комфорта/чистоты, плюс если метод правильный
+    const wardPower = ((w.comfort||1) + (w.cleanliness||1)) / 12; // 0..~1
+    const methodGood = (treatmentId === disease.cureBy) ? 0.25 : 0.0;
+
+    const surviveChance = Math.min(0.85, 0.25 + wardPower*0.45 + methodGood);
+    kind = (Math.random() < surviveChance) ? OUTCOMES.CURE : OUTCOMES.DEATH;
+  }
+}
+  
 
   // 3) Доктора: если никто не умеет метод, нейтральный становится хуже
   const docMul = doctorSkillPenalty(treatmentId);
@@ -1529,9 +1694,18 @@ function gainDoctorXP(xpKind){
 
 function endShift(){
   state.shift.active = false;
+  // усталость после смены
+  applyDoctorFatigueAfterShift();
   saveState();
   renderShiftEnd();
   showScreen("shiftend");
+}
+
+  function applyDoctorFatigueAfterShift(){
+  const docs = dutyDoctors().filter(Boolean);
+  for(const d of docs){
+    d.fatigue = Math.min(100, (d.fatigue || 0) + d.fatigueGain);
+  }
 }
 
 function renderShiftEnd(){
@@ -1675,6 +1849,7 @@ function reconcileState(){
 }
 
 state = loadState();
+normalizeDoctorsFatigue();
 reconcileState();
 normalizeCalendar();
 applyAllModifiers();  
@@ -1723,6 +1898,9 @@ function chooseTreatment(treatmentId){
   if(!p) return;
 
   const endAt = now() + p.treatSec*1000;
+
+  p.treatAttempts = (p.treatAttempts || 0) + 1;
+saveState();
 
   setActiveForWard(ward.id, {
     patientId: p.id,
@@ -1780,6 +1958,34 @@ function completeTreatment(wardId){
   saveState();
   refreshVisibleUI();
 }
+
+  function continueTreatment(patientId, wardId){
+  if(!state.shift?.active) return;
+
+  const w = wardById(wardId);
+  const p = patientById(patientId);
+  if(!w || !p) return;
+
+  // если нет pendingResult - нечего продолжать
+  if(!w.pendingResult || w.pendingResult.patientId !== patientId) return;
+
+  // чистим результат, но пациента оставляем в палате
+  w.pendingResult = null;
+
+  // сбрасываем варианты лечения, чтобы игрок заново выбирал 4 метода
+  p.treatmentOptions = null;
+
+  // можно слегка ужесточить кризис: уменьшаем время до "ухода" уже не актуально, он в палате
+  // зато можно добавить штраф репутации за затяжку:
+  state.reputation = (state.reputation || 0) - 1;
+
+  saveState();
+
+  // открыть пациента и дать выбрать метод заново
+  openPatientById(patientId);
+  refreshVisibleUI();
+}
+window.continueTreatment = continueTreatment;
 
 function dischargePatient(patientId, wardId){
   const w = wardById(wardId);
@@ -1847,6 +2053,7 @@ function renderStaff(){
   Любит: ${doc.likes?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"} •
   Не любит: ${doc.hates?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"}
 </div>
+<div class="hint">Усталость: <b>${Math.round(doc.fatigue || 0)}%</b></div>
 <div class="hint">${escapeHtml(doc.bio || "")}</div>
         </div>
       </div>
@@ -2253,17 +2460,26 @@ function renderDutySlot(idx, d){
         </div>
         <button class="btn small" onclick="openStaff()">Назначить</button>
       </div>
-    `;
+   ` ;
   } else {
+    const f = Math.round(d.fatigue || 0);
+    const fCls = fatigueClass(f);
+    const fLbl = fatigueLabel(f);
+
     div.innerHTML = `
       <div class="row">
         <div>
           <div class="listTitle">Слот ${idx}: ${escapeHtml(d.name)}</div>
-          <div class="listSub">${rarityLabel(d.rarity)} • методы: ${d.methods.map(m=>escapeHtml(methodName(m))).join(", ")}</div>
+          <div class="listSub">
+            ${rarityLabel(d.rarity)} • методы: ${d.methods.map(m=>escapeHtml(methodName(m))).join(", ")}
+          </div>
+          <div class="hint">
+            Усталость: <b class="${fCls}">${f}%</b> • ${escapeHtml(fLbl)}
+          </div>
         </div>
         <button class="btn small" onclick="openStaff()">Сменить</button>
       </div>
-    `;
+   ` ;
   }
 
   elDuty.appendChild(div);
@@ -2540,6 +2756,7 @@ function showResult(ward){
 
   const r = ward.pendingResult;
   const kind = r.kind;
+  const canContinue = (kind === OUTCOMES.WORSENED) && state.shift?.active;
 
   const label =
     kind===OUTCOMES.CURE ? "✅ Вылечен" :
@@ -2548,36 +2765,28 @@ function showResult(ward){
     kind===OUTCOMES.WORSENED ? "⚠️ Стало хуже" :
     "☠️ Смерть";
 
+let primaryBtnHtml = "";
+
+if(kind === OUTCOMES.WORSENED){
+  primaryBtnHtml = `
+    <button class="btn warn" onclick="continueTreatment('${r.patientId}','${r.wardId}')">
+      🔁 Продолжить лечение
+      <div class="muted">Пациент в кризисе: либо вытащим, либо он отъедет</div>
+    </button>
+    <button class="btn" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
+      ✖ Закрыть случай
+      <div class="muted">Ты сдаёшься. Репутация всё запомнит.</div>
+    </button>
+`  ;
+} else {
   const btnText = (kind===OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
-
-  elResultText.innerHTML = `
-    <div style="font-weight:900; font-size:18px">${label}</div>
-    <div class="muted" style="margin-top:6px">${escapeHtml(r.flavor || "")}</div>
-
-    <div class="sep"></div>
-
-    <div class="muted">Метод:</div>
-    <div style="font-weight:900">${escapeHtml(methodName(r.treatmentId))}</div>
-
-    <div class="sep"></div>
-
-    <div class="row">
-      <div>💰 Монеты:</div>
-      <div style="font-weight:900">${r.coins>=0?"+":""}${r.coins}</div>
-    </div>
-    <div class="row">
-      <div>⭐ Репутация:</div>
-      <div style="font-weight:900" class="${r.reputation<0?'bad':'ok'}">${r.reputation>=0?"+":""}${r.reputation}</div>
-    </div>
-    <div class="row">
-      <div>🧫 Биоматериал:</div>
-      <div style="font-weight:900">${r.biomaterial>=0?"+":""}${r.biomaterial}</div>
-    </div>
-
-    <div class="sep"></div>
-
+  primaryBtnHtml = `
     <button class="btn ok" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
       ${btnText}
+      <div class="muted">Освободит палату</div>
+    </button>
+  ;
+}
       <div class="muted">Освободит палату</div>
     </button>
   `;
@@ -2667,6 +2876,159 @@ setInterval(()=>{
 
 startUITick();
 
+const LS_TUTORIAL_DONE = "plague_tutorial_done_v1";
+
+const tut = {
+  active:false,
+  step:0,
+  steps:[]
+};
+
+const elTutOverlay = document.getElementById("tut-overlay");
+const elTutTitle = document.getElementById("tut-title");
+const elTutText  = document.getElementById("tut-text");
+const elTutHint  = document.getElementById("tut-hint");
+const elTutSpot  = document.getElementById("tut-spot");
+const elTutPrev  = document.getElementById("tut-prev");
+const elTutNext  = document.getElementById("tut-next");
+const elTutClose = document.getElementById("tut-close");
+
+function qs(x){ return document.querySelector(x); }
+
+function buildTutorialSteps(){
+  // Важно: шаги под твои реальные экраны.
+  // Если элемент не найден, шаг всё равно покажется, но без подсветки.
+
+  return [
+    {
+      title:"Добро пожаловать в чумную клинику",
+      text:"Тут ты управляешь лечением пациентов. Выбираешь методы, ставишь в палаты, пользуешься лабораторией, следишь за репутацией. Да, люди будут умирать. Это не баг, это эпоха.",
+      hint:"Цель: продержаться смену, лечить быстрее, копить ресурсы, расширяться.",
+      focus: ".topbar"
+    },
+    {
+      title:"Верхняя панель: ресурсы",
+      text:"💰 Монеты: покупка апгрейдов. ⭐ Репутация: влияет на доход и терпение мира к твоим провалам. 🧫 Биоматериал: валюта для странных улучшений. ⏳ Таймер смены: когда он кончится, будет награда.",
+      hint:"Если репутация падает в минус, ты сам себя душишь экономикой.",
+      focus: ".topbar"
+    },
+    {
+      title:"Палаты",
+      text:"Палаты лечат параллельно. Пациента можно положить в свободную палату и назначить лечение. Апгрейды палаты влияют на последствия (например, чистота снижает шанс осложнений).",
+      hint:"Если палата занята или ждёт выдачи результата, положить нового нельзя.",
+      focus: "#wards"
+    },
+    {
+      title:"Дежурные доктора",
+      text:"Доктора дают советы и штрафуют методы, которые они ‘не умеют’. Если ни один дежурный не знает выбранный метод, шанс нормального исхода падает.",
+      hint:"Чем больше методов покрывают дежурные, тем стабильнее результаты.",
+      focus: "#duty"
+    },
+    {
+      title:"Очередь пациентов",
+      text:"Пациенты стоят и ждут. У каждого таймер до ухода/смерти. Если ты игноришь очередь, репутация падает, а иногда прилетает био за смерть (весёлые времена).",
+      hint:"Главный враг игрока: затуп и отсутствие свободных палат.",
+      focus: "#queue"
+    },
+    {
+      title:"Карточка пациента",
+      text:"Открывай пациента, смотри симптомы и подсказку. Можно закрыть карточку или положить в палату. После назначения лечения начнётся таймер процедуры.",
+      hint:"Подсказки туманные. Игроку нужно сопоставлять и учиться, а не угадывать по одному слову.",
+      focus: "#screen-patient"
+    },
+    {
+      title:"Лаборатория",
+      text:"Лаборатория открывает новый симптом. Это помогает подтвердить диагноз и уменьшить угадайку. Но стоит монеты и имеет лимит на пациента.",
+      hint:"Используй лабораторию на редких/опасных больных или когда совсем непонятно.",
+      focus: "#btn-lab"
+    },
+    {
+      title:"Конец смены и награды",
+      text:"Когда смена заканчивается, ты выбираешь одну награду из трёх. Это твой рост между сменами. Выбор влияет на стиль игры.",
+      hint:"Монеты = эконом разгон. Репутация = стабильность. Перки = ускорение темпа.",
+      focus: "#screen-shiftend"
+    }
+  ];
+}
+
+function startTutorial(fromButton=false){
+  tut.steps = buildTutorialSteps();
+  tut.active = true;
+  tut.step = 0;
+
+  elTutOverlay.classList.add("active");
+  renderTutorialStep();
+
+  // Если это авто-обучение (первый запуск), отметим “видел”
+  if(!fromButton){
+    localStorage.setItem(LS_TUTORIAL_DONE, "1");
+  }
+}
+
+function stopTutorial(){
+  tut.active = false;
+  elTutOverlay.classList.remove("active");
+  elTutSpot.style.display = "none";
+}
+
+function renderTutorialStep(){
+  if(!tut.active) return;
+
+  const s = tut.steps[tut.step];
+  if(!s){ stopTutorial(); return; }
+  elTutTitle.textContent = `${tut.step+1}/${tut.steps.length} • ${s.title}`;
+  elTutText.textContent  = s.text;
+  elTutHint.textContent  = s.hint || "";
+
+  // кнопки
+  elTutPrev.disabled = tut.step === 0;
+  elTutNext.textContent = (tut.step === tut.steps.length-1) ? "Готово" : "Далее →";
+
+  // фокус подсветкой
+  const node = s.focus ? qs(s.focus) : null;
+  if(!node){
+    elTutSpot.style.display = "none";
+    return;
+  }
+
+  // если нужный экран не активен, не ломаемся
+  const rect = node.getBoundingClientRect();
+  const pad = 8;
+
+  elTutSpot.style.display = "block";
+  elTutSpot.style.left   = Math.max(8, rect.left - pad) + "px";
+  elTutSpot.style.top    = Math.max(8, rect.top - pad) + "px";
+  elTutSpot.style.width  = Math.max(40, rect.width + pad*2) + "px";
+  elTutSpot.style.height = Math.max(40, rect.height + pad*2) + "px";
+}
+
+elTutPrev.addEventListener("click", (e)=>{
+  e.preventDefault();
+  if(tut.step>0){ tut.step--; renderTutorialStep(); }
+});
+
+elTutNext.addEventListener("click", (e)=>{
+  e.preventDefault();
+  if(tut.step >= tut.steps.length-1){
+    stopTutorial();
+  } else {
+    tut.step++;
+    renderTutorialStep();
+  }
+});
+
+elTutClose.addEventListener("click", (e)=>{
+  e.preventDefault();
+  stopTutorial();
+});
+
+// чтобы подсветка не съезжала при ресайзе/скролле
+window.addEventListener("resize", ()=> { if(tut.active) renderTutorialStep(); });
+window.addEventListener("scroll",  ()=> { if(tut.active) renderTutorialStep(); }, true);
+
+// экспорт
+window.startTutorial = startTutorial;
+
 /* =========================================================
    14) INIT
 ========================================================= */
@@ -2674,6 +3036,11 @@ startUITick();
 if(state.shift?.active) fillQueue();
 saveState();
 refreshVisibleUI();
+// авто-обучение на первом запуске
+if(!localStorage.getItem(LS_TUTORIAL_DONE)){
+  startTutorial(false);
+}
+  
  
 /* =========================================================
    15) GLOBAL EXPORTS (for onclick)
@@ -2693,5 +3060,20 @@ window.labResearchSelected = labResearchSelected;
 window.chooseReward = chooseReward;  
 
 </script>
+ <div id="tut-overlay" class="tutOverlay">
+  <div id="tut-spot" class="tutSpot" style="display:none"></div>
+
+  <div class="tutCard">
+    <div class="tutTitle" id="tut-title">Обучение</div>
+    <div class="tutText" id="tut-text"></div>
+    <div class="tutHint" id="tut-hint"></div>
+
+    <div class="tutNav">
+      <button class="btn small" id="tut-prev">← Назад</button>
+      <button class="btn small ok" id="tut-next">Далее →</button>
+      <button class="btn small danger" id="tut-close">Закрыть</button>
+    </div>
+  </div>
+</div> 
 </body>
 </html>
