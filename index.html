@@ -1338,15 +1338,17 @@ function shuffle(arr){
 }
 
 function fillQueue(){
-  const t = now();
+  if(!state.shift?.active) return;
 
-  if(!state.spawn) state.spawn = { nextAt: t };
-  if(!Number.isFinite(Number(state.spawn.nextAt))) state.spawn.nextAt = t;
+  if(!state.spawn) state.spawn = { nextAt: now() };
+  if(!Number.isFinite(Number(state.spawn.nextAt))) state.spawn.nextAt = now();
 
   let guard = 0;
 
-  while(guard++ < 20){
+  while(guard++ < 50){
     if(state.queue.length >= state.maxQueue) break;
+
+    const t = now();                 // ✅ время обновляем
     if(t < state.spawn.nextAt) break;
 
     const p = makePatient();
@@ -3047,6 +3049,7 @@ setInterval(()=>{
       return;
     }
 
+    fillQueue(); 
     processQueueTick();
     processTreatmentsTick();
     refreshVisibleUI();
