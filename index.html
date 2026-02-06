@@ -318,6 +318,22 @@
   </div>
 </div>  
 
+   <div id="tut-overlay" class="tutOverlay">
+  <div id="tut-spot" class="tutSpot" style="display:none"></div>
+
+  <div class="tutCard">
+    <div class="tutTitle" id="tut-title">Обучение</div>
+    <div class="tutText" id="tut-text"></div>
+    <div class="tutHint" id="tut-hint"></div>
+
+    <div class="tutNav">
+      <button class="btn small" id="tut-prev">← Назад</button>
+      <button class="btn small ok" id="tut-next">Далее →</button>
+      <button class="btn small danger" id="tut-close">Закрыть</button>
+    </div>
+  </div>
+</div> 
+
 <script>
 
   let state = null;
@@ -2756,7 +2772,6 @@ function showResult(ward){
 
   const r = ward.pendingResult;
   const kind = r.kind;
-  const canContinue = (kind === OUTCOMES.WORSENED) && state.shift?.active;
 
   const label =
     kind===OUTCOMES.CURE ? "✅ Вылечен" :
@@ -2765,31 +2780,39 @@ function showResult(ward){
     kind===OUTCOMES.WORSENED ? "⚠️ Стало хуже" :
     "☠️ Смерть";
 
-let primaryBtnHtml = "";
+  let primaryBtnHtml = "";
 
-if(kind === OUTCOMES.WORSENED){
-  primaryBtnHtml = `
-    <button class="btn warn" onclick="continueTreatment('${r.patientId}','${r.wardId}')">
-      🔁 Продолжить лечение
-      <div class="muted">Пациент в кризисе: либо вытащим, либо он отъедет</div>
-    </button>
-    <button class="btn" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
-      ✖ Закрыть случай
-      <div class="muted">Ты сдаёшься. Репутация всё запомнит.</div>
-    </button>
-`  ;
-} else {
-  const btnText = (kind===OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
-  primaryBtnHtml = `
-    <button class="btn ok" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
-      ${btnText}
-      <div class="muted">Освободит палату</div>
-    </button>
-  ;
-}
-      <div class="muted">Освободит палату</div>
-    </button>
-  `;
+  if(kind === OUTCOMES.WORSENED){
+    primaryBtnHtml = `
+      <button class="btn warn" onclick="continueTreatment('${r.patientId}','${r.wardId}')">
+        🔁 Продолжить лечение
+        <div class="muted">Пациент в кризисе: либо вытащим, либо он отъедет</div>
+      </button>
+      <button class="btn" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
+        ✖ Закрыть случай
+        <div class="muted">Ты сдаёшься. Репутация всё запомнит.</div>
+      </button>
+   ` ;
+  } else {
+    const btnText = (kind===OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
+    primaryBtnHtml = `
+      <button class="btn ok" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
+        ${btnText}
+        <div class="muted">Освободит палату</div>
+      </button>
+   ` ;
+  }
+
+  elResultText.innerHTML = `
+    <div class="listTitle">${label}</div>
+    <div class="listSub">${escapeHtml(r.flavor || "")}</div>
+    <div class="sep"></div>
+    <div class="hint">
+      💰 ${r.coins>=0?"+":""}${r.coins} • ⭐ ${r.reputation>=0?"+":""}${r.reputation} • 🧫 ${r.biomaterial>=0?"+":""}${r.biomaterial}
+    </div>
+    <div class="sep"></div>
+    ${primaryBtnHtml}
+ ` ;
 }
 
 function refreshVisibleUI(){
@@ -3060,20 +3083,5 @@ window.labResearchSelected = labResearchSelected;
 window.chooseReward = chooseReward;  
 
 </script>
- <div id="tut-overlay" class="tutOverlay">
-  <div id="tut-spot" class="tutSpot" style="display:none"></div>
-
-  <div class="tutCard">
-    <div class="tutTitle" id="tut-title">Обучение</div>
-    <div class="tutText" id="tut-text"></div>
-    <div class="tutHint" id="tut-hint"></div>
-
-    <div class="tutNav">
-      <button class="btn small" id="tut-prev">← Назад</button>
-      <button class="btn small ok" id="tut-next">Далее →</button>
-      <button class="btn small danger" id="tut-close">Закрыть</button>
-    </div>
-  </div>
-</div> 
 </body>
 </html>
