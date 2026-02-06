@@ -405,8 +405,8 @@ const RARITY = {
   LEGENDARY: "legendary"
 };
 
-const LS_STATE = "plague_state_v7.1";
-const LS_ACTIVE = "plague_active_map_v7.1";
+const LS_STATE = "plague_state_v7.2";
+const LS_ACTIVE = "plague_active_map_v7.2";
 
 /* =========================================================
    1) DATA: methods / diseases / doctors / names
@@ -1239,49 +1239,71 @@ function applyChestLoot(loot){
 }
 
 function lootApplyTextRu(loot){
-  // Тут уже “что конкретно начислилось”, с реальными числами
   switch(loot.type){
+
     case "coins": {
       const n = randBetween(loot.min, loot.max);
       state.coins += n;
-      return `💰 +${n} монет`;
+      return {
+        title: "💰 Монеты",
+        text: `Получено: <b>+${n}</b> монет`,
+        hint: "Деньги не пахнут. Иногда пахнут кровью."
+      };
     }
+
     case "bio": {
       const n = randBetween(loot.min, loot.max);
       state.biomaterial = (state.biomaterial||0) + n;
-      return `🧫 +${n} биоматериала`;
+      return {
+        title: "🧫 Биоматериал",
+        text: `Получено: <b>+${n}</b> биоматериала`,
+        hint: "Наука одобряет. Мораль — не всегда."
+      };
     }
+
     case "rep": {
       const n = randBetween(loot.min, loot.max);
       state.reputation = (state.reputation||0) + n;
-      return `⭐ +${n} репутации`;
+      return {
+        title: "⭐ Репутация",
+        text: `Получено: <b>+${n}</b> репутации`,
+        hint: "Люди пока верят, что ты врач."
+      };
     }
 
     case "rest_small":
       state._shopRestToken = (state._shopRestToken || 0) + (loot.value||1);
-      return `🫖 Получено: Отвар для персонала x${loot.value||1}`;
+      return {
+        title: "🫖 Отвар для персонала",
+        text: `Получено: <b>x${loot.value||1}</b>`,
+        hint: "Горько, но бодрит."
+      };
 
     case "rest_big":
       state._shopRestTokenBig = (state._shopRestTokenBig || 0) + (loot.value||1);
-      return `🛌 Получено: Выходной по приказу x${loot.value||1}`;
+      return {
+        title: "🛌 Выходной по приказу",
+        text: `Получено: <b>x${loot.value||1}</b>`,
+        hint: "Редкая роскошь."
+      };
 
     case "perk_treatSpeed":
       state.perks.treatSpeed = Math.min(40, (state.perks.treatSpeed||0) + (loot.value||10));
-      return `🛏️ Скорость лечения: +${loot.value||10}%`;
-
-    case "perk_labExtra":
-      state.perks.labExtra = Math.min(2, (state.perks.labExtra||0) + (loot.value||1));
-      return `🔬 Лаборатория: +${loot.value||1} исследование на пациента`;
-
-    case "perk_queueBuffer":
-      state.perks.queueBuffer = Math.min(4, (state.perks.queueBuffer||0) + (loot.value||1));
-      return `📋 Очередь: +${loot.value||1}`;
+      return {
+        title: "🛏️ Улучшение коек",
+        text: `Скорость лечения: <b>+${loot.value||10}%</b>`,
+        hint: "Пациенты страдают быстрее."
+      };
 
     case "doctor_unlock":
       return grantDoctorUnlock(loot);
 
-   default:
-      return { title:"🎲 Награда", text:`Получено: <b>${escapeHtml(String(loot.type))}</b>`, hint:"Не спрашивай." };
+    default:
+      return {
+        title: "🎲 Награда",
+        text: "Произошло нечто странное.",
+        hint: "Лучше не знать подробностей."
+      };
   }
 }
 
