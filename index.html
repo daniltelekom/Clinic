@@ -39,6 +39,9 @@
   border-radius:16px;
   background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
   margin-bottom:12px;
+   background:
+    url("img/topbar_bg.png") center/cover no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
 }
     .title{display:flex; gap:10px; align-items:center; font-weight:800;}
     .pill{
@@ -168,6 +171,15 @@
   image-rendering: crisp-edges;
   filter: contrast(1.15);
 }
+
+.icon{
+  width:18px;
+  height:18px;
+  display:inline-block;
+  image-rendering:auto;
+  filter: brightness(1.2) contrast(1.2);
+  opacity:0.95;
+}
     
   </style>
 </head>
@@ -178,10 +190,24 @@
   <div class="topbar">
   <div class="title">🧪 Чумная клиника </div>
   <div style="display:flex; gap:8px; align-items:center;">
-    <div class="pill">💰 <span id="coins">0</span></div>
-    <div class="pill">⭐️ Реп. <span id="rep">0</span></div>
-    <div class="pill">🧫 <span id="bio">0</span></div>
-    <div class="pill">⏳ <span id="shift-timer">--:--</span></div>
+    <div class="pill">
+  <img class="icon" src="icons/topbar/icon_coins.png" alt="">
+  <span id="coins">0</span>
+</div>
+   <div class="pill">
+  <img class="icon" src="icons/topbar/icon_rep.png" alt="">
+  <span id="rep">0</span>
+</div>
+
+<div class="pill">
+  <img class="icon" src="icons/topbar/icon_bio.png" alt="">
+  <span id="bio">0</span>
+</div>
+
+<div class="pill">
+  <img class="icon" src="icons/topbar/icon_time.png" alt="">
+  <span id="shift-timer">--:--</span>
+</div>
   </div>
 </div>
 
