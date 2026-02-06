@@ -163,6 +163,11 @@
   flex-direction:column;
   gap:2px;
 }
+
+.listTitle img{
+  image-rendering: crisp-edges;
+  filter: contrast(1.15);
+}
     
   </style>
 </head>
@@ -2610,7 +2615,15 @@ function renderShop(){
     div.innerHTML = `
       <div class="row">
         <div>
-          <div class="listTitle">${escapeHtml(it.title)}</div>
+          <div class="listTitle" style="display:flex; align-items:center; gap:10px;">
+  <img 
+    src="icons/shop/icon_${it.id}.png" 
+    width="32" 
+    height="32"
+    alt=""
+  />
+  <span>${escapeHtml(it.title)}</span>
+</div>
           <div class="listSub">${escapeHtml(it.desc)}</div>
         </div>
         <button class="btn small ok" ${disabled?"disabled":""} onclick="buyPerk('${it.id}')">
