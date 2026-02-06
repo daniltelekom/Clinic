@@ -3084,11 +3084,13 @@ const cost = Math.max(1, Math.round(baseCost * (1 - discount/100)));
     && hidden.length > 0;
 
   elLabBtn.disabled = !canLab;
-  elLabSub.textContent =` Откроет новый симптом • Цена: ${cost} монет`;
- if((p.labUsed ?? 0) === 0){
-  elLabHint.textContent += " • После исследования появятся 2 версии диагноза.";
+ // сначала всегда сбрасываем
+elLabHint.textContent = "";
+
+if((p.labUsed ?? 0) === 0){
+  elLabHint.textContent = "После исследования появятся 2 версии диагноза.";
 } else if((p.labUsed ?? 0) === 1){
-  elLabHint.textContent += " • После второго исследования останется 1 версия (под вопросом).";
+  elLabHint.textContent = "После второго исследования останется 1 версия (под вопросом).";
 }
 
   // --- приоритет: результат / активное лечение ---
