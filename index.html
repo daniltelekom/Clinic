@@ -1578,6 +1578,11 @@ const treatSec = Math.max(10, Math.round(baseTreat * (1 - speed/100)));
     treatmentOptions: null,
     doctorAdviceCache: null,
     labUsed: 0,
+    diff: {
+  // ...
+  diffCandidates: null,   // массив id болезней (2 шт после 1 лаб)
+  diffFinalId: null       // одна болезнь после 2 лаб (но всё ещё "под вопросом")
+}
     
   };
 }
@@ -3020,8 +3025,8 @@ if(!p.clue){
 
 elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}`;
 
-  elPatientDisease.textContent = p.knownDisease ? disease.name : `? (${disease.name} под вопросом)`;
-
+elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
+  
   elPatientActions.innerHTML = "";
 
 if(!inWard){
@@ -3080,14 +3085,10 @@ const cost = Math.max(1, Math.round(baseCost * (1 - discount/100)));
 
   elLabBtn.disabled = !canLab;
   elLabSub.textContent =` Откроет новый симптом • Цена: ${cost} монет`;
-  elLabHint.textContent =
-  hidden.length === 0 ? "Все симптомы уже известны. Пациент почти как учебник." :
-  used >= max ? `Лимит исследований исчерпан (${used}/${max}).` :
-  state.coins < cost ?` Не хватает монет (${state.coins}/${cost}). `:
-  `Исследований: ${used}/${max}.`;
-
-if(p.knownDisease){
-  elLabHint.textContent = "Диагноз подтверждён. Теперь ты официально не шарлатан.";
+ if((p.labUsed ?? 0) === 0){
+  elLabHint.textContent += " • После исследования появятся 2 версии диагноза.";
+} else if((p.labUsed ?? 0) === 1){
+  elLabHint.textContent += " • После второго исследования останется 1 версия (под вопросом).";
 }
 
   // --- приоритет: результат / активное лечение ---
@@ -3105,6 +3106,73 @@ if(p.knownDisease){
 
   // иначе показываем варианты лечения
   showTreat(options);
+}
+
+  function getDiseaseDisplayLine(p){
+  // 0) до лаборатории
+  if(!p.diffCandidates && !p.diffFinalId){
+    return "❓ Диагноз: ???";
+  }
+
+  // 1) после 1 исследования: два варианта
+  if(p.diffCandidates && p.diffCandidates.length === 2 && !p.diffFinalId){
+    const a = getDiseaseById(p.diffCandidates[0]).name;
+    const b = getDiseaseById(p.diffCandidates[1]).name;
+    return `❓ Диагноз: <b>${a}</b> или <b>${b}</b>`;
+  }
+
+  // 2) после 2 исследования: один вариант, но сомнение остаётся
+  if(p.diffFinalId){
+    const a = getDiseaseById(p.diffFinalId).name;
+    return `❓ Диагноз: <b>${a}</b> (под вопросом)`;
+  }
+
+  return "❓ Диагноз: ???";
+}
+
+  function scoreDiseaseBySymptoms(disease, symptoms){
+  // сколько симптомов совпало
+  const ds = new Set(disease.symptoms || []);
+  let hit = 0;
+  for(const s of symptoms){
+    if(ds.has(s)) hit++;
+  }
+  // маленький шум, чтобы не было идеально детерминированно
+  return hit + Math.random()*0.05;
+}
+
+function pickTwoDiseaseCandidates(p){
+  const symptoms = p.visibleSymptoms || [];
+  const scored = DISEASES
+    .map(d => ({ id:d.id, score: scoreDiseaseBySymptoms(d, symptoms) }))
+    .sort((a,b)=> b.score - a.score);
+
+  // Важно: чтобы настоящий диагноз имел шанс быть в топе (обычно будет)
+  // но чтобы иногда можно было ошибаться, оставим как есть, без "форс trueDisease"
+  const a = scored[0]?.id || p.trueDiseaseId;
+  let b = scored.find(x => x.id !== a)?.id || p.trueDiseaseId;
+
+  // если вдруг получилось одинаково
+  if(b === a){
+    b = DISEASES.find(d => d.id !== a)?.id || a;
+  }
+
+  return [a,b];
+}
+
+  function pickFinalDiseaseFromCandidates(p){
+  // если кандидатов нет, просто ставим "самый подходящий" по симптомам
+  const candidates = (p.diffCandidates && p.diffCandidates.length) ? p.diffCandidates : DISEASES.map(d=>d.id);
+
+  const symptoms = p.visibleSymptoms || [];
+  const scored = candidates
+    .map(id => {
+      const d = getDiseaseById(id);
+      return { id, score: scoreDiseaseBySymptoms(d, symptoms) };
+    })
+    .sort((a,b)=> b.score - a.score);
+
+  return scored[0]?.id || p.trueDiseaseId;
 }
 
   function placeSelectedToFreeWard(){
@@ -3173,8 +3241,18 @@ const shown2 = new Set(p.visibleSymptoms || []);
 const hidden2 = (disease2.symptoms || []).filter(s => !shown2.has(s));
 
 if((p.labUsed ?? 0) >= max || hidden2.length === 0){
-  p.knownDisease = true;
 }
+
+// 1-е исследование -> показываем 2 варианта
+if((p.labUsed ?? 0) === 1){
+  p.diffCandidates = pickTwoDiseaseCandidates(p);
+  p.diffFinalId = null;
+}
+
+// 2-е исследование -> оставляем 1 вариант (под вопросом)
+if((p.labUsed ?? 0) >= 2){
+  p.diffFinalId = pickFinalDiseaseFromCandidates(p);
+}  
 
 if(p.knownDisease && !p.diagnosisRewarded){
   p.diagnosisRewarded = true;
