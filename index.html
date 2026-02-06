@@ -2415,6 +2415,8 @@ function renderShop(){
   buy: ()=> { reduceAllDoctorsFatigue(18, true); }
 },
 
+  ];
+
     if(state.flags?.showStarShop){
   items.push({
     id:"chest_legendary",
@@ -2425,8 +2427,7 @@ function renderShop(){
     buy: ()=> {}
   });
 }
-  ];
-
+  
 // секция открытия
 const inv = document.createElement("div");
 inv.className = "card";
