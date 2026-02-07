@@ -464,7 +464,7 @@
     <div class="row">
       <div>
         <div class="listTitle">👥 Штат</div>
-        <div class="listSub">Выбери врача и назначь в слот.</div>
+        <div class="listSub">"Врачи,усталость,отдых".</div>
       </div>
       <button class="btn small" type="button" onclick="backToClinic()">← Назад</button>
     </div>
@@ -851,7 +851,7 @@ const DOCTOR_POOL = [
   { id:"doc_herb",  name:"Доктор Травник",   title:"Знахарь с дипломом от леса", rarity:RARITY.RARE,
     methods:["herbalism","charms"], persona:"confident",
    
-    likes:["herbalism"], hates:["amputation"], portrait:"[img]" ,
+    likes:["herbalism"], hates:["amputation"], portrait:"img/doctors/doc_herb.png" ,
    fatigue: 0,      // 0–100
 fatigueGain: 15, // сколько усталости за смену
     bio:"Пахнет аптекой и превосходством. Лечит листьями, словами и пассивной агрессией."
@@ -860,35 +860,35 @@ fatigueGain: 15, // сколько усталости за смену
   },
   { id:"doc_blood", name:"Доктор Пиявка",    title:"Фанат красного", rarity:RARITY.COMMON,
     methods:["bloodletting"], persona:"fanatic",
-    likes:["bloodletting"], hates:["hypnosis"], portrait:"[img]",
+    likes:["bloodletting"], hates:["hypnosis"], portrait:"img/doctors/doc_blood.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Считает, что проблема всегда в лишней крови. Иногда он прав. Иногда пациент просто кончается."
   },
   { id:"doc_priest",name:"Отец Кадило",      title:"Священник-практик", rarity:RARITY.RARE,
     methods:["prayer","charms"], persona:"confident",
-    likes:["prayer"], hates:["demonology"], portrait:"[img]",
+    likes:["prayer"], hates:["demonology"], portrait:"img/doctors/doc_priest.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Лечит молитвой, дымом и моральным давлением. Иногда помогает. Иногда только ему."
   },
   { id:"doc_demo",  name:"Маг Пепел",        title:"Юрист по аду", rarity:RARITY.LEGENDARY,
     methods:["demonology","hypnosis","charms"], persona:"trickster",
-    likes:["demonology"], hates:["herbalism"], portrait:"[img]",
+    likes:["demonology"], hates:["herbalism"], portrait:"img/doctors/doc_demo.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Обещает 'быстро и эффективно'. В договоре мелким шрифтом: 'возможно, не вам'."
   },
   { id:"doc_amput", name:"Мастер Пила",      title:"Хирург без сантиментов", rarity:RARITY.RARE,
     methods:["amputation","bloodletting"], persona:"cold",
-    likes:["amputation"], hates:["prayer"], portrait:"[img]",
+    likes:["amputation"], hates:["prayer"], portrait:"img/doctors/doc_amput.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Уверен, что лишнее мешает жить. У него есть пила и аргументы."
   },
   { id:"doc_hypno", name:"Гипнотизёр Нитка", title:"Психотерапия до изобретения психотерапии", rarity:RARITY.COMMON,
     methods:["hypnosis"], persona:"uncertain",
-    likes:["hypnosis"], hates:["bloodletting"], portrait:"[img]",
+    likes:["hypnosis"], hates:["bloodletting"], portrait:"img/doctors/doc_hypno.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Говорит тихо, смотрит странно, работает непредсказуемо. Как и жизнь."
@@ -897,70 +897,70 @@ fatigueGain: 15,
   // ===== NEW (ещё 10 штук) =====
   { id:"doc_leech", name:"Сестра Жало", title:"Пиявки, банки, уверенность", rarity:RARITY.COMMON,
     methods:["bloodletting","herbalism"], persona:"confident",
-    likes:["bloodletting"], hates:["demonology"], portrait:"[img]",
+    likes:["bloodletting"], hates:["demonology"], portrait:"img/doctors/doc_leech.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Считает, что баланс жидкостей решает всё. На жалобы отвечает банкой."
   },
   { id:"doc_candle", name:"Мать Свеча", title:"Заговоры и восковые диагнозы", rarity:RARITY.RARE,
     methods:["charms","prayer"], persona:"confident",
-    likes:["charms"], hates:["amputation"], portrait:"[img]",
+    likes:["charms"], hates:["amputation"], portrait:"img/doctors/doc_candle.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Лечит символами, узлами и косым взглядом. В её комнате всегда пахнет воском и тайнами."
   },
   { id:"doc_bell", name:"Доктор Колокол", title:"Успокоит даже смерть", rarity:RARITY.RARE,
     methods:["hypnosis","charms"], persona:"cold",
-    likes:["hypnosis"], hates:["bloodletting"], portrait:"[img]",
+    likes:["hypnosis"], hates:["bloodletting"], portrait:"img/doctors/doc_bell.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Его голос ровный как приговор. Пациенты перестают паниковать. Некоторые перестают вообще."
   },
   { id:"doc_ash", name:"Провизор Сажа", title:"Аптекарь с грязной совестью", rarity:RARITY.COMMON,
     methods:["herbalism","hypnosis"], persona:"trickster",
-    likes:["herbalism"], hates:["prayer"], portrait:"[img]",
+    likes:["herbalism"], hates:["prayer"], portrait:"img/doctors/doc_ash.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Размешивает настои так, будто варит судьбу. Иногда варит реально судьбу."
   },
   { id:"doc_sawbones", name:"Костоправ Гвоздь", title:"Руки как тиски", rarity:RARITY.COMMON,
     methods:["amputation","herbalism"], persona:"fanatic",
-    likes:["amputation"], hates:["charms"], portrait:"[img]",
+    likes:["amputation"], hates:["charms"], portrait:"img/doctors/doc_sawbones.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Ненавидит 'шарлатанские свечки'. Верит только в железо, бинт и хруст."
   },
   { id:"doc_inquis", name:"Инквизитор Печать", title:"Святость с протоколом", rarity:RARITY.LEGENDARY,
     methods:["prayer","hypnosis"], persona:"cold",
-    likes:["prayer"], hates:["demonology"], portrait:"[img]",
+    likes:["prayer"], hates:["demonology"], portrait:"img/doctors/doc_inquis.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Требует порядок, чистые отчёты и чистую душу. Не обязательно пациента."
   },
   { id:"doc_grave", name:"Доктор Могильник", title:"Патологоанатом заранее", rarity:RARITY.RARE,
     methods:["bloodletting","charms"], persona:"uncertain",
-    likes:["charms"], hates:["herbalism"], portrait:"[img]",
+    likes:["charms"], hates:["herbalism"], portrait:"img/doctors/doc_grave.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Всегда готов к худшему. Иногда это помогает. Иногда просто настроение такое."
   },
   { id:"doc_salt", name:"Солевар Седой", title:"Лечит 'простым'", rarity:RARITY.COMMON,
     methods:["herbalism","prayer"], persona:"uncertain",
-    likes:["herbalism"], hates:["hypnosis"], portrait:"[img]",
+    likes:["herbalism"], hates:["hypnosis"], portrait:"img/doctors/doc_salt.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Говорит: 'ничего лишнего'. Потом даёт траву и молитву. И уходит, пока ты не спросил почему."
   },
   { id:"doc_night", name:"Ночной Псаломщик", title:"Поёт, пока не полегчает", rarity:RARITY.RARE,
     methods:["prayer","demonology"], persona:"trickster",
-    likes:["prayer"], hates:["bloodletting"], portrait:"[img]",
+    likes:["prayer"], hates:["bloodletting"], portrait:"img/doctors/doc_night.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Умеет и молиться, и спорить с тьмой. Пугает всех, включая результат."
   },
   { id:"doc_worm", name:"Доктор Червяк", title:"Специалист по 'зуду судьбы'", rarity:RARITY.LEGENDARY,
     methods:["charms","demonology"], persona:"fanatic",
-    likes:["demonology"], hates:["amputation"], portrait:"[img]",
+    likes:["demonology"], hates:["amputation"], portrait:"img/doctors/doc_worm.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Смотрит на симптомы как на послания. Иногда послания отвечают."
@@ -2619,6 +2619,7 @@ function renderStaff(){
     div.className = "card";
     div.innerHTML = `
       <div class="row">
+        <img src="${escapeHtml(doc.portrait || '')}" class="methodIcon" alt="">
         <div>
           <div class="listTitle">${escapeHtml(doc.name)} ${isSlot1 ? '<span class="tag ok">slot1</span>' : ''} ${isSlot2 ? '<span class="tag ok">slot2</span>' : ''}</div>
          <div class="listSub">
@@ -2639,15 +2640,6 @@ function renderStaff(){
 </div>
 <div class="hint">${escapeHtml(doc.bio || "")}</div>
         </div>
-      </div>
-
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn small" onclick="assignDoctorToSlot('${doc.id}',1)" ${isSlot1?'disabled':''}>
-          В слот 1
-        </button>
-        <button class="btn small" onclick="assignDoctorToSlot('${doc.id}',2)" ${(!slot2Unlocked || isSlot2)?'disabled':''}>
-          В слот 2
-        </button>
       </div>
     `;
     elStaffList.appendChild(div);
@@ -3136,7 +3128,7 @@ function renderDutySlot(idx, d){
           <div class="listTitle">Слот ${idx}: пусто</div>
           <div class="listSub">Назначь врача в “Штате”.</div>
         </div>
-        <button class="btn small" onclick="openStaff()">Назначить</button>
+        <button class="btn small" onclick="toggleDutyPicker(${idx})">Назначить</button>
       </div>
    ` ;
   } else {
@@ -3146,6 +3138,7 @@ function renderDutySlot(idx, d){
 
     div.innerHTML = `
       <div class="row">
+       <img src="${escapeHtml(d.portrait || '')}" class="methodIcon" alt="">
         <div>
           <div class="listTitle">Слот ${idx}: ${escapeHtml(d.name)}</div>
           <div class="listSub">
@@ -3161,6 +3154,11 @@ function renderDutySlot(idx, d){
   }
 
   elDuty.appendChild(div);
+
+if(dutyPickSlot === idx){
+  elDuty.appendChild(renderDutyPicker(idx));
+}
+return;
 }
 
 
@@ -3176,6 +3174,47 @@ function rerollDuty(slot){
 }
 saveState();
 refreshVisibleUI();
+}
+
+function toggleDutyPicker(slot){
+  dutyPickSlot = (dutyPickSlot === slot) ? null : slot;
+  refreshVisibleUI();
+}
+
+function renderDutyPicker(slot){
+  const wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.innerHTML = `
+    <div class="listTitle">Выбор врача для слота ${slot}</div>
+    <div class="hint">Да, вручную. Да, как взрослые.</div>
+ ` ;
+
+  for(const docId of (state.doctorsOwned || [])){
+    const doc = getDoctorById(docId);
+
+    // запрет выбрать того же врача в оба слота
+    const other = (slot === 1) ? state.duty.slot2 : state.duty.slot1;
+    const disabled = (doc.id === other);
+
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.disabled = disabled;
+    btn.innerHTML = `${escapeHtml(doc.name)} <span class="muted">(${rarityLabel(doc.rarity)})</span>`;
+    btn.onclick = () => {
+      assignDoctorToSlot(doc.id, slot);
+      dutyPickSlot = null; // закрываем выбор
+      refreshVisibleUI();
+    };
+    wrap.appendChild(btn);
+  }
+
+  const close = document.createElement("button");
+  close.className = "btn danger";
+  close.textContent = "Закрыть";
+  close.onclick = () => { dutyPickSlot = null; refreshVisibleUI(); };
+  wrap.appendChild(close);
+
+  return wrap;
 }
 
 function tryPlaceOrOpen(patientId){
@@ -3570,6 +3609,8 @@ function refreshVisibleUI(){
     showScreen("shiftend");
     return;
   }
+
+  let dutyPickSlot = null; // 1 | 2 | null — какой слот сейчас выбираем
 
   const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
   const patientVisible = document.getElementById("screen-patient").classList.contains("active");
