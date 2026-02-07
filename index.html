@@ -1365,6 +1365,32 @@ function saveActiveMap(map){
   localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
 }
 
+  function normalizeActiveMap(){
+  const map = getActiveMap();
+  let changed = false;
+
+  for(const wardId of Object.keys(map)){
+    const v = map[wardId];
+    if(!v) continue;
+
+    // старый формат: {treatmentId, endAt}
+    const looksOld =
+      typeof v === "object" &&
+      ("treatmentId" in v) &&
+      ("endAt" in v) &&
+      !Object.keys(v).some(k => k.startsWith("patient_")); // грубая защита
+
+    if(looksOld){
+      // мы НЕ знаем patientId, поэтому безопаснее просто очистить эту палату
+      // (или можно попытаться угадать по wards[].patients, но это уже сериал)
+      map[wardId] = {};
+      changed = true;
+    }
+  }
+
+  if(changed) saveActiveMap(map);
+}
+
 // вернёт объект по палате: { [patientId]: {treatmentId,endAt} }
 function getActiveWardMap(wardId){
   const map = getActiveMap();
@@ -2586,6 +2612,7 @@ function reconcileState(){
   saveState();
 }
 state = loadState();
+normalizeActiveMap();
 normalizeDoctorsFatigue();
 initStartingDoctors();
 reconcileState();
