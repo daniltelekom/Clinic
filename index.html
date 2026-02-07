@@ -2591,7 +2591,7 @@ function startNewShift(){
   state.shift.active = true;
 
   // если durationSec кривой/пустой (бывает после миграций)
-  const dur = Number(state.shift.durationSec || 8*60);
+  const dur = Number(state.shift.durationSec || 12*60*60);
   state.shift.durationSec = dur;
 
   // ВАЖНО: endAt ставим ПОСЛЕ всего
