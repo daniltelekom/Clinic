@@ -3161,7 +3161,8 @@ if(dutyPickSlot === idx){
 return;
 }
 
-
+let dutyPickSlot = null; // 1 | 2 | null — какой слот сейчас выбираем
+  
 function rerollDuty(slot){
   if(slot==="slot1"){
     state.duty.slot1 = pickRandomDoctorId();
@@ -3609,8 +3610,6 @@ function refreshVisibleUI(){
     showScreen("shiftend");
     return;
   }
-
-  let dutyPickSlot = null; // 1 | 2 | null — какой слот сейчас выбираем
 
   const clinicVisible = document.getElementById("screen-clinic").classList.contains("active");
   const patientVisible = document.getElementById("screen-patient").classList.contains("active");
