@@ -341,6 +341,20 @@
   color: #e9eefc;
   text-shadow: 0 2px 10px rgba(0,0,0,0.6);
 }
+
+.wardCard .listTitle,
+.wardCard .listSub,
+.wardCard .hint,
+.wardCard .right{
+  text-shadow: 0 2px 6px rgba(0,0,0,.9);
+}
+
+.wardCard .hint,
+.wardCard .row{
+  background: rgba(0,0,0,.35);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
     
   </style>
 </head>
@@ -3315,12 +3329,15 @@ function buyBed(wardId){
   if(!w) return;
 
   w.bedsMax = w.bedsMax || 2;
-  if(w.bedsMax >= 10) return;
+  if(w.bedsMax >= 8) return;
 
-  const cost = 25 + (w.bedsMax - 2) * 20; // можешь поменять формулу
-  if(state.money < cost) return;
+  const base = 30;
+  const step = 25;
+  const cost = base + (w.bedsMax - 2) * step;
 
-  state.money -= cost;
+  if(state.coins < cost) return;
+
+  state.coins -= cost;
   w.bedsMax += 1;
 
   saveState();
@@ -3355,7 +3372,7 @@ elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
   elPatientActions.innerHTML = "";
 
 if(!inWard){
-  const free = state.wards.find(w=>!w.occupiedBy && !w.pendingResult);
+  const free = state.wards.find(w => (w.patients?.length || 0) < (w.bedsMax || 2));
 
   elPatientActions.innerHTML = `
     <h2>Действия</h2>
@@ -3523,7 +3540,7 @@ function upgradeWaitTime(){
   const pid = state.selectedPatientId;
   if(!pid) return;
 
-  const free = state.wards.find(w=>!w.occupiedBy && !w.pendingResult);
+  const free = state.wards.find(w => (w.patients?.length || 0) < (w.bedsMax || 2));
   if(!free) return;
 
   const ok = assignPatientToWard(pid, free.id);
