@@ -357,6 +357,10 @@
 .wardCard .timer{
   color: #fff;
 }
+
+    .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
+.costPill img{width:16px; height:16px; opacity:.95}
     
   </style>
 </head>
@@ -656,13 +660,13 @@ const LS_ACTIVE = "plague_active_map_v7.3";
 ========================================================= */
 
 const METHODS = [
-  { id:"bloodletting", name:"🩸 Кровопускание" },
-  { id:"herbalism", name:"🌿 Настой трав" },
-  { id:"prayer", name:"🙏 Молитва" },
-  { id:"demonology", name:"😈 Демонология" },
-  { id:"amputation", name:"🪓 Ампутация" },
-  { id:"hypnosis", name:"🌀 Гипноз" },
-  { id:"charms", name:"🕯 Заговоры" },
+  { id:"bloodletting", name:" Кровопускание" },
+  { id:"herbalism", name:" Настой трав" },
+  { id:"prayer", name:" Молитва" },
+  { id:"demonology", name:" Демонология" },
+  { id:"amputation", name:" Ампутация" },
+  { id:"hypnosis", name:" Гипноз" },
+  { id:"charms", name:" Заговоры" },
 ];
 
 const METHOD_HINTS = {
@@ -1435,6 +1439,23 @@ function clearActiveForWard(wardId){
 /* =========================================================
    4) HELPERS
 ========================================================= */
+
+  function costHtml(cost){
+  if(!cost) return "";
+  const parts = [];
+
+  if(cost.coins){
+    parts.push(`<span class="costPill"><img src="icons/topbar/icon_coins.png" alt="">${cost.coins}</span>`);
+  }
+  if(cost.reputation){
+    parts.push(`<span class="costPill"><img src="icons/topbar/icon_rep.png" alt="">${cost.reputation}</span>`);
+  }
+  if(cost.biomaterial){
+    parts.push(`<span class="costPill"><img src="icons/topbar/icon_bio.png" alt="">${cost.biomaterial}</span>`);
+  }
+
+  return `<div class="costLine">${parts.join("")}</div>`;
+}
 
 function randInt(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
@@ -2730,10 +2751,10 @@ function dischargePatient(patientId, wardId){
   clearActiveForPatient(wardId, patientId);
 
   saveState();
+  backToClinic();
   refreshVisibleUI();
 
-  // закрыть/перерисовать пациента
-  closePatient(); // если у тебя есть функция закрытия
+
 }
 window.dischargePatient = dischargePatient;
 
@@ -2842,7 +2863,7 @@ function renderShop(){
   const items = [
     {
       id:"lab_extra",
-      title:"🔬 Лаборант",
+      title:"Лаборант",
       desc:"+1 исследование на пациента",
       cost:{ bio: 2, rep: 2 },
       can: ()=> (state.perks.labExtra < 2),
@@ -2851,7 +2872,7 @@ function renderShop(){
 
     {
      id:"chest_common",
-     title:"🧰 Обычный сундук",
+     title:"Обычный сундук",
      desc:"Купи и открой. Лут: доктора/ресурсы/отдых/иногда улучшения.",
      cost:{ coins: CHESTS.common.costCoins },
      can: ()=> true,
@@ -2860,7 +2881,7 @@ function renderShop(){
     
     {
       id:"lab_discount",
-      title:"🧪 Скидка на реагенты",
+      title:"Скидка на реагенты",
       desc:"-10% цена лаборатории",
       cost:{ coins: 60, rep: 1 },
       can: ()=> (state.perks.labDiscount < 30),
@@ -2868,7 +2889,7 @@ function renderShop(){
     },
     {
       id:"queue_buffer",
-      title:"📋 Расширение очереди",
+      title:"Расширение очереди",
       desc:"+1 к размеру очереди",
       cost:{ coins: 80 },
       can: ()=> (state.perks.queueBuffer < 4),
@@ -2876,7 +2897,7 @@ function renderShop(){
     },
     {
       id:"treat_speed",
-      title:"🛏️ Койки получше",
+      title:"Койки получше",
       desc:"+10% скорость лечения",
       cost:{ coins: 90, bio: 1 },
       can: ()=> (state.perks.treatSpeed < 30),
@@ -2884,7 +2905,7 @@ function renderShop(){
     },
     {
   id:"rest_small",
-  title:"🫖 Отвар для персонала",
+  title:"Отвар для персонала",
   desc:"-20% усталости выбранному врачу (в Штате появится кнопка)",
   cost:{ coins: 70 },
   can: ()=> true,
@@ -2892,7 +2913,7 @@ function renderShop(){
 },
 {
   id:"rest_big",
-  title:"🛌 Выходной по приказу",
+  title:"Выходной по приказу",
   desc:"-35% усталости выбранному врачу (в Штате появится кнопка)",
   cost:{ coins: 140, rep: 1 },
   can: ()=> true,
@@ -2900,7 +2921,7 @@ function renderShop(){
 },
 {
   id:"rest_all",
-  title:"🍲 Каша для всех",
+  title:"Каша для всех",
   desc:"-12% усталости всем врачам",
   cost:{ coins: 220, bio: 1 },
   can: ()=> true,
@@ -2908,7 +2929,7 @@ function renderShop(){
 },
 {
   id:"rest_backline",
-  title:"😴 Сон для не-дежурных",
+  title:"Сон для не-дежурных",
   desc:"-18% усталости всем, кто НЕ дежурит",
   cost:{ coins: 180 },
   can: ()=> true,
@@ -2920,7 +2941,7 @@ function renderShop(){
     if(state.flags?.showStarShop){
   items.push({
     id:"chest_legendary",
-    title:"✨ Легендарный сундук",
+    title:"Легендарный сундук",
     desc:"Покупка за Telegram Stars (пока в разработке).",
     cost:{}, // не через coins/rep/bio
     can: ()=> false, // пока нельзя
@@ -2933,34 +2954,35 @@ function renderShop(){
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
-      <div class="row">
-        <div>
-          <div class="listTitle" style="display:flex; align-items:center; gap:10px;">
-  <img 
-    src="icons/shop/icon_${it.id}.png" 
-    width="32" 
-    height="32"
-    alt=""
-  />
-  <span>${escapeHtml(it.title)}</span>
-</div>
-          <div class="listSub">${escapeHtml(it.desc)}</div>
-        </div>
-        <button class="btn small ok" ${disabled?"disabled":""} onclick="buyPerk('${it.id}')">
-          Купить ${formatCost(it.cost)}
-        </button>
+  <div class="row">
+    <div style="flex:1;">
+      <div class="listTitle" style="display:flex; align-items:center; gap:10px;">
+        <img src="icons/shop/icon_${it.id}.png" width="32" height="32" alt=""/>
+        <span>${escapeHtml(it.title)}</span>
       </div>
-    `;
+
+      <div class="listSub">${escapeHtml(it.desc)}</div>
+
+      ${formatCost(it.cost)}
+    </div>
+
+    <div class="right">
+      <button class="btn small ok" ${disabled?"disabled":""} onclick="buyPerk('${it.id}')">
+        Купить
+      </button>
+    </div>
+  </div>
+`;
     elShopList.appendChild(div);
   }
 }
 
 function formatCost(c){
   const parts = [];
-  if(c.coins) parts.push(`💰${c.coins}`);
-  if(c.rep) parts.push(`⭐${c.rep}`);
-  if(c.bio) parts.push(`🧫${c.bio}`);
-  return parts.join(" ");
+  if(c.coins) parts.push(`<span class="costPill"><img src="icons/topbar/icon_coins.png" alt="">${c.coins}</span>)`;
+  if(c.rep)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_rep.png" alt="">${c.rep}</span>)`;
+  if(c.bio)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_bio.png" alt="">${c.bio}</span>)`;
+  return parts.length ? `<div class="costLine">${parts.join("")}</div> `: "";
 }
 
 function canAfford(c){
@@ -3961,10 +3983,19 @@ function buildTutorialSteps(){
       hint:"Если репутация падает в минус, ты сам себя душишь экономикой.",
       focus: ".topbar"
     },
-    {
-      title:"Палаты",
-      text:"Палаты лечат параллельно. Пациента можно положить в свободную палату и назначить лечение. Апгрейды палаты влияют на последствия (например, чистота снижает шанс осложнений).",
-      hint:"Если палата занята или ждёт выдачи результата, положить нового нельзя.",
+     {
+      title: "Палаты и койки",
+      text:
+        "У каждой палаты есть койки (места). Стартуем с 2, максимум 8. " +
+        "Кнопка «Купить койку» увеличивает лимит мест в палате. " +
+        "Внутри палаты список пациентов: имя + статус (ждёт/таймер/результат).",
+      focus: "#wards"
+    },
+     {
+      title: "Улучшения палаты",
+      text:
+        "Комфорт/Вентиляция/Свет/Чистота влияют на исходы и скорость. " +
+        "Они находятся под палатой (твои 9-10-11-12).",
       focus: "#wards"
     },
     {
