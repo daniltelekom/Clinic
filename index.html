@@ -1140,7 +1140,11 @@ unlocks: {
   baseWaitSec: 120,
   baseTreatSecMin: 120,
   baseTreatSecMax: 300,
-  baseLabCost: 15
+  baseLabCost: 15,
+  maxQueue: 6,
+baseWaitSec: 120,
+baseTreatSecMin: 120,
+baseTreatSecMax: 300
 },
 
 calendar: {
@@ -1240,8 +1244,10 @@ function loadState(){
     if(s.biomaterial==null) s.biomaterial=0;
 
     if(!s.wards || !Array.isArray(s.wards)) s.wards = [makeWard("A")];
-    if(!s.queue) s.queue=[];
-    if(!s.patients) s.patients=[];
+    if(!Array.isArray(s.queue)) s.queue = [];
+    if(!Array.isArray(s.patients)) s.patients = [];
+    if(!Array.isArray(s.doctorsOwned)) s.doctorsOwned = [];
+
     if(!s.duty) s.duty={slot1:pickRandomDoctorId(), slot2:pickRandomDoctorId(true)};
     if(!s.maxQueue) s.maxQueue=6;
     if(!s.baseWaitSec) s.baseWaitSec=120;
@@ -2612,11 +2618,11 @@ function reconcileState(){
   saveState();
 }
 state = loadState();
-normalizeActiveMap();
 normalizeDoctorsFatigue();
 initStartingDoctors();
 reconcileState();
 normalizeCalendar();
+normalizeActiveMap();
 applyAllModifiers();  
 
 // если ещё не выбран ивент на первую неделю, выбираем
