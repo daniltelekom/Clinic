@@ -1391,6 +1391,27 @@ function anyActiveInWard(wardId){
   return Object.keys(wardMap).length > 0;
 }
 
+// --- COMPAT (пока чистим старые вызовы) ---
+function getActiveForWard(wardId){
+  const wardMap = getActiveWardMap(wardId);
+  const pids = Object.keys(wardMap);
+  if(pids.length === 0) return null;
+  const pid = pids[0];
+  const a = wardMap[pid];
+  return { patientId: pid, ...a }; // {patientId, treatmentId, endAt}
+}
+function setActiveForWard(wardId, obj){
+  // старый код пытался положить один active на палату
+  // кладём его на пациента obj.patientId
+  if(!obj?.patientId) return;
+  setActiveForPatient(wardId, obj.patientId, { treatmentId: obj.treatmentId, endAt: obj.endAt });
+}
+function clearActiveForWard(wardId){
+  const map = getActiveMap();
+  delete map[wardId];
+  saveActiveMap(map);
+}
+
   function ensureShiftTimer(){
   if(!state.shift) return;
 
@@ -2491,39 +2512,56 @@ function startNewShift(){
 
 function reconcileState(){
   for (const w of state.wards) {
-    // миграция со старого формата (occupiedBy) в новый (patients[])
     w.bedsMax = w.bedsMax || 2;
     w.patients = w.patients || [];
+    w.pending = w.pending || {}; // ✅ результаты по пациентам
 
+    // миграция со старого occupiedBy
     if (w.occupiedBy) {
-      // если там реально пациент есть — переносим
       if (patientById(w.occupiedBy) && !w.patients.includes(w.occupiedBy)) {
         w.patients.push(w.occupiedBy);
       }
-      w.occupiedBy = null; // окончательно выключаем
+      w.occupiedBy = null;
     }
 
     // чистим мусорные id
     w.patients = w.patients.filter(pid => !!patientById(pid));
 
-    // pendingResult оставляем как есть, но если пациент исчез — сброс
-    if (w.pendingResult && !patientById(w.pendingResult.patientId)) {
+    // миграция старого pendingResult (один на палату) -> pending[patientId]
+    if (w.pendingResult) {
+      const pid = w.pendingResult.patientId;
+      if (pid && patientById(pid)) {
+        w.pending[pid] = w.pendingResult;
+      }
       w.pendingResult = null;
+    }
+
+    // чистим pending, если пациента больше нет / не лежит тут
+    for (const pid of Object.keys(w.pending)) {
+      if (!patientById(pid) || !w.patients.includes(pid)) {
+        delete w.pending[pid];
+      }
     }
   }
 
-  // активное лечение у тебя сейчас завязано на wardId (по-старому).
-  // Пока оставляем как есть, но чистим сломанные записи:
+  // ✅ ACTIVE MAP новый формат: wardId -> { patientId -> {treatmentId,endAt} }
   const map = getActiveMap();
-  for (const wardId of Object.keys(map)) {
-    const a = map[wardId];
-    if(!a) continue;
+  for(const wardId of Object.keys(map)){
     const w = wardById(wardId);
-    if(!w || !patientById(a.patientId)) {
-      clearActiveForWard(wardId);
+    if(!w){
+      delete map[wardId];
       continue;
     }
+    const wardMap = map[wardId] || {};
+    for(const pid of Object.keys(wardMap)){
+      // пациент должен существовать и лежать в этой палате
+      if(!patientById(pid) || !(w.patients || []).includes(pid)){
+        delete wardMap[pid];
+      }
+    }
+    map[wardId] = wardMap;
   }
+  saveActiveMap(map);
 
   saveState();
 }
@@ -2545,22 +2583,14 @@ function assignPatientToWard(patientId, wardId){
 
   w.bedsMax = w.bedsMax || 2;
   w.patients = w.patients || [];
+  w.pending = w.pending || {}; // ✅ результаты по пациентам
 
-  // нет мест
   if (w.patients.length >= w.bedsMax) return false;
-
-  // если палата прямо сейчас держит незабранный результат — не пускаем новых
-  // (пока упрощение: 1 результат на палату)
-  if (w.pendingResult) return false;
-
-  // уже лежит
   if (w.patients.includes(patientId)) return false;
 
-  // убрать из очереди
   const qi = state.queue.indexOf(patientId);
   if(qi >= 0) state.queue.splice(qi, 1);
 
-  // положили
   w.patients.push(patientId);
 
   saveState();
@@ -2570,54 +2600,48 @@ function assignPatientToWard(patientId, wardId){
 }
 
 function chooseTreatment(treatmentId){
-  if(!state.shift?.active) return; // смена закончилась
+  if(!state.shift?.active) return;
   if(!state.selectedPatientId) return;
-  const ward = findWardByPatient(state.selectedPatientId);
-if(!ward) return;
 
-const p = patientById(state.selectedPatientId);
-if(!p) return;
+  const p = patientById(state.selectedPatientId);
+  if(!p) return;
 
-// если именно этот пациент уже лечится — не даём повторно
-const already = getActiveForPatient(ward.id, p.id);
-if(already) return;
+  const ward = findWardByPatient(p.id);
+  if(!ward) return;
 
-// если на этого пациента уже есть незабранный результат — тоже нельзя
-ward.pendingResults = ward.pendingResults || {};
-if(ward.pendingResults[p.id]) return;
+  // ✅ проверяем активку ТОЛЬКО у этого пациента
+  const active = getActiveForPatient(ward.id, p.id);
+  if(active) return;
 
-// старт лечения
-const endAt = now() + p.treatSec*1000;
-p.treatAttempts = (p.treatAttempts || 0) + 1;
-saveState();
+  const endAt = now() + (p.treatSec * 1000);
 
-setActiveForPatient(ward.id, p.id, {
-  treatmentId,
-  endAt
-});
+  p.treatAttempts = (p.treatAttempts || 0) + 1;
+  saveState();
 
-refreshVisibleUI();
+  // ✅ активка хранится на пациенте внутри wardMap
+  setActiveForPatient(ward.id, p.id, {
+    treatmentId,
+    endAt
+  });
+
+  refreshVisibleUI();
 }
 
 function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
   const w = wardById(wardId);
   if(!w) return;
 
-  w.pendingResults = w.pendingResults || {};
-
-  w.pendingResults[patientId] = {
-    patientId,
-    wardId,
-    treatmentId,
-
+w.pending = w.pending || {};
+  w.pending[active.patientId] = {
+    patientId: active.patientId,
+    wardId: active.wardId,
+    treatmentId: active.treatmentId,
     kind: outcome.kind,
     xpKind: outcome.xpKind,
     flavor: outcome.flavor,
-
     coins: outcome.coinsDelta ?? 0,
     reputation: outcome.reputationDelta ?? 0,
     biomaterial: outcome.biomaterialDelta ?? 0,
-
     time: now()
   };
 
@@ -2635,17 +2659,18 @@ function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
   saveState();
 }
 
-function completeTreatment(wardId){
-  const active = getActiveForWard(wardId);
+function completeTreatment(wardId, patientId){
+  const active = getActiveForPatient(wardId, patientId);
   if(!active) return;
 
-  const outcome = rollOutcome(active.patientId, active.treatmentId, wardId);
-  finishTreatmentToPending({ ...active, wardId }, outcome);
+  const outcome = rollOutcome(patientId, active.treatmentId, wardId);
+  finishTreatmentToPending({ ...active, wardId, patientId }, outcome);
 
-  clearActiveForWard(wardId);
+  clearActiveForPatient(wardId, patientId);
   saveState();
   refreshVisibleUI();
 }
+window.completeTreatment = completeTreatment;
 
 function completeTreatmentPatient(wardId, patientId){
   const active = getActiveForPatient(wardId, patientId);
