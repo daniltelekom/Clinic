@@ -3008,9 +3008,9 @@ function renderShop(){
 
 function formatCost(c){
   const parts = [];
-  if(c.coins) parts.push(`<span class="costPill"><img src="icons/topbar/icon_coins.png" alt="">${c.coins}</span>)`;
-  if(c.rep)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_rep.png" alt="">${c.rep}</span>)`;
-  if(c.bio)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_bio.png" alt="">${c.bio}</span>)`;
+  if(c.coins) parts.push(`<span class="costPill"><img src="icons/topbar/icon_coins.png" alt="">${c.coins}</span>`);
+  if(c.rep)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_rep.png" alt="">${c.rep}</span>`);
+  if(c.bio)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_bio.png" alt="">${c.bio}</span>`);
   return parts.length ? `<div class="costLine">${parts.join("")}</div> `: "";
 }
 
