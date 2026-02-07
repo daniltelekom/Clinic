@@ -2691,22 +2691,23 @@ window.completeTreatment = completeTreatment;
   const p = patientById(patientId);
   if(!w || !p) return;
 
-  // если нет pendingResult - нечего продолжать
-  if(!w.pendingResult || w.pendingResult.patientId !== patientId) return;
+  w.pendingResults = w.pendingResults || {};
 
-  // чистим результат, но пациента оставляем в палате
-  w.pendingResult = null;
+  // если нет результата на этого пациента — продолжать нечего
+  if(!w.pendingResults[patientId]) return;
 
-  // сбрасываем варианты лечения, чтобы игрок заново выбирал 4 метода
+  // чистим результат, пациента НЕ трогаем (остаётся в палате)
+  delete w.pendingResults[patientId];
+
+  // сбрасываем варианты лечения, чтобы игрок выбирал заново
   p.treatmentOptions = null;
 
-  // можно слегка ужесточить кризис: уменьшаем время до "ухода" уже не актуально, он в палате
-  // зато можно добавить штраф репутации за затяжку:
+  // маленький штраф за затяжку
   state.reputation = (state.reputation || 0) - 1;
 
   saveState();
 
-  // открыть пациента и дать выбрать метод заново
+  // открыть пациента и дать выбрать лечение заново
   openPatientById(patientId);
   refreshVisibleUI();
 }
@@ -2716,17 +2717,25 @@ function dischargePatient(patientId, wardId){
   const w = wardById(wardId);
   if(!w) return;
 
-  // освободить палату и убрать результат
-  w.occupiedBy = null;
-  w.pendingResult = null;
+  w.patients = w.patients || [];
+  w.pendingResults = w.pendingResults || {};
 
-  // удалить пациента
-  state.patients = state.patients.filter(p=>p.id!==patientId);
+  // убрать из палаты
+  w.patients = w.patients.filter(id => id !== patientId);
 
-  fillQueue();
+  // убрать результат
+  delete w.pendingResults[patientId];
+
+  // убрать активное лечение (на всякий случай)
+  clearActiveForPatient(wardId, patientId);
+
   saveState();
-  backToClinic();
+  refreshVisibleUI();
+
+  // закрыть/перерисовать пациента
+  closePatient(); // если у тебя есть функция закрытия
 }
+window.dischargePatient = dischargePatient;
 
 function openPatientById(patientId){
   state.selectedPatientId = patientId;
@@ -3457,6 +3466,11 @@ function renderPatient(patientId){
    const ward = findWardByPatient(patientId);
   const inWard = !!ward;
 
+  if(ward?.pendingResults?.[patientId]){
+  showResultForPatient(patientId);
+  return;
+}
+
   elPatientTitle.textContent = p.name;
 
 const disease = getDiseaseById(p.trueDiseaseId);
@@ -3770,12 +3784,18 @@ function showActive(active){
   elActiveTimer.textContent = formatLeft(active.endAt - now());
 }
 
-function showResult(ward){
+function showResultForPatient(patientId){
+  const ward = findWardByPatient(patientId);
+  if(!ward) return;
+
+  ward.pendingResults = ward.pendingResults || {};
+  const r = ward.pendingResults[patientId];
+  if(!r) return;
+
   elTreatPanel.style.display = "none";
   elActiveTreatment.style.display = "none";
   elResultPanel.style.display = "block";
 
-  const r = ward.pendingResult;
   const kind = r.kind;
 
   const label =
@@ -3789,11 +3809,11 @@ function showResult(ward){
 
   if(kind === OUTCOMES.WORSENED){
     primaryBtnHtml = `
-      <button class="btn warn" onclick="continueTreatment('${r.patientId}','${r.wardId}')">
+      <button class="btn warn" onclick="continueTreatment('${patientId}','${ward.id}')">
         🔁 Продолжить лечение
         <div class="muted">Пациент в кризисе: либо вытащим, либо он отъедет</div>
       </button>
-      <button class="btn" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
+      <button class="btn" onclick="dischargePatient('${patientId}','${ward.id}')">
         ✖ Закрыть случай
         <div class="muted">Ты сдаёшься. Репутация всё запомнит.</div>
       </button>
@@ -3801,11 +3821,11 @@ function showResult(ward){
   } else {
     const btnText = (kind===OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
     primaryBtnHtml = `
-      <button class="btn ok" onclick="dischargePatient('${r.patientId}','${r.wardId}')">
+      <button class="btn ok" onclick="dischargePatient('${patientId}','${ward.id}')">
         ${btnText}
         <div class="muted">Освободит палату</div>
       </button>
-   ` ;
+    `;
   }
 
   elResultText.innerHTML = `
@@ -3817,9 +3837,9 @@ function showResult(ward){
     </div>
     <div class="sep"></div>
     ${primaryBtnHtml}
- ` ;
+  `;
 }
-
+window.showResultForPatient = showResultForPatient;
 function refreshVisibleUI(){
   // если смена закончилась — всегда показываем итоги и стопаем остальной рендер
   if(!state.shift?.active){
