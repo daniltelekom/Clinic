@@ -399,6 +399,34 @@
   font-weight:700;
 }
 
+/* Плашка пациента в палате (обводка как у чипа) */
+.wardPatientRow{
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.22);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+.wardPatientName{
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.wardPatientTimer{
+  font-weight: 800;
+  opacity: .9;
+}
+
+/* чтобы кнопки не “раздували” строку */
+.wardPatientRow .btn.small{
+  white-space: nowrap;
+}
+
     .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
 .costPill img{width:16px; height:16px; opacity:.95}
