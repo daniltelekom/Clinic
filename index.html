@@ -2510,7 +2510,7 @@ function startNewShift(){
   w.bedsMax = w.bedsMax || 2;
   w.patients = w.patients || [];
   w.patients.length = 0;       // очищаем палату
-  w.pendingResult = null;      // результат (пока оставляем один на палату)
+  w.pendingResults = {};
 }
 
   // применяем модификаторы (база + перки + ивент)
@@ -2537,7 +2537,7 @@ function reconcileState(){
   for (const w of state.wards) {
     w.bedsMax = w.bedsMax || 2;
     w.patients = w.patients || [];
-    w.pending = w.pending || {}; // ✅ результаты по пациентам
+    w.pendingResults = w.pendingResults || {}; // ✅ один источник правды
 
     // миграция со старого occupiedBy
     if (w.occupiedBy) {
@@ -2550,42 +2550,39 @@ function reconcileState(){
     // чистим мусорные id
     w.patients = w.patients.filter(pid => !!patientById(pid));
 
-    // миграция старого pendingResult (один на палату) -> pending[patientId]
+    // миграция старого pendingResult -> pendingResults[pid]
     if (w.pendingResult) {
       const pid = w.pendingResult.patientId;
-      if (pid && patientById(pid)) {
-        w.pending[pid] = w.pendingResult;
-      }
+      if (pid && patientById(pid)) w.pendingResults[pid] = w.pendingResult;
       w.pendingResult = null;
     }
 
-    // чистим pending, если пациента больше нет / не лежит тут
-    for (const pid of Object.keys(w.pending)) {
-      if (!patientById(pid) || !w.patients.includes(pid)) {
-        delete w.pending[pid];
+    // миграция нового w.pending -> pendingResults
+    if (w.pending && typeof w.pending === "object") {
+      for (const pid of Object.keys(w.pending)) {
+        if (pid && patientById(pid)) w.pendingResults[pid] = w.pending[pid];
       }
+      w.pending = null;
+    }
+
+    // чистим pendingResults если пациента уже нет/не в палате
+    for (const pid of Object.keys(w.pendingResults)) {
+      if (!patientById(pid) || !w.patients.includes(pid)) delete w.pendingResults[pid];
     }
   }
 
-  // ✅ ACTIVE MAP новый формат: wardId -> { patientId -> {treatmentId,endAt} }
+  // active map чистим как и было (ниже)
   const map = getActiveMap();
   for(const wardId of Object.keys(map)){
     const w = wardById(wardId);
-    if(!w){
-      delete map[wardId];
-      continue;
-    }
+    if(!w){ delete map[wardId]; continue; }
     const wardMap = map[wardId] || {};
     for(const pid of Object.keys(wardMap)){
-      // пациент должен существовать и лежать в этой палате
-      if(!patientById(pid) || !(w.patients || []).includes(pid)){
-        delete wardMap[pid];
-      }
+      if(!patientById(pid) || !(w.patients || []).includes(pid)) delete wardMap[pid];
     }
     map[wardId] = wardMap;
   }
   saveActiveMap(map);
-
   saveState();
 }
 state = loadState();
@@ -2606,7 +2603,6 @@ function assignPatientToWard(patientId, wardId){
 
   w.bedsMax = w.bedsMax || 2;
   w.patients = w.patients || [];
-  w.pending = w.pending || {}; // ✅ результаты по пациентам
 
   if (w.patients.length >= w.bedsMax) return false;
   if (w.patients.includes(patientId)) return false;
@@ -3914,11 +3910,15 @@ function processTreatmentsTick(){
   let changed = false;
 
   for(const wardId of Object.keys(map)){
-    const a = map[wardId];
-    if(!a) continue;
-    if(t >= a.endAt){
-      completeTreatment(wardId);
-      changed = true;
+    const wardMap = map[wardId] || {};
+    for(const patientId of Object.keys(wardMap)){
+      const a = wardMap[patientId];
+      if(!a) continue;
+
+      if(t >= Number(a.endAt)){
+        completeTreatmentPatient(wardId, patientId);
+        changed = true;
+      }
     }
   }
 
