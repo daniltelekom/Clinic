@@ -2633,17 +2633,21 @@ function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
   const w = wardById(wardId);
   if(!w) return;
 
-w.pending = w.pending || {};
-  w.pending[active.patientId] = {
-    patientId: active.patientId,
-    wardId: active.wardId,
-    treatmentId: active.treatmentId,
+  w.pendingResults = w.pendingResults || {};
+
+  w.pendingResults[patientId] = {
+    patientId,
+    wardId,
+    treatmentId,
+
     kind: outcome.kind,
     xpKind: outcome.xpKind,
     flavor: outcome.flavor,
+
     coins: outcome.coinsDelta ?? 0,
     reputation: outcome.reputationDelta ?? 0,
     biomaterial: outcome.biomaterialDelta ?? 0,
+
     time: now()
   };
 
@@ -2661,19 +2665,6 @@ w.pending = w.pending || {};
   saveState();
 }
 
-function completeTreatment(wardId, patientId){
-  const active = getActiveForPatient(wardId, patientId);
-  if(!active) return;
-
-  const outcome = rollOutcome(patientId, active.treatmentId, wardId);
-  finishTreatmentToPending({ ...active, wardId, patientId }, outcome);
-
-  clearActiveForPatient(wardId, patientId);
-  saveState();
-  refreshVisibleUI();
-}
-window.completeTreatment = completeTreatment;
-
 function completeTreatmentPatient(wardId, patientId){
   const active = getActiveForPatient(wardId, patientId);
   if(!active) return;
@@ -2685,6 +2676,13 @@ function completeTreatmentPatient(wardId, patientId){
   saveState();
   refreshVisibleUI();
 }
+window.completeTreatmentPatient = completeTreatmentPatient;
+
+// (опционально) если где-то у тебя ещё вызывается completeTreatment(wardId, patientId)
+function completeTreatment(wardId, patientId){
+  completeTreatmentPatient(wardId, patientId);
+}
+window.completeTreatment = completeTreatment;
 
   function continueTreatment(patientId, wardId){
   if(!state.shift?.active) return;
@@ -3095,108 +3093,92 @@ function renderClinic(){
   elWards.innerHTML = "";
 
   for(const w of state.wards){
-    const active = getActiveForWard(w.id);
-
     // защита от старых сейвов
     w.bedsMax = w.bedsMax || 2;
     w.patients = w.patients || [];
     w.pendingResults = w.pendingResults || {};
 
-    // ---------- бейдж справа сверху ----------
+    const pending = w.pendingResults;
+
+    // --- список пациентов в палате (ТОЛЬКО имя + таймер/кнопки) ---
+    const patientsHtml = (w.patients || []).map(pid=>{
+      const p = patientById(pid);
+      if(!p) return "";
+
+      const a = getActiveForPatient(w.id, pid);
+      const pend = pending[pid];
+
+      // 1) есть незабранный результат
+      if(pend){
+        return `
+          <div class="wardPatientRow">
+            <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
+              ${escapeHtml(p.name)}
+            </div>
+            <button class="btn small ok" onclick="openPatientById('${pid}')">👁 Результат</button>
+          </div>
+        `;
+      }
+
+      // 2) лечится сейчас
+      if(a){
+        const left = a.endAt - now();
+        if(left <= 0){
+          return `
+            <div class="wardPatientRow">
+              <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
+                ${escapeHtml(p.name)}
+              </div>
+              <button class="btn small ok" onclick="completeTreatmentPatient('${w.id}','${pid}')">✅ Забрать</button>
+            </div>
+         ` ;
+        }
+        return `
+          <div class="wardPatientRow">
+            <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
+              ${escapeHtml(p.name)}
+            </div>
+            <div class="wardPatientTimer">⏳ ${formatLeft(left)}</div>
+          </div>
+        `;
+      }
+
+      // 3) лежит, но лечение не назначено
+      return `
+        <div class="wardPatientRow">
+          <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
+            ${escapeHtml(p.name)}
+          </div>
+          <button class="btn small" onclick="openPatientById('${pid}')">🧾 Открыть</button>
+        </div>
+      `;
+    }).join("");
+
+    // --- кнопка купить койку (без надписей 3/3/8) ---
+    const bedsCap = 8;
+    const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
+    const bedsLine = `
+      <div class="row" style="margin-top:10px; justify-content:center;">
+        <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>Купить койку</button>
+      </div>
+    `;
+
+    // --- бейдж справа сверху ---
+    const hasPendingAny = Object.keys(pending).some(pid => !!pending[pid]);
+    const hasActiveAny = (w.patients || []).some(pid => !!getActiveForPatient(w.id, pid));
+
     let badge = "";
-    if(w.pendingResult){
-      const k = w.pendingResult.kind;
-      badge =
-        k===OUTCOMES.CURE        ? `<span class="tag ok">✅ Вылечен</span> `:
-        k===OUTCOMES.DISFIGURED  ? `<span class="tag warn">✅ Покалечен</span> `:
-        k===OUTCOMES.INFECTED    ? `<span class="tag warn">✅ Инфицирован</span> `:
-        k===OUTCOMES.WORSENED    ? `<span class="tag warn">⚠️ Хуже</span> `:
-                                  `<span class="tag bad">☠️ Смерть</span>`;
-    } else if(active){
-      badge = `<span class="tag">⏳ ${formatLeft(active.endAt - now())}</span>`;
+    if(hasPendingAny){
+      badge = `<span class="tag ok">✅ есть результат</span>`;
+    } else if(hasActiveAny){
+      badge = `<span class="tag">⏳ идёт лечение</span>`;
     } else if(w.patients.length > 0){
       badge = `<span class="tag warn">ждут лечения</span>`;
     } else {
       badge = `<span class="tag">свободно</span>`;
     }
 
-    // ---------- строка койки + кнопка ----------
-    const bedsCap = 8;
-const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
-
-const bedsLine = `
-  <div class="row" style="margin-top:10px; justify-content:center;">
-    <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
-      Купить койку
-    </button>
-  </div>
-`;
-
-    // ---------- список пациентов в палате (таймер у активного) ----------
-    let patientsHtml = "";
-if(w.patients.length === 0){
-  patientsHtml = `<div class="hint" style="margin-top:10px">Палата пуста.</div>`;
-} else {
-  patientsHtml = `
-    <div style="margin-top:10px">
-      ${w.patients.map(pid=>{
-        const p = patientById(pid);
-        if(!p) return "";
-
-        w.pendingResults = w.pendingResults || {};
-        const pr = w.pendingResults[pid] || null;
-        const a = getActiveForPatient(w.id, pid);
-
-        let pill = `<span class="tag warn">ждёт</span>`;
-        if(pr){
-          pill = `<span class="tag ok">✅ результат</span>`;
-        } else if(a){
-          pill = `<span class="tag">⏳ ${formatLeft(a.endAt - now())}</span>`;
-        }
-
-        return `
-          <button class="listBtn" onclick="openPatientById('${pid}')" style="margin-top:8px">
-            <div class="row" style="align-items:center; justify-content:space-between;">
-              <div class="listTitle">${escapeHtml(p.name)}</div>
-              <div class="right">${pill}</div>
-            </div>
-          </button>
-        `;
-      }).join("")}
-    </div>
-  `;
-}
-
-    // ---------- кнопка действия (результат/забрать/открыть) ----------
-    let actionHtml = "";
-
-    if(w.pendingResult){
-      actionHtml = `
-        <div class="sep"></div>
-        <button class="btn ok" onclick="openPatientById('${w.pendingResult.patientId}')">
-          👁 Посмотреть результат
-          <div class="muted">${escapeHtml(w.pendingResult.flavor || "")}</div>
-        </button>
-      `;
-    } else if(active && active.endAt <= now()){
-      actionHtml = `
-        <div class="sep"></div>
-        <button class="btn ok" onclick="completeTreatment('${w.id}')">
-          ✅ Забрать результат
-          <div class="muted">Лечение закончено</div>
-        </button>
-      `;
-    } else if(w.patients.length > 0){
-      // Открываем первого пациента (дальше тыкаешь по списку)
-      actionHtml = `
-        <div class="sep"></div>
-        <button class="btn" onclick="openPatientById('${w.patients[0]}')">
-          🧾 Открыть пациента
-          <div class="muted">Назначить лечение или посмотреть таймер</div>
-        </button>
-     ` ;
-    }
-  // ---------- карточка палаты (без апгрейдов внутри) ----------
+    // --- карточка палаты ---
     const card = document.createElement("div");
     card.className = "card wardCard";
     card.innerHTML = `
@@ -3213,12 +3195,11 @@ if(w.patients.length === 0){
 
       ${bedsLine}
 
-      ${patientsHtml}
-
-      ${actionHtml}
-    `;
-
-    // ---------- апгрейды ПОД палатой (твои 9-10-11-12) ----------
+      <div class="wardPatientsBox">
+        ${patientsHtml || `<div class="hint" style="margin-top:10px">Палата пуста.</div>`}
+      </div>
+   ` ;
+          // --- апгрейды под палатой ---
     const upgrades = document.createElement("div");
     upgrades.className = "card";
     upgrades.style.marginTop = "10px";
@@ -3236,7 +3217,7 @@ if(w.patients.length === 0){
         ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
         ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
       </div>
-   ` ;
+    `;
 
     elWards.appendChild(card);
     elWards.appendChild(upgrades);
@@ -3255,9 +3236,7 @@ if(w.patients.length === 0){
           <div class="listSub">Открой вторую палату, чтобы лечить параллельно.</div>
         </div>
         <div class="right">
-          <button class="btn small ok" onclick="buyWardB()" ${disabled}>
-            Купить (${cost})
-          </button>
+          <button class="btn small ok" onclick="buyWardB()" ${disabled}>Купить (${cost})</button>
         </div>
       </div>
    ` ;
@@ -3299,7 +3278,7 @@ if(w.patients.length === 0){
 
       const rarityTag =
         p.rarity===RARITY.LEGENDARY ? `<span class="tag">✨ legendary</span> `:
-        p.rarity===RARITY.RARE ? `<span class="tag">⭐ rare</span> `:
+        p.rarity===RARITY.RARE ? `<span class="tag">⭐ rare</span>` :
         `<span class="tag">common</span>`;
 
       const div = document.createElement("div");
@@ -3310,8 +3289,7 @@ if(w.patients.length === 0){
         <div class="row">
           <div>
             <div class="listTitle">${escapeHtml(p.name)} ${rarityTag}</div>
-            <div class="listSub">${escapeHtml((p.visibleSymptoms||[]).join(", "))}</div>
-            </div>
+          </div>
           <div class="right">
             <div class="timer ${left<15000?'bad':left<40000?'warn':'ok'}">${formatLeft(left)}</div>
             <div class="muted" style="font-size:12px">до ухода/смерти</div>
