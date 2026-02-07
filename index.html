@@ -342,18 +342,20 @@
   text-shadow: 0 2px 10px rgba(0,0,0,0.6);
 }
 
+/* Палаты: текст читаемый, белый */
 .wardCard .listTitle,
-.wardCard .listSub,
-.wardCard .hint,
-.wardCard .right{
-  text-shadow: 0 2px 6px rgba(0,0,0,.9);
+.wardCard .listSub{
+  color: #fff;
 }
 
-.wardCard .hint,
-.wardCard .row{
-  background: rgba(0,0,0,.35);
-  border-radius: 12px;
-  padding: 8px 10px;
+.wardCard .tag{
+  color: #fff;
+  border-color: rgba(255,255,255,.25);
+}
+
+/* если таймер у тебя в .timer */
+.wardCard .timer{
+  color: #fff;
 }
     
   </style>
@@ -3074,7 +3076,7 @@ function renderTop(){
 
 
   const left = (state.shift?.endAt ?? now()) - now();
-  elShiftTimer.textContent = state.shift?.active ? formatLeft(left) : "END";
+  elShiftTimer.textContent = state.shift?.active ? formatLeft(left) : "00:00";
 
   const ev = getCurrentEvent();
 
@@ -3120,13 +3122,15 @@ function renderClinic(){
 
     // ---------- строка койки + кнопка ----------
     const bedsCap = 8;
-    const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
-    const bedsLine = `
-      <div class="row" style="margin-top:10px; align-items:center; justify-content:space-between;">
-        <div class="muted">Койки: <b>${w.patients.length}/${w.bedsMax}</b> <span class="muted">/ ${bedsCap}</span></div>
-        <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>Купить койку</button>
-      </div>
-    `;
+const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
+
+const bedsLine = `
+  <div class="row" style="margin-top:10px; justify-content:center;">
+    <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
+      Купить койку
+    </button>
+  </div>
+`;
 
     // ---------- список пациентов в палате (таймер у активного) ----------
     let patientsHtml = "";
