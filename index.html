@@ -1200,8 +1200,9 @@ function makeWard(letter){
     capLight: 6,
 
     // занятость
-    occupiedBy: null,      // patientId
-    pendingResult: null,   // outcome object after finish
+bedsMax: 2,          // старт 2 койки
+patients: [],        // массив patientId
+pendingResults: {},  // patientId -> result (или null)
   };
 }
 
@@ -1768,7 +1769,7 @@ function wardById(id){
 }
 
 function findWardByPatient(patientId){
-  return state.wards.find(w=>w.occupiedBy===patientId) || null;
+  return state.wards.find(w => (w.patients || []).includes(patientId)) || null;
 }
 
   
@@ -2496,19 +2497,27 @@ function assignPatientToWard(patientId, wardId){
   const p = patientById(patientId);
   if(!w || !p) return false;
 
-  // палата занята
-  if(w.occupiedBy) return false;
+  // инициализация новых полей палаты (на случай старых сейвов)
+  w.bedsMax = w.bedsMax || 2;
+  w.patients = w.patients || [];
+  w.pendingResults = w.pendingResults || {};
 
-  // у палаты есть незабранный результат
-  if(w.pendingResult) return false;
+  // нет мест
+  if(w.patients.length >= w.bedsMax) return false;
+
+  // уже лежит (защита от дублей)
+  if(w.patients.includes(patientId)) return true;
 
   // убрать из очереди
   const qi = state.queue.indexOf(patientId);
-  if(qi>=0) state.queue.splice(qi,1);
+  if(qi >= 0) state.queue.splice(qi, 1);
 
-  w.occupiedBy = patientId;
+  // положить в палату
+  w.patients.push(patientId);
 
   // лечение будет назначено позже (на экране пациента)
+  // result/таймер пока не ставим
+
   saveState();
   fillQueue();
   saveState();
@@ -3208,7 +3217,7 @@ function renderDutySlot(idx, d){
             Усталость: <b class="${fCls}">${f}%</b> • ${escapeHtml(fLbl)}
           </div>
         </div>
-        <button class="btn small" onclick="openStaff()">Сменить</button>
+        <button class="btn small" type="button" onclick="toggleDutyPicker(${idx})">Сменить</button>
       </div>
    ` ;
   }
@@ -3282,14 +3291,13 @@ function tryPlaceOrOpen(patientId){
   if(!state.shift?.active) { openPatientById(patientId); return; }
   // если пациент уже в палате/ожидает результата — открыть
   const ward = findWardByPatient(patientId);
-  const inWard = !!ward;
   if(ward){
     openPatientById(patientId);
     return;
   }
 
   // иначе пытаемся положить в первую свободную палату
-  const free = state.wards.find(w=>!w.occupiedBy && !w.pendingResult);
+  const free = state.wards.find(w => (w.patients?.length || 0) < (w.bedsMax || 2));
   if(!free){
     // нет места — просто открыть карточку
     openPatientById(patientId);
@@ -3299,9 +3307,24 @@ function tryPlaceOrOpen(patientId){
   const ok = assignPatientToWard(patientId, free.id);
   if(ok){
     openPatientById(patientId);
-  } else {
-    openPatientById(patientId);
-  }
+  } 
+}
+
+function buyBed(wardId){
+  const w = wardById(wardId);
+  if(!w) return;
+
+  w.bedsMax = w.bedsMax || 2;
+  if(w.bedsMax >= 10) return;
+
+  const cost = 25 + (w.bedsMax - 2) * 20; // можешь поменять формулу
+  if(state.money < cost) return;
+
+  state.money -= cost;
+  w.bedsMax += 1;
+
+  saveState();
+  refreshVisibleUI();
 }
 
 function renderPatient(patientId){
@@ -3477,6 +3500,22 @@ function pickTwoDiseaseCandidates(p){
     .sort((a,b)=> b.score - a.score);
 
   return scored[0]?.id || p.trueDiseaseId;
+}
+
+function upgradeQueueSize(){
+  const cost = 40 + (state.maxQueue - 4) * 30; // пример
+  if(state.money < cost) return;
+  state.money -= cost;
+  state.maxQueue += 2;
+  saveState(); refreshVisibleUI();
+}
+
+function upgradeWaitTime(){
+  const cost = 50 + Math.floor((120 - state.baseWaitSec) / 10) * 25;
+  if(state.money < cost) return;
+  state.money -= cost;
+  state.baseWaitSec += 20; // +10 сек терпения
+  saveState(); refreshVisibleUI();
 }
 
   function placeSelectedToFreeWard(){
