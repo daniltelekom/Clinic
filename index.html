@@ -1358,19 +1358,37 @@ function getActiveMap(){
 function saveActiveMap(map){
   localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
 }
-function getActiveForWard(wardId){
+
+// вернёт объект по палате: { [patientId]: {treatmentId,endAt} }
+function getActiveWardMap(wardId){
   const map = getActiveMap();
-  return map[wardId] || null;
+  return map[wardId] || {};
 }
-function setActiveForWard(wardId, obj){
+
+function getActiveForPatient(wardId, patientId){
+  const wardMap = getActiveWardMap(wardId);
+  return wardMap[patientId] || null;
+}
+
+function setActiveForPatient(wardId, patientId, activeObj){
   const map = getActiveMap();
-  map[wardId] = obj;
+  const wardMap = map[wardId] || {};
+  wardMap[patientId] = activeObj;
+  map[wardId] = wardMap;
   saveActiveMap(map);
 }
-function clearActiveForWard(wardId){
+
+function clearActiveForPatient(wardId, patientId){
   const map = getActiveMap();
-  delete map[wardId];
+  const wardMap = map[wardId] || {};
+  delete wardMap[patientId];
+  map[wardId] = wardMap;
   saveActiveMap(map);
+}
+
+function anyActiveInWard(wardId){
+  const wardMap = getActiveWardMap(wardId);
+  return Object.keys(wardMap).length > 0;
 }
 
   function ensureShiftTimer(){
@@ -2555,36 +2573,42 @@ function chooseTreatment(treatmentId){
   if(!state.shift?.active) return; // смена закончилась
   if(!state.selectedPatientId) return;
   const ward = findWardByPatient(state.selectedPatientId);
-  if(!ward) return;
+if(!ward) return;
 
-  const active = getActiveForWard(ward.id);
-  if(active) return; // уже лечится
+const p = patientById(state.selectedPatientId);
+if(!p) return;
 
-  const p = patientById(state.selectedPatientId);
-  if(!p) return;
+// если именно этот пациент уже лечится — не даём повторно
+const already = getActiveForPatient(ward.id, p.id);
+if(already) return;
 
-  const endAt = now() + p.treatSec*1000;
+// если на этого пациента уже есть незабранный результат — тоже нельзя
+ward.pendingResults = ward.pendingResults || {};
+if(ward.pendingResults[p.id]) return;
 
-  p.treatAttempts = (p.treatAttempts || 0) + 1;
+// старт лечения
+const endAt = now() + p.treatSec*1000;
+p.treatAttempts = (p.treatAttempts || 0) + 1;
 saveState();
 
-  setActiveForWard(ward.id, {
-    patientId: p.id,
-    treatmentId,
-    endAt
-  });
+setActiveForPatient(ward.id, p.id, {
+  treatmentId,
+  endAt
+});
 
-  refreshVisibleUI();
+refreshVisibleUI();
 }
 
-function finishTreatmentToPending(active, outcome){
-  const w = wardById(active.wardId);
+function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
+  const w = wardById(wardId);
   if(!w) return;
 
-  w.pendingResult = {
-    patientId: active.patientId,
-    wardId: active.wardId,
-    treatmentId: active.treatmentId,
+  w.pendingResults = w.pendingResults || {};
+
+  w.pendingResults[patientId] = {
+    patientId,
+    wardId,
+    treatmentId,
 
     kind: outcome.kind,
     xpKind: outcome.xpKind,
@@ -2597,18 +2621,17 @@ function finishTreatmentToPending(active, outcome){
     time: now()
   };
 
-  // начисляем сразу (чтобы игрок видел прогресс)
+  // начисляем сразу
   state.coins = Math.max(0, state.coins + (outcome.coinsDelta ?? 0));
   state.reputation = (state.reputation || 0) + (outcome.reputationDelta ?? 0);
   state.biomaterial = (state.biomaterial || 0) + (outcome.biomaterialDelta ?? 0);
 
   if(state.shift?.active){
-  if(outcome.kind === OUTCOMES.DEATH) state.shift.deaths += 1;
-  else if(outcome.kind === OUTCOMES.CURE || outcome.kind === OUTCOMES.DISFIGURED || outcome.kind === OUTCOMES.INFECTED) state.shift.cured += 1;
-}
+    if(outcome.kind === OUTCOMES.DEATH) state.shift.deaths += 1;
+    else if(outcome.kind === OUTCOMES.CURE || outcome.kind === OUTCOMES.DISFIGURED || outcome.kind === OUTCOMES.INFECTED) state.shift.cured += 1;
+  }
 
   gainDoctorXP(outcome.xpKind);
-
   saveState();
 }
 
@@ -2620,6 +2643,18 @@ function completeTreatment(wardId){
   finishTreatmentToPending({ ...active, wardId }, outcome);
 
   clearActiveForWard(wardId);
+  saveState();
+  refreshVisibleUI();
+}
+
+function completeTreatmentPatient(wardId, patientId){
+  const active = getActiveForPatient(wardId, patientId);
+  if(!active) return;
+
+  const outcome = rollOutcome(patientId, active.treatmentId, wardId);
+  finishTreatmentToPending(wardId, patientId, active.treatmentId, outcome);
+
+  clearActiveForPatient(wardId, patientId);
   saveState();
   refreshVisibleUI();
 }
@@ -3070,35 +3105,38 @@ function renderClinic(){
 
     // ---------- список пациентов в палате (таймер у активного) ----------
     let patientsHtml = "";
-    if(w.patients.length === 0){
-      patientsHtml = `<div class="hint" style="margin-top:10px">Палата пуста. Подозрительно мирно.</div>`;
-    } else {
-      patientsHtml = `
-        <div style="margin-top:10px">
-          ${w.patients.map(pid=>{
-            const p = patientById(pid);
-            if(!p) return "";
+if(w.patients.length === 0){
+  patientsHtml = `<div class="hint" style="margin-top:10px">Палата пуста.</div>`;
+} else {
+  patientsHtml = `
+    <div style="margin-top:10px">
+      ${w.patients.map(pid=>{
+        const p = patientById(pid);
+        if(!p) return "";
 
-            const isActive = !!active && active.patientId === pid;
-            const pill = isActive
-              ? `<span class="tag">⏳ ${formatLeft(active.endAt - now())}</span>`
-              :` <span class="tag warn">ждёт</span>`;
+        w.pendingResults = w.pendingResults || {};
+        const pr = w.pendingResults[pid] || null;
+        const a = getActiveForPatient(w.id, pid);
 
-            return `
-              <button class="listBtn" onclick="openPatientById('${pid}')" style="margin-top:8px">
-                <div class="row" style="align-items:center; justify-content:space-between;">
-                  <div>
-                    <div class="listTitle">${escapeHtml(p.name)}</div>
-                    <div class="listSub">${escapeHtml((p.visibleSymptoms || []).join(", "))}</div>
-                  </div>
-                  <div class="right">${pill}</div>
-                </div>
-              </button>
-            `;
-          }).join("")}
-        </div>
-      `;
-    }
+        let pill = `<span class="tag warn">ждёт</span>`;
+        if(pr){
+          pill = `<span class="tag ok">✅ результат</span>`;
+        } else if(a){
+          pill = `<span class="tag">⏳ ${formatLeft(a.endAt - now())}</span>`;
+        }
+
+        return `
+          <button class="listBtn" onclick="openPatientById('${pid}')" style="margin-top:8px">
+            <div class="row" style="align-items:center; justify-content:space-between;">
+              <div class="listTitle">${escapeHtml(p.name)}</div>
+              <div class="right">${pill}</div>
+            </div>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
 
     // ---------- кнопка действия (результат/забрать/открыть) ----------
     let actionHtml = "";
@@ -3807,16 +3845,16 @@ function startUITick(){
     const patientVisible = document.getElementById("screen-patient").classList.contains("active");
     if(patientVisible && state.selectedPatientId){
       const ward = findWardByPatient(state.selectedPatientId);
-      if(ward){
-        const active = getActiveForWard(ward.id);
-        if(active && active.patientId===state.selectedPatientId){
-          if(now() >= active.endAt){
-            completeTreatment(ward.id);
-          } else {
-            showActive(active);
-          }
-        }
-      }
+if(ward){
+  const a = getActiveForPatient(ward.id, state.selectedPatientId);
+  if(a){
+    if(now() >= a.endAt){
+      completeTreatmentPatient(ward.id, state.selectedPatientId);
+    } else {
+      showActive({ treatmentId: a.treatmentId, endAt: a.endAt });
+    }
+  }
+}
     }
   }, 250);
 }
