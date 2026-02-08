@@ -3413,21 +3413,7 @@ function buyPerk(id){
   refreshVisibleUI();  // обновит текущий экран
 }
 
-  const it = catalog[id];
-  if(!it) return;
-  if(it.can && !it.can()) return;
-  if(!canAfford(it.cost)) return;
-
-  payCost(it.cost);
-  it.buy();
-
-  // применяем эффекты, где надо
-  state.maxQueue = Math.min(10, 6 + (state.perks.queueBuffer ?? 0));
-
-  saveState();
-  renderShop();
-  refreshVisibleUI();
-}
+  
 window.openShop = openShop;
 window.buyPerk = buyPerk;
 
