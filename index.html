@@ -3034,6 +3034,15 @@ function completeTreatmentPatient(wardId, patientId){
   if(!active) return;
 
   const outcome = rollOutcome(patientId, active.treatmentId, wardId);
+
+  // ✅ сохраняем “что пробовали” и “получилось ли”
+  const p = patientById(patientId);
+  if(p){
+    p.lastTreatmentId = active.treatmentId;
+    p.lastOutcomeKind = outcome.kind;
+    p.lastTreatmentFailed = (outcome.kind === OUTCOMES.WORSENED);
+  }
+
   finishTreatmentToPending(wardId, patientId, active.treatmentId, outcome);
 
   clearActiveForPatient(wardId, patientId);
@@ -3930,6 +3939,11 @@ if(!p.clue){
   p.clue = pickClueForDisease(disease);
   saveState();
 }
+
+const failNote =
+  (p.lastOutcomeKind === OUTCOMES.WORSENED && p.lastTreatmentId)
+    ? ` • ${methodName(p.lastTreatmentId)} не подействовало`
+    : "";
   
 elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}${failNote}`;
 
