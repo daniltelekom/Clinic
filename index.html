@@ -3110,6 +3110,11 @@ async function boot(){
 }
 
 
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
   const p = patientById(patientId);
