@@ -1324,10 +1324,6 @@ unlocks: {
   baseTreatSecMin: 120,
   baseTreatSecMax: 300,
   baseLabCost: 15,
-  maxQueue: 6,
-baseWaitSec: 120,
-baseTreatSecMin: 120,
-baseTreatSecMax: 300
 },
     maintenance: {
   active: false,
@@ -2580,11 +2576,6 @@ if((p.treatAttempts || 0) >= 2){
     if(kind === OUTCOMES.DISFIGURED) kind = OUTCOMES.INFECTED;
     else if(kind === OUTCOMES.INFECTED) kind = OUTCOMES.WORSENED;
   }
-
-  // 4) Награды/штрафы можно оставить как у тебя (switch(kind))
-  const repMul = repCoinsMultiplier(state.reputation);
-
-  let coinsDelta=0, repDelta=0, bioDelta=0;
 
 // 4) Награды/штрафы (нормальный скейл)
   const repMul = repCoinsMultiplier(state.reputation);
