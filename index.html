@@ -61,6 +61,7 @@
       border-radius:18px;
       padding:14px;
       margin:12px 0;
+    }
       /* когда "Неделя" скрыта, поднимаем контент экранов выше */
 body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
@@ -131,7 +132,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
   width:min(560px, calc(100% - 24px));
 
   background:
-    url("img/ui/scroll_bg.png") center / cover no-repeat,
+    url("img/ui/scroll.png") center / cover no-repeat,
     linear-gradient(
       180deg,
       rgba(10, 8, 4, 0.85),
@@ -551,9 +552,13 @@ body:not(.onClinic) .screen.active .panel:first-child{
 }
 
 /* возвращаем контент поверх вуали */
-. > *{
+.weekPanel > *{
   position: relative;
   z-index: 1;
+}
+    body:not(.onClinic) #week-panel{
+  display:none !important;
+  margin-top:0 !important;
 }
 
 .weekTitle{
@@ -731,7 +736,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
   <div id="maintenance-banner" class="maintBanner" style="display:none"></div>
 
-<div class="panel weekPanel" id="week-panel" style="margin-top:10px; padding:10px 12px;">
+<div class="panel weekPanel" id="week-panel" style="padding:10px 12px;">
   <div class="row" style="align-items:flex-start;">
     <div>
      <div class="listTitle weekTitle" id="week-title">
