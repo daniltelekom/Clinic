@@ -476,7 +476,45 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
 .weekPanel{
   border:1px solid rgba(255,255,255,.10);
-  background: rgba(91,124,255,.10);
+  position: relative;
+  overflow: hidden;
+
+  /* твой фон */
+  background-image: url("img/topbar_bg.png");
+  background-size: cover;
+  background-position: center;
+}
+
+/* затемняющая вуаль, чтобы текст читался */
+.weekPanel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,.55),
+    rgba(0,0,0,.25)
+  );
+  pointer-events:none;
+}
+
+/* возвращаем контент поверх вуали */
+.weekPanel > *{
+  position: relative;
+  z-index: 1;
+}
+
+.weekTitle{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.weekIcon{
+  width:24px;
+  height:24px;
+  object-fit:contain;
+  opacity:.95;
 }
 
     .coinIcon{
@@ -644,7 +682,10 @@ body:not(.onClinic) .screen.active .panel:first-child{
 <div class="panel weekPanel" id="week-panel" style="margin-top:10px; padding:10px 12px;">
   <div class="row" style="align-items:flex-start;">
     <div>
-      <div class="listTitle" id="week-title">📅 Неделя 1: —</div>
+     <div class="listTitle weekTitle" id="week-title">
+  <img class="weekIcon" src="icons/topbar/icon_calendar.png" alt="">
+  <span id="week-title-text">Неделя 1: —</span>
+</div>
       <div class="hint" id="week-desc">Эффекты: —</div>
     </div>
     <div class="tag" id="week-shift">Смена: 1/7</div>
@@ -3703,7 +3744,7 @@ const elCoins = document.getElementById("coins");
 const elRep = document.getElementById("rep");
 const elBio = document.getElementById("bio");
 const elShiftTimer = document.getElementById("shift-timer");
-const elWeekTitle = document.getElementById("week-title");
+const elWeekTitleText = document.getElementById("week-title-text");
 const elWeekDesc  = document.getElementById("week-desc");
 const elWeekShift = document.getElementById("week-shift");
 
@@ -3760,7 +3801,8 @@ function renderTop(){
   const week = state.calendar?.week ?? 1;
   const shiftInWeek = state.calendar?.shiftInWeek ?? 1;
 
-  if(elWeekTitle) elWeekTitle.textContent = `📅 Неделя ${week}: ${ev ? ev.name : "—"}`;
+if(elWeekTitleText)
+  elWeekTitleText.textContent = ёНеделя ${week}: ${ev ? ev.name : "--"}ё;
   if(elWeekDesc)  elWeekDesc.textContent  = `Эффекты: ${ev ? ev.desc : "—"}`;
   if(elWeekShift) elWeekShift.textContent = `Смена: ${shiftInWeek}/7`;
 }
