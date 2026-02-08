@@ -3039,9 +3039,6 @@ async function boot(){
   refreshVisibleUI();
 }
 
-// если ещё не выбран ивент на первую неделю, выбираем
-if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
-if(!state.calendar.activeEventId) pickNewWeekEvent();
 
 function assignPatientToWard(patientId, wardId){
   const w = wardById(wardId);
@@ -4693,19 +4690,24 @@ elLootOk.addEventListener("click", (e)=>{
   e.preventDefault();
   closeLootModal();
 });
+
+  
 /* =========================================================
    14) INIT
 ========================================================= */
 
-if(state.shift?.active) fillQueue();
-saveState();
-refreshVisibleUI();
-// авто-обучение на первом запуске
-if(!localStorage.getItem(LS_TUTORIAL_DONE)){
-  startTutorial(false);
-}
+boot().then(() => {
+  // после загрузки state можно делать всё остальное
+  if(state?.shift?.active) fillQueue();
+  saveState();
 
-boot().catch(err => {
+  // авто-обучение на первом запуске
+  if(!localStorage.getItem(LS_TUTORIAL_DONE)){
+    startTutorial(false);
+  }
+
+  refreshVisibleUI();
+}).catch(err => {
   showCrash("BOOT CRASH", err);
 });
   
