@@ -3655,6 +3655,11 @@ function renderPatient(patientId){
     return;
   }
 
+  // ✅ Всегда по умолчанию показываем панель действий
+if(elPatientActions){
+  elPatientActions.style.display = "block";
+}
+
    const ward = findWardByPatient(patientId);
   const inWard = !!ward;
 
