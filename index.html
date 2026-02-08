@@ -3242,7 +3242,7 @@ function renderShop(){
       id:"lab_extra",
       title:"Лаборант",
       desc:"+1 исследование на пациента",
-      cost:{ bio: 2, rep: 2 },
+      cost: 10,
       can: ()=> Number(state.perks.labExtra || 0) < 2,
 buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
     },
@@ -3251,7 +3251,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
      id:"chest_common",
      title:"Обычный сундук",
      desc:"Купи и открой. Лут: доктора/ресурсы/отдых/иногда улучшения.",
-     cost:{ coins: CHESTS.common.costCoins },
+     cost:CHESTS.common.costCoins ,
      can: ()=> true,
      buy: ()=> { state.chests.common = (state.chests.common||0) + 1; }
     },
@@ -3260,7 +3260,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
       id:"lab_discount",
       title:"Скидка на реагенты",
       desc:"-10% цена лаборатории",
-      cost:{ coins: 60, rep: 1 },
+      cost:50,
       can: ()=> (state.perks.labDiscount < 30),
       buy: ()=> { state.perks.labDiscount += 10; }
     },
@@ -3268,7 +3268,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
       id:"queue_buffer",
       title:"Расширение очереди",
       desc:"+1 к размеру очереди",
-      cost:{ coins: 80 },
+      cost:300,
       can: ()=> (state.perks.queueBuffer < 4),
       buy: ()=> { state.perks.queueBuffer += 1; }
     },
@@ -3276,7 +3276,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
       id:"treat_speed",
       title:"Койки получше",
       desc:"+10% скорость лечения",
-      cost:{ coins: 90, bio: 1 },
+      cost:270,
       can: ()=> (state.perks.treatSpeed < 30),
       buy: ()=> { state.perks.treatSpeed += 10; }
     },
@@ -3284,7 +3284,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
   id:"rest_small",
   title:"Отвар для персонала",
   desc:"-20% усталости выбранному врачу (в Штате появится кнопка)",
-  cost:{ coins: 70 },
+  cost:70,
   can: ()=> true,
   buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }
 },
@@ -3292,7 +3292,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
   id:"rest_big",
   title:"Выходной по приказу",
   desc:"-35% усталости выбранному врачу (в Штате появится кнопка)",
-  cost:{ coins: 140, rep: 1 },
+  cost:140,
   can: ()=> true,
   buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }
 },
@@ -3300,7 +3300,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
   id:"rest_all",
   title:"Каша для всех",
   desc:"-12% усталости всем врачам",
-  cost:{ coins: 220, bio: 1 },
+  cost:220,
   can: ()=> true,
   buy: ()=> { reduceAllDoctorsFatigue(12, false); }
 },
@@ -3308,7 +3308,7 @@ buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
   id:"rest_backline",
   title:"Сон для не-дежурных",
   desc:"-18% усталости всем, кто НЕ дежурит",
-  cost:{ coins: 180 },
+  cost:180,
   can: ()=> true,
   buy: ()=> { reduceAllDoctorsFatigue(18, true); }
 },
@@ -3376,30 +3376,42 @@ function payCost(c){
 }
 
 function buyPerk(id){
-  // единый каталог покупок лавки
-  const catalog = {
-    // перки
-    lab_extra: {
-  buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; },
-  cost:{ bio:2, rep:2 },
-  can: ()=> Number(state.perks.labExtra || 0) < 2
-},
-    lab_discount:  { buy: ()=> state.perks.labDiscount += 10,cost:{ coins:60, rep:1 }, can:()=> state.perks.labDiscount<30 },
-    queue_buffer:  { buy: ()=> state.perks.queueBuffer += 1, cost:{ coins:80 },      can:()=> state.perks.queueBuffer<4 },
-    treat_speed:   { buy: ()=> state.perks.treatSpeed += 10, cost:{ coins:90, bio:1 }, can:()=> state.perks.treatSpeed<30 },
+  const it = SHOP.find(x => x.id === id);
+  if(!it) return;
 
-    // восстановление
-    rest_small:    { buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }, cost:{ coins:70 }, can:()=> true },
-    rest_big:      { buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }, cost:{ coins:140, rep:1 }, can:()=> true },
-    rest_all:      { buy: ()=> { reduceAllDoctorsFatigue(12, false); }, cost:{ coins:220, bio:1 }, can:()=> true },
-    rest_backline: { buy: ()=> { reduceAllDoctorsFatigue(18, true); }, cost:{ coins:180 }, can:()=> true },
+  // на всякий случай: чтобы не падало на пустых объектах
+  state.perks   = state.perks   || {};
+  state.unlocks = state.unlocks || {};
+  state.shopBought = state.shopBought || {};
 
-    chest_common: {
-  buy: ()=> { openChest("common"); },
-  cost:{ coins: CHESTS.common.costCoins },
-  can: ()=> true
-},
-  };
+  // если одноразовая покупка
+  if(it.once && state.shopBought[id]) return;
+
+  // цена
+  const cost = (typeof it.cost === "function") ? it.cost() : Number(it.cost || 0);
+
+  // проверка условий товара (если есть it.can())
+  const canBuyByRules = it.can ? !!it.can() : true;
+
+  if(!canBuyByRules) return;
+  if(state.coins < cost) return;
+
+  // списать деньги
+  state.coins -= cost;
+
+  // применить эффект покупки
+  if(typeof it.buy === "function"){
+    it.buy();
+  }
+
+  // отметить как купленное (если once)
+  if(it.once){
+    state.shopBought[id] = true;
+  }
+
+  saveState();
+  refreshVisibleUI();  // обновит текущий экран
+}
 
   const it = catalog[id];
   if(!it) return;
