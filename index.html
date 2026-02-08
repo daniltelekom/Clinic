@@ -450,6 +450,67 @@
   opacity: .95;
 }
 
+/* чтобы контент не прятался под bottom bar */
+.wrap{
+  padding-bottom: 86px;
+}
+
+.bottomBar{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: space-around;
+  gap: 6px;
+  padding: 10px 10px 12px;
+  background: rgba(15, 23, 48, .92);
+  border-top: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(10px);
+}
+
+.bbItem{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  background: rgba(0,0,0,.20);
+  color: rgba(233,238,252,.95);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bbItem img{
+  width: 22px;
+  height: 22px;
+  opacity: .95;
+}
+
+.bbItem.bbMain{
+  transform: translateY(-6px);
+  background: rgba(91,124,255,.20);
+  border: 1px solid rgba(91,124,255,.45);
+}
+
+.bbItem.active{
+  background: rgba(73, 209, 125, .18);
+  border: 1px solid rgba(73, 209, 125, .40);
+}
+
+.rewardIcon{
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  margin-right: 6px;
+  opacity: .95;
+}
+
     .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
 .costPill img{width:16px; height:16px; opacity:.95}
@@ -506,38 +567,6 @@
     </div>
 
     <div class="panel">
-  <h2>Управление</h2>
-
-  <div class="controlGrid">
-
-    <div class="controlCard" onclick="openStaff()">
-      <img src="img/control/staff.png" class="controlIcon">
-      <div>
-        <div class="controlTitle">Штат</div>
-        <div class="controlSub">Врачи, усталость и назначения</div>
-      </div>
-    </div>
-
-    <div class="controlCard" onclick="openShop()">
-      <img src="img/control/shop.png" class="controlIcon">
-      <div>
-        <div class="controlTitle">Лавка</div>
-        <div class="controlSub">Апгрейды, отдых и сундуки</div>
-      </div>
-    </div>
-
-    <div class="controlCard" onclick="startTutorial(true)">
-      <img src="img/control/tutorial.png" class="controlIcon">
-      <div>
-        <div class="controlTitle">Обучение</div>
-        <div class="controlSub">Как тут выжить и не сойти с ума</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-    <div class="panel">
       <h2>Дежурные доктора</h2>
       <div id="duty"></div>
       <div class="hint">Дежурные дают советы и штрафуют методы, которые “не умеют”.</div>
@@ -575,6 +604,28 @@
     </div>
 
       <div class="sep"></div>
+
+  <!-- SCREEN: RESEARCH -->
+<div id="screen-research" class="screen">
+  <div class="panel">
+    <div class="row" style="align-items:flex-start;">
+      <div>
+        <div class="listTitle">🧪 Исследования</div>
+        <div class="listSub">Пока заглушка. Тут будет дерево исследований.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <div class="listTitle">Скоро:</div>
+    <div class="listSub">
+      • дерево технологий<br>
+      • перки клиники<br>
+      • лаборатория / оборудование<br>
+      • мета-прогресс
+    </div>
+  </div>
+</div>
 
 <button class="btn" id="btn-lab" onclick="labResearchSelected()">
   🔬 Исследовать в лаборатории
@@ -686,6 +737,34 @@
       <button class="btn small ok" id="loot-ok">Забрать</button>
     </div>
   </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottomBar" id="bottom-bar">
+  <button class="bbItem" id="bb-staff" onclick="openStaff()">
+    <img src="img/control/staff.png" alt="">
+    <div>Штат</div>
+  </button>
+
+  <button class="bbItem" id="bb-shop" onclick="openShop()">
+    <img src="img/control/shop.png" alt="">
+    <div>Лавка</div>
+  </button>
+
+  <button class="bbItem bbMain" id="bb-clinic" onclick="backToClinic()">
+    <img src="img/control/icon_clinic.png" alt="">
+    <div>Главная</div>
+  </button>
+
+  <button class="bbItem" id="bb-research" onclick="openResearch()">
+    <img src="img/control/icon_isled.png" alt="">
+    <div>Исслед.</div>
+  </button>
+
+  <button class="bbItem" id="bb-tutorial" onclick="startTutorial(true)">
+    <img src="img/control/tutorial.png" alt="">
+    <div>Обучение</div>
+  </button>
 </div>
 
 <script>
@@ -1151,6 +1230,10 @@ function normalizeDoctorsFatigue(){
     if(d.fatigueGain == null) d.fatigueGain = defaultFatigueGainByRarity(d.rarity);
   }
 }
+
+function openResearch(){
+  showScreen("research");
+}
   
 
 function rarityLabel(r){
@@ -1217,8 +1300,8 @@ unlocks: {
     
     shift: {
   active: true,
-  durationSec: 12*60*60,     // 8 минут на тест
-  endAt: now() + 12*60*60*1000,
+  durationSec: 12 * 60 * 60,    
+  endAt: now() + 12* 60 * 60 * 1000,
   cured: 0,
   deaths: 0,
   left: 0
@@ -1400,15 +1483,15 @@ function loadState(){
     if(!s.shift){
       s.shift = {
         active: true,
-        durationSec: 12*60*60,
-        endAt: Date.now() + 12*60*60*1000,
+        durationSec: 12 * 60 * 60,
+        endAt: Date.now() + 12 * 60 * 60 * 1000,
         cured: 0,
         deaths: 0,
         left: 0
       };
     }
     if(typeof s.shift.active !== "boolean") s.shift.active = true;
-    if(!s.shift.durationSec) s.shift.durationSec = 12*60*60;
+    if(!s.shift.durationSec) s.shift.durationSec = 12 * 60 * 60;
     if(!s.shift.endAt) s.shift.endAt = Date.now() + s.shift.durationSec*1000;
     if(s.shift.cured==null) s.shift.cured = 0;
     if(s.shift.deaths==null) s.shift.deaths = 0;
@@ -1607,6 +1690,13 @@ function repCoinsMultiplier(rep){
   if(rep < 25)  return 1.10;
   if(rep < 50)  return 1.20;
   return 1.30;
+}
+
+function rewardIcon(type){
+  if(type === "coins") return `<img class="rewardIcon" src="icons/topbar/icon_coins.png" alt="">`;
+  if(type === "rep")   return `<img class="rewardIcon" src="icons/topbar/icon_rep.png" alt="">`;
+  if(type === "bio")   return `<img class="rewardIcon" src="icons/topbar/icon_bio.png" alt="">`;
+  return "";
 }
 
 function renderWardUpgradeBtn(w, stat, title, hint){
@@ -2465,7 +2555,7 @@ if((p.treatAttempts || 0) >= 2){
   
 const CHESTS = {
   common: {
-    title: "🧰 Обычный сундук",
+    title: " Обычный сундук",
     desc: "Шанс на полезняк. Иногда даже без боли.",
     costCoins: 120,
     loot: [
@@ -2567,11 +2657,11 @@ function renderShiftEnd(){
   const s = state.shift;
   ensureShiftRewards();
 
+  // summary: вместо эмодзи — иконки
   el.innerHTML = `
     ✅ Вылечено: <b>${s.cured}</b><br>
     ☠️ Смертей: <b>${s.deaths}</b><br>
     🚪 Ушли/умерли в очереди: <b>${s.left}</b><br>
-    <div class="hint">Награды добавим после лаборатории/ивентов.</div>
   `;
 
   // кнопка "следующая смена" блокируется пока не выбрал награду
@@ -2591,7 +2681,9 @@ function renderShiftEnd(){
 
     const title = document.createElement("div");
     title.className = "listTitle";
-    title.textContent = r.title + (chosenId === r.id ? " ✅" : "");
+
+    // ВАЖНО: тут innerHTML, чтобы картинка вставилась
+    title.innerHTML = `${rewardIcon(r.type)}${r.title}${(chosenId === r.id ? " ✅" : "")}`;
 
     const sub = document.createElement("div");
     sub.className = "listSub";
@@ -2613,12 +2705,11 @@ function renderShiftEnd(){
 
     row.appendChild(left);
     row.appendChild(btn);
-
     div.appendChild(row);
+
     elRewardList.appendChild(div);
   }
-} 
-
+}
 function startNewShift(){
   normalizeCalendar();
 
@@ -2925,12 +3016,14 @@ function showScreen(name){
   document.getElementById("screen-shiftend").classList.toggle("active", name==="shiftend");
   document.getElementById("screen-staff").classList.toggle("active", name==="staff");
   document.getElementById("screen-shop").classList.toggle("active", name==="shop");
+  document.getElementById("screen-research").classList.toggle("active", name==="research");
 
   // неделя видна только на главном
   const weekPanel = document.getElementById("week-panel");
   if(weekPanel){
     weekPanel.style.display = (name === "clinic") ? "block" : "none";
   }
+  if(typeof highlightBottomBar === "function") highlightBottomBar(name);
 }
 
 const elStaffList = document.getElementById("staff-list");
@@ -2938,6 +3031,21 @@ const elStaffList = document.getElementById("staff-list");
 function openStaff(){
   showScreen("staff");
   renderStaff();
+}
+
+function highlightBottomBar(name){
+ const map = {
+  clinic: "bb-clinic",
+  staff: "bb-staff",
+  shop: "bb-shop",
+  research: "bb-research",
+  patient: "bb-clinic",
+  shiftend: "bb-clinic"
+};
+  document.querySelectorAll(".bbItem").forEach(b=>b.classList.remove("active"));
+  const id = map[name];
+  const el = id ? document.getElementById(id) : null;
+  if(el) el.classList.add("active");
 }
 
 function renderStaff(){
