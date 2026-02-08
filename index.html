@@ -1858,9 +1858,11 @@ function repCoinsMultiplier(rep){
 
   if(rep < -10) return 0.80;
   if(rep < 10)  return 1.00;
-  if(rep < 25)  return 1.10;
-  if(rep < 50)  return 1.20;
-  return 1.30;
+  if(rep < 25)  return 1.20;
+  if(rep < 50)  return 1.50;
+  if(rep < 70)  return 1.70;
+  if(rep < 90)  return 1.90;
+  return 2.00;
 }
 
 function rewardIcon(type){
@@ -2742,12 +2744,12 @@ if((p.treatAttempts || 0) >= 2){
   switch(kind){
     case OUTCOMES.CURE:
       coinsDelta = Math.round(25 * repMul);
-      repDelta = +2;
+      repDelta = +5;
       break;
 
     case OUTCOMES.DISFIGURED: // выжил, но “с приколом”
       coinsDelta = Math.round(32 * repMul);
-      repDelta = +1;
+      repDelta = +2;
       break;
 
     case OUTCOMES.INFECTED: // вылечили, но насыпали проблем
@@ -2757,12 +2759,12 @@ if((p.treatAttempts || 0) >= 2){
 
     case OUTCOMES.WORSENED: // лечение не помогло
       coinsDelta = Math.round(6 * repMul);
-      repDelta = -3;
+      repDelta = -2;
       break;
 
     case OUTCOMES.DEATH:
       coinsDelta = Math.round(10 * repMul);
-      repDelta = -8;
+      repDelta = -1;
       bioDelta = 1;
       break;
   }
