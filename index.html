@@ -574,6 +574,7 @@
 
     <div class="panel">
       <h2>Очередь пациентов</h2>
+      <div id="queue-upgrades" class="grid2" style="margin:10px 0;"></div>
       <div id="queue"></div>
       <div class="hint">Если долго не лечить: могут уйти или умереть прямо в очереди. Жизнь.</div>
     </div>
@@ -1457,6 +1458,11 @@ function loadState(){
     if(s.base.baseTreatSecMax==null) s.base.baseTreatSecMax = 300;
     if(s.base.baseLabCost==null) s.base.baseLabCost = 15;
 
+    // миграция апгрейдов очереди
+    if(!state.queueUpg) state.queueUpg = {};
+    if(!Number.isFinite(state.queueUpg.capLvl)) state.queueUpg.capLvl = 0;   // 0..3
+    if(!Number.isFinite(state.queueUpg.waitLvl)) state.queueUpg.waitLvl = 0; // 0..∞ (но мы ограничим)
+
     if(!s.flags) s.flags = { showStarShop:false };
     if(typeof s.flags.showStarShop !== "boolean") s.flags.showStarShop = false;
 
@@ -1945,7 +1951,12 @@ function openChest(kind){
 
   // перки могут влиять на maxQueue и т.д. 
   // например, чтобы очередь сразу пересчиталась:
-  state.maxQueue = Math.min(10, (state.base?.maxQueue ?? 6) + (state.perks?.queueBuffer ?? 0));
+  state.maxQueue = Math.min(
+  10,
+  (state.base?.maxQueue ?? 6)
+  + (state.perks?.queueBuffer ?? 0)
+  + queueCapBonus()
+);
 
   saveState();
 
@@ -1975,9 +1986,81 @@ function resetToBase(){
 
 function applyPerks(){
   // очередь из перков лавки
-  state.maxQueue = Math.min(10, (state.base?.maxQueue ?? 6) + (state.perks?.queueBuffer ?? 0));
+  state.maxQueue = Math.min(
+  10,
+  (state.base?.maxQueue ?? 6)
+  + (state.perks?.queueBuffer ?? 0)
+  + queueCapBonus()
+);
   // остальное (лаба скидка/экстра, скорость лечения) ты считаешь на лету в нужных местах и это норм
 }
+
+function queueCapCost(level){
+  // уровень 0->1,1->2,2->3
+  // дорого и растёт быстро
+  return 800 * Math.pow(2, level); // 800, 1600, 3200
+}
+
+function queueWaitCost(level){
+  return 600 * Math.pow(2, level); // 600, 1200, 2400, 4800...
+}
+
+function queueCapBonus(){
+  return Math.min(3, state.queueUpg?.capLvl ?? 0); // +0..+3 к maxQueue
+}
+
+function queueWaitBonusSecPerBuy(){
+  return 20; // “немного времени” всем в очереди, 20 сек за покупку
+}
+
+function upgradeQueueCap(){
+  state.queueUpg = state.queueUpg || {};
+  const lvl = state.queueUpg.capLvl || 0;
+  if(lvl >= 3) return;
+
+  const cost = queueCapCost(lvl);
+  if(state.coins < cost) return;
+
+  state.coins -= cost;
+  state.queueUpg.capLvl = lvl + 1;
+
+  // пересчёт модификаторов (maxQueue зависит от перков)
+  applyAllModifiers();
+
+  // на всякий случай, чтобы очередь дозаполнилась сразу
+  fillQueue();
+  saveState();
+  refreshVisibleUI();
+}
+
+function upgradeQueueWait(){
+  state.queueUpg = state.queueUpg || {};
+  const lvl = state.queueUpg.waitLvl || 0;
+  const maxLvl = 6; // чтоб не улететь в космос
+  if(lvl >= maxLvl) return;
+
+  const cost = queueWaitCost(lvl);
+  if(state.coins < cost) return;
+
+  state.coins -= cost;
+  state.queueUpg.waitLvl = lvl + 1;
+
+  const addSec = queueWaitBonusSecPerBuy();
+  // добавляем время ВСЕМ в очереди
+  for(const pid of (state.queue || [])){
+    const p = patientById(pid);
+    if(p && Number.isFinite(p.leaveAt)){
+      p.leaveAt += addSec * 1000;
+    }
+  }
+
+  saveState();
+  refreshVisibleUI();
+}
+
+// экспорт для onclick (если будешь делать через onclick)
+window.upgradeQueueCap = upgradeQueueCap;
+window.upgradeQueueWait = upgradeQueueWait;
 
 function applyDoctorFatigueAfterShift(){
   normalizeDoctorsFatigue();
@@ -2725,9 +2808,10 @@ function startNewShift(){
   state.shift = state.shift || {};
   state.shift.active = true;
 
-  // если durationSec кривой/пустой (бывает после миграций)
-  const dur = Number(state.shift.durationSec || 12*60*60);
+  // всегда 3 часа, без "подхвата" старого значения
+  const dur = 3 * 60 * 60;
   state.shift.durationSec = dur;
+
 
   // ВАЖНО: endAt ставим ПОСЛЕ всего
   state.shift.endAt = now() + dur * 1000;
@@ -3336,6 +3420,7 @@ const elWeekDesc  = document.getElementById("week-desc");
 const elWeekShift = document.getElementById("week-shift");
 
 const elWards = document.getElementById("wards");
+const elQueueUpgrades = document.getElementById("queue-upgrades");
 const elQueue = document.getElementById("queue");
 const elDuty = document.getElementById("duty");
 
@@ -3567,6 +3652,44 @@ card.innerHTML = `
     `;
     elDuty.appendChild(div);
   }
+
+// ===== апгрейды очереди (две кнопки над очередью) =====
+if(elQueueUpgrades){
+  const capLvl = state.queueUpg?.capLvl ?? 0;
+  const waitLvl = state.queueUpg?.waitLvl ?? 0;
+
+  const capMax = 3;
+  const waitMax = 6;
+
+  const capCost = capLvl >= capMax ? null : queueCapCost(capLvl);
+  const waitCost = waitLvl >= waitMax ? null : queueWaitCost(waitLvl);
+
+  // ВАЖНО: если capCost null -> MAX, иначе сравнение
+  const capDisabled = (capLvl >= capMax) || (capCost !== null && state.coins < capCost);
+  const waitDisabled = (waitLvl >= waitMax) || (waitCost !== null && state.coins < waitCost) || ((state.queue || []).length === 0);
+
+  elQueueUpgrades.innerHTML = `
+    <button class="btn" ${capDisabled ? "disabled" : ""} onclick="upgradeQueueCap()">
+      <div class="row" style="gap:10px; align-items:center;">
+        <img src="icons/shop/icon_queue.png" style="width:22px;height:22px" alt="">
+        <div style="text-align:left;">
+          <div><b>Увеличить очередь</b> (ур. ${capLvl}/${capMax})</div>
+          <div class="muted">+1 место • Цена: ${capCost ?? "MAX"}</div>
+        </div>
+      </div>
+    </button>
+
+    <button class="btn" ${waitDisabled ? "disabled" : ""} onclick="upgradeQueueWait()">
+      <div class="row" style="gap:10px; align-items:center;">
+        <img src="icons/shop/icon_times.png" style="width:22px;height:22px" alt="">
+        <div style="text-align:left;">
+          <div><b>Увеличить ожидание</b> (ур. ${waitLvl}/${waitMax})</div>
+          <div class="muted">+${queueWaitBonusSecPerBuy()} сек всем (${(state.queue||[]).length}) • Цена: ${waitCost ?? "MAX"}</div>
+        </div>
+      </div>
+    </button>
+  `;
+}
 
   // ========== ОЧЕРЕДЬ ==========
   elQueue.innerHTML = "";
