@@ -1539,13 +1539,13 @@ function clearActiveForWard(wardId){
   saveActiveMap(map);
 }
 
-  function ensureShiftTimer(){
+ function ensureShiftTimer(){
   if(!state.shift) return;
 
-  // durationSec тоже может быть кривой
- const dur = Number(state.shift.durationSec || 12*60*60);
-state.shift.durationSec = dur;
-state.shift.endAt = now() + dur*1000;
+  // durationSec может быть кривым после миграций/сейвов
+  const dur = Number(state.shift.durationSec);
+  if(!Number.isFinite(dur) || dur <= 0){
+    state.shift.durationSec = 12 * 60 * 60; // 12 часов в секундах
   }
 
   const endAt = Number(state.shift.endAt);
