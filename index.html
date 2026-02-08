@@ -776,14 +776,47 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
   let state = null;
 
-function showCrash(title, info){
-  if(info?.message === "Script error.") {
-  console.log("Ignored Script error (WebView):", info);
-  return;
+function looksLikeTelegramInitData(s){
+  if(!s) return false;
+  return typeof s === "string" && (s.includes("tgWebAppVersion") || s.includes("tgWebAppPlatform") || s.includes("tgWebAppData"));
 }
 
-  const text = title + "\n" + JSON.stringify(info, null, 2);
-  alert(text.length > 1200 ? text.slice(0, 1200) + "\n...(cut)" : text);
+function safeShort(v, maxLen = 280){
+  try{
+    const s = (typeof v === "string") ? v : JSON.stringify(v);
+    if(!s) return "";
+    return s.length > maxLen ? (s.slice(0, maxLen) + " ...(cut)") : s;
+  }catch{
+    return String(v).slice(0, maxLen) + " ...(cut)";
+  }
+}
+
+function showCrash(title, info){
+  // Telegram WebView иногда кидает "Script error." вообще без деталей
+  if(info?.message === "Script error.") {
+    console.log("Ignored Script error (WebView):", info);
+    return;
+  }
+
+  // Если в ошибку каким-то образом попала telegram initData простыня — не спамим ею
+  const msg = info?.message || info?.reason || "";
+  if(looksLikeTelegramInitData(msg)){
+    alert(title + "\n" + "Поймали Telegram initData в ошибке. Реальная ошибка выше в консоли.");
+    console.log(title, info);
+    return;
+  }
+
+  const clean = {
+    message: safeShort(info?.message),
+    reason: safeShort(info?.reason),
+    file: info?.file,
+    line: info?.line,
+    col: info?.col,
+    stack: safeShort(info?.stack, 800),
+  };
+
+  alert(title + "\n" + JSON.stringify(clean, null, 2));
+  console.log("CRASH:", title, info);
 }
 window.addEventListener("error", (e) => {
   showCrash("JS упал (error)", {
@@ -797,7 +830,7 @@ window.addEventListener("error", (e) => {
 
 window.addEventListener("unhandledrejection", (e) => {
   showCrash("JS упал (unhandledrejection)", {
-    reason: String(e.reason),
+    reason: (typeof e.reason === "string") ? e.reason : (e.reason?.message || e.reason),
     stack: e.reason?.stack || null
   });
 });
@@ -3939,12 +3972,11 @@ if(!p.clue){
 }
 
 const failNote =
-  (p.lastOutcomeKind === OUTCOMES.WORSENED && p.lastTreatmentId)
-    ? ` • ${methodName(p.lastTreatmentId)} не подействовало`
+  (p.lastTreatmentFailed && p.lastTreatmentId)
+    ?  `• ${methodName(p.lastTreatmentId)} не подействовало`
     : "";
-  
-elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}${failNote}`;
 
+elPatientSub.textContent = `${(p.visibleSymptoms || []).join(", ")} • ${p.clue}${failNote}`;
 elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
 
   // ⛔ прошлое лечение не сработало
