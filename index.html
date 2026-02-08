@@ -427,6 +427,21 @@
   white-space: nowrap;
 }
 
+    .maintBanner{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255, 107, 107, .12);
+  color:#ffd7d7;
+  font-weight:700;
+}
+
+.weekPanel{
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(91,124,255,.10);
+}
+
     .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
 .costPill img{width:16px; height:16px; opacity:.95}
@@ -461,7 +476,9 @@
   </div>
 </div>
 
-<div class="panel" style="margin-top:10px; padding:10px 12px;">
+  <div id="maintenance-banner" class="maintBanner" style="display:none"></div>
+
+<div class="panel weekPanel" id="week-panel" style="margin-top:10px; padding:10px 12px;">
   <div class="row" style="align-items:flex-start;">
     <div>
       <div class="listTitle" id="week-title">📅 Неделя 1: —</div>
@@ -1189,10 +1206,12 @@ unlocks: {
   wardB: false,
   staffScreen: true // штат включим сразу, просто пока без магазина
 },
+    maintenance: { active:false, text:"" },
+    
     shift: {
   active: true,
   durationSec: 12*60*60,     // 8 минут на тест
-  endAt: now() + 20*60*1000,
+  endAt: now() + 12*60*60*1000,
   cured: 0,
   deaths: 0,
   left: 0
@@ -1240,6 +1259,7 @@ rewards: {
   costCoins: 15,      // цена исследования
   maxPerPatient: 2    // сколько раз можно ковыряться в одном пациенте
 },
+    
 
    patients: [],
 queue: [],
@@ -1369,15 +1389,15 @@ function loadState(){
     if(!s.shift){
       s.shift = {
         active: true,
-        durationSec: 20*60,
-        endAt: Date.now() + 20*60*1000,
+        durationSec: 12*60*60,
+        endAt: Date.now() + 12*60*60*1000,
         cured: 0,
         deaths: 0,
         left: 0
       };
     }
     if(typeof s.shift.active !== "boolean") s.shift.active = true;
-    if(!s.shift.durationSec) s.shift.durationSec = 20*60;
+    if(!s.shift.durationSec) s.shift.durationSec = 12*60*60;
     if(!s.shift.endAt) s.shift.endAt = Date.now() + s.shift.durationSec*1000;
     if(s.shift.cured==null) s.shift.cured = 0;
     if(s.shift.deaths==null) s.shift.deaths = 0;
@@ -1523,9 +1543,9 @@ function clearActiveForWard(wardId){
   if(!state.shift) return;
 
   // durationSec тоже может быть кривой
-  const dur = Number(state.shift.durationSec);
-  if(!Number.isFinite(dur) || dur <= 0){
-    state.shift.durationSec = 20*60; // твои 20 минут
+ const dur = Number(state.shift.durationSec || 12*60*60);
+state.shift.durationSec = dur;
+state.shift.endAt = now() + dur*1000;
   }
 
   const endAt = Number(state.shift.endAt);
@@ -1889,6 +1909,14 @@ function formatLeft(ms){
   const m = Math.floor(s/60);
   const r = s%60;
   return `${m}:${String(r).padStart(2,"0")}`;
+}
+
+function formatShiftLeft(ms){
+  ms = Math.max(0, ms);
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
 }
 
   function fatigueLabel(f){
@@ -2734,20 +2762,27 @@ function chooseTreatment(treatmentId){
   const active = getActiveForPatient(ward.id, p.id);
   if(active) return;
 
+  // сохраняем позицию скролла (чтобы не прыгало)
+  const panel = document.querySelector("#screen-patient .panel");
+  const savedScroll = panel ? panel.scrollTop : window.scrollY;
+
   const endAt = now() + (p.treatSec * 1000);
 
   p.treatAttempts = (p.treatAttempts || 0) + 1;
   saveState();
 
-  // ✅ активка хранится на пациенте внутри wardMap
-  setActiveForPatient(ward.id, p.id, {
-    treatmentId,
-    endAt
-  });
+  setActiveForPatient(ward.id, p.id, { treatmentId, endAt });
 
   refreshVisibleUI();
+
+  // возвращаем скролл после перерендера
+  requestAnimationFrame(() => {
+    if(panel) panel.scrollTop = savedScroll;
+    else window.scrollTo(0, savedScroll);
+  });
 }
 
+  
 function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
   const w = wardById(wardId);
   if(!w) return;
@@ -2874,6 +2909,12 @@ function showScreen(name){
   document.getElementById("screen-shiftend").classList.toggle("active", name==="shiftend");
   document.getElementById("screen-staff").classList.toggle("active", name==="staff");
   document.getElementById("screen-shop").classList.toggle("active", name==="shop");
+
+  // неделя видна только на главном
+  const weekPanel = document.getElementById("week-panel");
+  if(weekPanel){
+    weekPanel.style.display = (name === "clinic") ? "block" : "none";
+  }
 }
 
 const elStaffList = document.getElementById("staff-list");
@@ -2964,8 +3005,8 @@ function renderShop(){
       title:"Лаборант",
       desc:"+1 исследование на пациента",
       cost:{ bio: 2, rep: 2 },
-      can: ()=> (state.perks.labExtra < 2),
-      buy: ()=> { state.perks.labExtra += 1; }
+      can: ()=> Number(state.perks.labExtra || 0) < 2,
+buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
     },
 
     {
@@ -3100,7 +3141,11 @@ function buyPerk(id){
   // единый каталог покупок лавки
   const catalog = {
     // перки
-    lab_extra:     { buy: ()=> state.perks.labExtra += 1,    cost:{ bio:2, rep:2 },  can:()=> state.perks.labExtra<2 },
+    lab_extra: {
+  buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; },
+  cost:{ bio:2, rep:2 },
+  can: ()=> Number(state.perks.labExtra || 0) < 2
+},
     lab_discount:  { buy: ()=> state.perks.labDiscount += 10,cost:{ coins:60, rep:1 }, can:()=> state.perks.labDiscount<30 },
     queue_buffer:  { buy: ()=> state.perks.queueBuffer += 1, cost:{ coins:80 },      can:()=> state.perks.queueBuffer<4 },
     treat_speed:   { buy: ()=> state.perks.treatSpeed += 10, cost:{ coins:90, bio:1 }, can:()=> state.perks.treatSpeed<30 },
@@ -3201,12 +3246,20 @@ function renderTop(){
   elRep.textContent = state.reputation;
   elBio.textContent = state.biomaterial;
 
-
+  // таймер смены (часы:минуты)
   const left = (state.shift?.endAt ?? now()) - now();
-  elShiftTimer.textContent = state.shift?.active ? formatLeft(left) : "00:00";
+  elShiftTimer.textContent = state.shift?.active ? formatShiftLeft(left) : "00:00";
 
+  // баннер техработ
+  const banner = document.getElementById("maintenance-banner");
+  if(banner){
+    const on = !!state.maintenance?.active;
+    banner.style.display = on ? "block" : "none";
+    banner.textContent = on ? (state.maintenance.text || "⚠️ Идут технические работы. Зайди позже.") : "";
+  }
+
+  // неделя/ивент
   const ev = getCurrentEvent();
-
   const week = state.calendar?.week ?? 1;
   const shiftInWeek = state.calendar?.shiftInWeek ?? 1;
 
@@ -3292,13 +3345,17 @@ const patientsHtml = `
 `;
 
     // --- кнопка купить койку (без надписей 3/3/8) ---
-    const bedsCap = 8;
-    const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
-    const bedsLine = `
-      <div class="row" style="margin-top:10px; justify-content:center;">
-        <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>Купить койку</button>
-      </div>
-    `;
+   const bedsCap = 8;
+const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
+const bedCost = bedCostForWard(w);
+
+const bedsLine = `
+  <div class="row" style="margin-top:10px; justify-content:center;">
+    <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
+      Купить койку <span class="muted">(🪙 ${bedCost})</span>
+    </button>
+  </div>
+`;
 
     // --- карточка палаты ---
     const card = document.createElement("div");
@@ -3566,6 +3623,13 @@ function buyBed(wardId){
   refreshVisibleUI();
 }
 
+  function bedCostForWard(w){
+  w.bedsMax = w.bedsMax || 2;
+  const base = 30;
+  const step = 25;
+  return base + (w.bedsMax - 2) * step;
+}
+
 function renderPatient(patientId){
   renderTop();
 
@@ -3578,7 +3642,9 @@ function renderPatient(patientId){
    const ward = findWardByPatient(patientId);
   const inWard = !!ward;
 
-  if(ward?.pendingResults?.[patientId]){
+ if(ward?.pendingResults?.[patientId]){
+  // ✅ когда показываем результат - прячем действия
+  if(elPatientActions) elPatientActions.style.display = "none";
   showResultForPatient(patientId);
   return;
 }
@@ -3663,18 +3729,15 @@ if((p.labUsed ?? 0) === 0){
 }
 
   // --- приоритет: результат / активное лечение ---
-  const active = ward ? getActiveForWard(ward.id) : null;
+ // --- приоритет: активное лечение (результат уже обработали сверху) ---
+const active = ward ? getActiveForPatient(ward.id, patientId) : null;
 
-  if(ward && ward.pendingResult && ward.pendingResult.patientId===patientId){
-    showResult(ward);
-    return;
-  }
-
-  if(ward && active && active.patientId===patientId){
-    showActive(active);
-    return;
-  }
-
+if(active){
+  // ✅ когда лечение уже выбрано, показываем "идёт лечение", а не методы
+  if(elPatientActions) elPatientActions.style.display = "block";
+  showActive(active);
+  return;
+}
   // иначе показываем варианты лечения
   showTreat(options);
 }
@@ -3794,6 +3857,11 @@ if((p.labUsed ?? 0) >= max) return;
 const baseCost = state.lab?.costCoins ?? 15;
 const discount = Math.min(50, state.perks?.labDiscount ?? 0);
 const cost = Math.max(1, Math.round(baseCost * (1 - discount/100)));
+
+const labSub = document.getElementById("lab-sub");
+if(labSub){
+  labSub.textContent = `Откроет новый симптом • Цена: ${cost} 🪙`;
+}
 
 if(state.coins < cost) return;
 
