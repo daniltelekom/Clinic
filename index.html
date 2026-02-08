@@ -3196,12 +3196,6 @@ function startNewShift(){
   w.pendingResults = {};
 }
 
-  // запоминаем последнее лечение/исход (чтобы показать "не подействовало")
-  const pp = patientById(patientId);
-  if(pp){
-    pp.lastTreatmentId = treatmentId;
-    pp.lastOutcomeKind = outcome.kind;
-  }
 
   // применяем модификаторы (база + перки + ивент)
   applyAllModifiers();
