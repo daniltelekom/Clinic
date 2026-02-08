@@ -1608,6 +1608,46 @@ function normalizeCalendar(){
   
 function saveState(){
   localStorage.setItem(LS_STATE, JSON.stringify(state));
+
+  cloudSaveDebounced();
+}
+
+function tgInitData(){
+  return window.Telegram?.WebApp?.initData || "";
+}
+
+async function cloudLoad(){
+  const initData = tgInitData();
+  if(!initData) return null;
+
+  const r = await fetch("/api/save", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ initData })
+  });
+  if(!r.ok) return null;
+
+  const data = await r.json();
+  return data?.state || null;
+}
+
+let cloudTimer = null;
+function cloudSaveDebounced(){
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async ()=>{
+    const initData = tgInitData();
+    if(!initData) return;
+
+    try{
+      await fetch("/api/save", {
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ initData, state })
+      });
+    }catch(e){
+      console.log("cloud save failed", e);
+    }
+  }, 1200);
 }
 
 /* =========================================================
@@ -2976,13 +3016,28 @@ function reconcileState(){
   saveActiveMap(map);
   saveState();
 }
-state = loadState();
-normalizeDoctorsFatigue();
-initStartingDoctors();
-reconcileState();
-normalizeCalendar();
-normalizeActiveMap();
-applyAllModifiers();  
+async function boot(){
+  // 1. сначала локальное (быстро)
+  state = loadState();
+
+  // 2. потом облако (если есть)
+  const cloud = await cloudLoad();
+  if(cloud){
+    state = cloud;
+    localStorage.setItem(LS_STATE, JSON.stringify(state));
+  }
+
+  // 3. теперь НОРМАЛИЗАЦИЯ (ОДИН РАЗ)
+  normalizeDoctorsFatigue();
+  initStartingDoctors();
+  reconcileState();
+  normalizeCalendar();
+  normalizeActiveMap();
+  applyAllModifiers();
+
+  // 4. финал
+  refreshVisibleUI();
+}
 
 // если ещё не выбран ивент на первую неделю, выбираем
 if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
@@ -4649,6 +4704,10 @@ refreshVisibleUI();
 if(!localStorage.getItem(LS_TUTORIAL_DONE)){
   startTutorial(false);
 }
+
+boot().catch(err => {
+  showCrash("BOOT CRASH", err);
+});
   
  
 /* =========================================================
