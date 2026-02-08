@@ -231,6 +231,9 @@ body:not(.onClinic) .screen.active .panel:first-child{
     url("img/wards/ward_bg.png") center/cover no-repeat,
     rgba(0,0,0,.18);
   border:1px solid rgba(255,255,255,.12);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat
 }
 
 .wardUpgrade {
@@ -449,9 +452,37 @@ body:not(.onClinic) .screen.active .panel:first-child{
   box-shadow: 0 6px 18px rgba(0,0,0,.18);
 }
 
+/* ===== подсветка статусов пациента (вся карточка) ===== */
+.wardPatientRow.st-active{
+  background: rgba(73, 209, 125, .26); /* зелёный заметнее */
+  border-color: rgba(73, 209, 125, .40);
+}
+
+.wardPatientRow.st-done{
+  background: rgba(73, 209, 125, .34); /* ещё ярче, типа "готово" */
+  border-color: rgba(73, 209, 125, .55);
+}
+
+.wardPatientRow.st-idle{
+  background: rgba(0,0,0,.22);         /* спокойный */
+  border-color: rgba(255,255,255,.14);
+}
+
+/* если где-то будет pending (результат), можно тоже подсветить */
+.wardPatientRow.st-pending{
+  background: rgba(91, 124, 255, .22); /* синий "есть результат" */
+  border-color: rgba(91, 124, 255, .45);
+}
+
 .wardPatientName{
   font-weight: 800;
   letter-spacing: .2px;
+
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wardPatientTimer{
@@ -462,6 +493,27 @@ body:not(.onClinic) .screen.active .panel:first-child{
 /* чтобы кнопки не “раздували” строку */
 .wardPatientRow .btn.small{
   white-space: nowrap;
+}
+
+/* ===== mobile fix: на узких экранах 1 колонка ===== */
+@media (max-width: 420px){
+  .wardPatientsGrid{
+    grid-template-columns: 1fr;   /* было 2 колонки, станет 1 */
+    gap: 10px;
+  }
+
+  .wardPatientRow{
+    padding: 8px 10px;            /* компактнее */
+    border-radius: 12px;
+  }
+
+  .wardPatientName{
+    font-size: 16px;              /* можно 15px если прям тесно */
+  }
+
+  .wardPatientTimer{
+    font-size: 14px;
+  }
 }
 
     .maintBanner{
