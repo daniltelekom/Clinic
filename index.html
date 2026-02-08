@@ -442,6 +442,14 @@
   background: rgba(91,124,255,.10);
 }
 
+    .coinIcon{
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-left: 4px;
+  opacity: .95;
+}
+
     .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
 .costPill img{width:16px; height:16px; opacity:.95}
@@ -1206,7 +1214,6 @@ unlocks: {
   wardB: false,
   staffScreen: true // штат включим сразу, просто пока без магазина
 },
-    maintenance: { active:false, text:"" },
     
     shift: {
   active: true,
@@ -1233,6 +1240,10 @@ unlocks: {
 baseWaitSec: 120,
 baseTreatSecMin: 120,
 baseTreatSecMax: 300
+},
+    maintenance: {
+  active: false,
+  text: "⚠️ Идут технические работы. Могут быть сбои."
 },
 
 calendar: {
@@ -1414,6 +1425,11 @@ function loadState(){
       // --- spawn migrate ---
 if(!s.spawn) s.spawn = { nextAt: Date.now() };
 if(!Number.isFinite(Number(s.spawn.nextAt))) s.spawn.nextAt = Date.now();
+
+// maintenance migrate
+if(!s.maintenance) s.maintenance = { active:false, text:"⚠️ Идут технические работы. Могут быть сбои." };
+if(typeof s.maintenance.active !== "boolean") s.maintenance.active = false;
+if(typeof s.maintenance.text !== "string") s.maintenance.text = "⚠️ Идут технические работы. Могут быть сбои.";
 
 // если nextAt улетел слишком далеко в будущее (например, из-за бага/часов)
 if(Number(s.spawn.nextAt) > Date.now() + 30_000){
@@ -3860,7 +3876,10 @@ const cost = Math.max(1, Math.round(baseCost * (1 - discount/100)));
 
 const labSub = document.getElementById("lab-sub");
 if(labSub){
-  labSub.textContent = `Откроет новый симптом • Цена: ${cost} 🪙`;
+  elLabSub.innerHTML = `
+  Откроет новый симптом • Цена: ${cost}
+  <img src="img/topbar/icon_coins.png" class="coinIcon" alt="">
+`;
 }
 
 if(state.coins < cost) return;
