@@ -518,6 +518,63 @@ body:not(.onClinic) .screen.active .panel:first-child{
   opacity: .95;
 }
 
+/* Строка пациента: не даём flex-разъезжаться */
+.wardPatientRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  min-width:0;
+  padding:8px 10px;
+  border-radius:12px;
+  box-sizing:border-box;
+  cursor:pointer;
+  transition: transform .08s ease, filter .08s ease;
+}
+
+.wardPatientRow:active{
+  transform: scale(0.99);
+  filter: brightness(1.05);
+}
+
+/* Имя пациента: не расширяет строку, а аккуратно обрезается */
+.wardPatientName{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Правая “иконка статуса”: фикс ширина, чтоб ничего не прыгало */
+.wardPatientStatus{
+  width:34px;
+  height:26px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  font-size:16px;
+  flex:0 0 auto;
+}
+
+/* Таймер: тоже фикс по ширине, чтобы на мобиле не разносило */
+.wardPatientTimer{
+  width:86px;           /* можно 78–96 по вкусу */
+  flex:0 0 auto;
+  text-align:right;
+  opacity:.95;
+  font-variant-numeric: tabular-nums;
+  white-space:nowrap;
+}
+
+/* Подсветка всей строки по статусу */
+.wardPatientRow.st-result{ background: rgba(73, 209, 125, .16); } /* зелёный: есть результат */
+.wardPatientRow.st-done  { background: rgba(73, 209, 125, .22); } /* ярче: можно забрать */
+.wardPatientRow.st-active{ background: rgba(255, 204, 102, .14); } /* жёлтый: идёт лечение */
+.wardPatientRow.st-idle  { background: rgba(255, 255, 255, .06); } /* нейтрально */
+
     .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
 .costPill img{width:16px; height:16px; opacity:.95}
@@ -3704,45 +3761,44 @@ function renderPatientRow(pid){
   const a = getActiveForPatient(w.id, pid);
   const pend = pending[pid];
 
+  // 1) есть готовый результат (посмотреть)
   if(pend){
     return `
-      <div class="wardPatientRow">
-        <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
-          ${escapeHtml(p.name)}
-        </div>
-        <button class="btn small ok" onclick="openPatientById('${pid}')">👁 Результат</button>
+      <div class="wardPatientRow st-result" onclick="openPatientById('${pid}')">
+        <div class="wardPatientName">${escapeHtml(p.name)}</div>
+        <div class="wardPatientStatus" title="Результат">👁</div>
       </div>
-   `;
+   ` ;
   }
 
+  // 2) лечится сейчас
   if(a){
     const left = a.endAt - now();
+
+    // 2.1) лечение завершилось (забрать)
     if(left <= 0){
       return `
-        <div class="wardPatientRow">
-          <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
-            ${escapeHtml(p.name)}
-          </div>
-          <button class="btn small ok" onclick="completeTreatmentPatient('${w.id}','${pid}')">✅ Забрать</button>
+        <div class="wardPatientRow st-done" onclick="completeTreatmentPatient('${w.id}','${pid}')">
+          <div class="wardPatientName">${escapeHtml(p.name)}</div>
+          <div class="wardPatientStatus" title="Забрать">✅</div>
         </div>
       `;
     }
+
+    // 2.2) в процессе (таймер оставляем, но фиксированной ширины)
     return `
-      <div class="wardPatientRow">
-        <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
-          ${escapeHtml(p.name)}
-        </div>
-        <div class="wardPatientTimer">⏳ ${formatLeft(left)}</div>
+      <div class="wardPatientRow st-active" onclick="openPatientById('${pid}')">
+        <div class="wardPatientName">${escapeHtml(p.name)}</div>
+        <div class="wardPatientTimer" title="Идёт лечение">⏳ ${formatLeft(left)}</div>
       </div>
-    `;
+   ` ;
   }
 
+  // 3) лежит, но лечение не назначено (открыть)
   return `
-    <div class="wardPatientRow">
-      <div class="wardPatientName" onclick="openPatientById('${pid}')" style="cursor:pointer">
-        ${escapeHtml(p.name)}
-      </div>
-      <button class="btn small" onclick="openPatientById('${pid}')">🧾 Открыть</button>
+    <div class="wardPatientRow st-idle" onclick="openPatientById('${pid}')">
+      <div class="wardPatientName">${escapeHtml(p.name)}</div>
+      <div class="wardPatientStatus" title="Открыть">🧾</div>
     </div>
  ` ;
 }
