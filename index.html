@@ -1618,8 +1618,8 @@ function tgInitData(){
 
 async function cloudLoad(){
   const initData = tgInitData();
-  if(!initData) {
-    console.log("cloudLoad: no initData (not in Telegram?)");
+  if(!initData){
+    console.log("cloudLoad: no initData");
     return null;
   }
 
@@ -1630,10 +1630,9 @@ async function cloudLoad(){
   });
 
   const txt = await r.text().catch(()=> "");
-  if(!r.ok){
-    console.log("cloudLoad failed:", r.status, txt);
-    return null;
-  }
+  console.log("cloudLoad status:", r.status, txt.slice(0,200));
+
+  if(!r.ok) return null;
 
   const data = JSON.parse(txt);
   return data?.state || null;
@@ -1646,7 +1645,10 @@ function cloudSaveDebounced(){
   clearTimeout(cloudTimer);
   cloudTimer = setTimeout(async ()=>{
     const initData = tgInitData();
-    if(!initData) return;
+    if(!initData){
+      console.log("cloudSave: no initData");
+      return;
+    }
 
     try{
       const r = await fetch("/api/save", {
@@ -1656,17 +1658,12 @@ function cloudSaveDebounced(){
       });
 
       const txt = await r.text().catch(()=> "");
-      if(!r.ok){
-        console.log("cloudSave failed:", r.status, txt);
-      } else {
-        console.log("cloudSave ok");
-      }
+      console.log("cloudSave status:", r.status, txt.slice(0,200));
     }catch(e){
       console.log("cloud save crashed", e);
     }
   }, 1200);
 }
-
 /* =========================================================
    3) ACTIVE MAP (treatments in progress per ward)
 ========================================================= */
