@@ -1618,20 +1618,30 @@ function tgInitData(){
 
 async function cloudLoad(){
   const initData = tgInitData();
-  if(!initData) return null;
+  if(!initData) {
+    console.log("cloudLoad: no initData (not in Telegram?)");
+    return null;
+  }
 
   const r = await fetch("/api/save", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ initData })
   });
-  if(!r.ok) return null;
 
-  const data = await r.json();
+  const txt = await r.text().catch(()=> "");
+  if(!r.ok){
+    console.log("cloudLoad failed:", r.status, txt);
+    return null;
+  }
+
+  const data = JSON.parse(txt);
   return data?.state || null;
 }
 
 let cloudTimer = null;
+
+  
 function cloudSaveDebounced(){
   clearTimeout(cloudTimer);
   cloudTimer = setTimeout(async ()=>{
@@ -1639,13 +1649,20 @@ function cloudSaveDebounced(){
     if(!initData) return;
 
     try{
-      await fetch("/api/save", {
+      const r = await fetch("/api/save", {
         method:"PUT",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ initData, state })
       });
+
+      const txt = await r.text().catch(()=> "");
+      if(!r.ok){
+        console.log("cloudSave failed:", r.status, txt);
+      } else {
+        console.log("cloudSave ok");
+      }
     }catch(e){
-      console.log("cloud save failed", e);
+      console.log("cloud save crashed", e);
     }
   }, 1200);
 }
@@ -3016,18 +3033,20 @@ function reconcileState(){
   saveActiveMap(map);
   saveState();
 }
+
+  
+let loadedFromCloud = false;
+
 async function boot(){
-  // 1. сначала локальное (быстро)
   state = loadState();
 
-  // 2. потом облако (если есть)
   const cloud = await cloudLoad();
   if(cloud){
     state = cloud;
+    loadedFromCloud = true;
     localStorage.setItem(LS_STATE, JSON.stringify(state));
   }
 
-  // 3. теперь НОРМАЛИЗАЦИЯ (ОДИН РАЗ)
   normalizeDoctorsFatigue();
   initStartingDoctors();
   reconcileState();
@@ -3035,7 +3054,6 @@ async function boot(){
   normalizeActiveMap();
   applyAllModifiers();
 
-  // 4. финал
   refreshVisibleUI();
 }
 
@@ -4697,15 +4715,10 @@ elLootOk.addEventListener("click", (e)=>{
 ========================================================= */
 
 boot().then(() => {
-  // после загрузки state можно делать всё остальное
   if(state?.shift?.active) fillQueue();
-  saveState();
-
-  // авто-обучение на первом запуске
   if(!localStorage.getItem(LS_TUTORIAL_DONE)){
     startTutorial(false);
   }
-
   refreshVisibleUI();
 }).catch(err => {
   showCrash("BOOT CRASH", err);
