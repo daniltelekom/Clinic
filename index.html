@@ -2612,6 +2612,12 @@ if((p.treatAttempts || 0) >= 2){
     kind === OUTCOMES.DEATH ? "death" :
     "success";
 
+   if(p){
+    p.lastTreatment = treatmentId;
+    p.lastTreatmentFailed = (kind !== OUTCOMES.CURE);
+    saveState();
+  }
+
   return {
     kind,
     xpKind,
@@ -3114,14 +3120,13 @@ function showScreen(name){
   document.getElementById("screen-staff").classList.toggle("active", name==="staff");
   document.getElementById("screen-shop").classList.toggle("active", name==="shop");
   document.getElementById("screen-research").classList.toggle("active", name==="research");
+  // чтобы не было "пустого слота" без недели
+  document.body.classList.toggle("onClinic", name === "clinic");
 
   // неделя видна только на главном
   const weekPanel = document.getElementById("week-panel");
   if(weekPanel){
     weekPanel.style.display = (name === "clinic") ? "block" : "none";
-
-  // чтобы не было "пустого слота" без недели
-  document.body.classList.toggle("onClinic", name === "clinic");
   }
   if(typeof highlightBottomBar === "function") highlightBottomBar(name);
 }
@@ -3925,15 +3930,20 @@ if(!p.clue){
   p.clue = pickClueForDisease(disease);
   saveState();
 }
-
-const failNote =
-    (p.lastOutcomeKind === OUTCOMES.WORSENED && p.lastTreatmentId)
-      ?`  • ${methodName(p.lastTreatmentId)} не подействовало`
-      : "";
-
-  elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}${failNote}`;
+  
+elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}${failNote}`;
 
 elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
+
+  // ⛔ прошлое лечение не сработало
+if(p.lastTreatmentFailed && p.lastTreatment){
+  const failLine = document.createElement("div");
+  failLine.className = "hint";
+  failLine.style.color = "var(--warn)";
+  failLine.style.marginTop = "6px";
+  failLine.textContent = `${methodName(p.lastTreatment)} не подействовало`;
+  elPatientDisease.appendChild(failLine);
+}
   
   elPatientActions.innerHTML = "";
 
