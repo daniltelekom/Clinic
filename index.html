@@ -883,11 +883,11 @@ const METHODS = [
 const METHOD_HINTS = {
   bloodletting: {
     tags: ["застой", "тяжесть", "давление", "чернильный кашель"],
-    examples: ["чёрные пятна", "чернильный кашель", "жар + тяжесть", "что-то надо “выпустить”"]
+    examples: ["потемнения кожи", "чёрный кашель", "жар и тяжесть", "что-то надо “выпустить”"]
   },
   herbalism: {
     tags: ["лихорадка", "кашель", "слабость", "жажда"],
-    examples: ["миазменная лихорадка", "стеклянный кашель", "пепельный язык", "простуда веками"]
+    examples: ["миазмы и лихорадка", "стеклянный кашель", "коричневый язык", "простуда веками"]
   },
   prayer: {
     tags: ["святость", "шёпот", "сны", "черви"],
@@ -895,11 +895,11 @@ const METHOD_HINTS = {
   },
   demonology: {
     tags: ["чужие глаза", "тень отдельно", "контракт", "одержимость"],
-    examples: ["дьявольский контракт", "тень живёт отдельно", "смех не к месту", "когда надо говорить с проблемой на её языке"]
+    examples: ["кто-то внутри", "тень живёт отдельно", "смех не к месту", "когда надо говорить с проблемой на её языке"]
   },
   amputation: {
     tags: ["гниль", "плесень", "локально", "расползается"],
-    examples: ["костяная плесень", "гниль ведьминого знака", "пятно растёт", "лучше минус часть, чем минус всё"]
+    examples: ["плесень на костях", "гниль знака", "пятно растёт", "лучше минус часть, чем минус всё"]
   },
   hypnosis: {
     tags: ["звон", "путает имена", "волнами", "нервы"],
@@ -987,7 +987,7 @@ const DISEASES = [
     id:"holy_worms",
     name:"Святые черви",
     rarity: RARITY.LEGENDARY,
-    symptoms:["Шепчет молитвы","Пустой взгляд","Зуд под кожей"],
+    symptoms:["Шепчет молитвы","Пустой взгляд","Зуд под кожей","Светящиеся глисты"],
     cureBy: "prayer",
   badBy: "bloodletting",
     
@@ -997,7 +997,7 @@ const DISEASES = [
     id:"bone_mold",
     name:"Костяная плесень",
     rarity: RARITY.RARE,
-    symptoms:["Боль в костях","Плесень на повязках","Скрип в суставах"],
+    symptoms:["Боль в костях","Плесень на повязках","Скрип в суставах","Вонь сырости"],
     cureBy: "amputation",
   badBy: "hypnosis",
     hints:[
@@ -1158,7 +1158,7 @@ fatigueGain: 15,
     likes:["prayer"], hates:["demonology"], portrait:"img/doctors/doc_priest.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Лечит молитвой, дымом и моральным давлением. Иногда помогает. Иногда только ему."
+    bio:"Лечит молитвой, дымом и моральным давлением. Иногда помогает. Иногда только ему.Сам своего рода врач"
   },
   { id:"doc_demo",  name:"Маг Пепел",        title:"Юрист по аду", rarity:RARITY.LEGENDARY,
     methods:["demonology","hypnosis","charms"], persona:"trickster",
@@ -3266,123 +3266,131 @@ function useRestOnDoctor(docId, type){
 }
 window.useRestOnDoctor = useRestOnDoctor;
 
+
+  // ===== ЕДИНЫЙ КАТАЛОГ ЛАВКИ (чтобы renderShop и buyPerk жили в одной реальности) =====
+const SHOP = [
+  {
+    id:"lab_extra",
+    title:"Лаборант",
+    desc:"+1 исследование на пациента",
+    cost:{ coins: 10 },
+    can: ()=> Number(state.perks?.labExtra || 0) < 2,
+    buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
+  },
+
+  {
+    id:"chest_common",
+    title:"Обычный сундук",
+    desc:"Купи и открой. Лут: доктора/ресурсы/отдых/иногда улучшения.",
+    cost:{ coins: CHESTS.common.costCoins },
+    can: ()=> true,
+    buy: ()=> { openChest("common"); }
+  },
+
+  {
+    id:"lab_discount",
+    title:"Скидка на реагенты",
+    desc:"-10% цена лаборатории",
+    cost:{ coins: 50 },
+    can: ()=> (Number(state.perks?.labDiscount || 0) < 30),
+    buy: ()=> { state.perks.labDiscount = Number(state.perks.labDiscount || 0) + 10; }
+  },
+
+  {
+    id:"queue_buffer",
+    title:"Расширение очереди",
+    desc:"+1 к размеру очереди",
+    cost:{ coins: 300 },
+    can: ()=> (Number(state.perks?.queueBuffer || 0) < 4),
+    buy: ()=> { state.perks.queueBuffer = Number(state.perks.queueBuffer || 0) + 1; }
+  },
+
+  {
+    id:"treat_speed",
+    title:"Койки получше",
+    desc:"+10% скорость лечения",
+    cost:{ coins: 270 },
+    can: ()=> (Number(state.perks?.treatSpeed || 0) < 30),
+    buy: ()=> { state.perks.treatSpeed = Number(state.perks.treatSpeed || 0) + 10; }
+  },
+
+  {
+    id:"rest_small",
+    title:"Отвар для персонала",
+    desc:"-20% усталости выбранному врачу (в Штате появится кнопка)",
+    cost:{ coins: 70 },
+    can: ()=> true,
+    buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }
+  },
+
+  {
+    id:"rest_big",
+    title:"Выходной по приказу",
+    desc:"-35% усталости выбранному врачу (в Штате появится кнопка)",
+    cost:{ coins: 140 },
+    can: ()=> true,
+    buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }
+  },
+
+  {
+    id:"rest_all",
+    title:"Каша для всех",
+    desc:"-12% усталости всем врачам",
+    cost:{ coins: 220 },
+    can: ()=> true,
+    buy: ()=> { reduceAllDoctorsFatigue(12, false); }
+  },
+
+  {
+    id:"rest_backline",
+    title:"Сон для не-дежурных",
+    desc:"-18% усталости всем, кто НЕ дежурит",
+    cost:{ coins: 180 },
+    can: ()=> true,
+    buy: ()=> { reduceAllDoctorsFatigue(18, true); }
+  },
+];
+
 function renderShop(){
   renderTop();
   elShopList.innerHTML = "";
 
-  const items = [
-    {
-      id:"lab_extra",
-      title:"Лаборант",
-      desc:"+1 исследование на пациента",
-      cost: 10,
-      can: ()=> Number(state.perks.labExtra || 0) < 2,
-buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
-    },
+  // если хочешь иногда показывать stars-товар
+  const list = SHOP.slice();
+  if(state.flags?.showStarShop){
+    list.push({
+      id:"chest_legendary",
+      title:"Легендарный сундук",
+      desc:"Покупка за Telegram Stars (пока в разработке).",
+      cost:{},         // не через coins/rep/bio
+      can: ()=> false, // пока нельзя
+      buy: ()=> {}
+    });
+  }
 
-    {
-     id:"chest_common",
-     title:"Обычный сундук",
-     desc:"Купи и открой. Лут: доктора/ресурсы/отдых/иногда улучшения.",
-     cost:CHESTS.common.costCoins ,
-     can: ()=> true,
-     buy: ()=> { state.chests.common = (state.chests.common||0) + 1; }
-    },
-    
-    {
-      id:"lab_discount",
-      title:"Скидка на реагенты",
-      desc:"-10% цена лаборатории",
-      cost:50,
-      can: ()=> (state.perks.labDiscount < 30),
-      buy: ()=> { state.perks.labDiscount += 10; }
-    },
-    {
-      id:"queue_buffer",
-      title:"Расширение очереди",
-      desc:"+1 к размеру очереди",
-      cost:300,
-      can: ()=> (state.perks.queueBuffer < 4),
-      buy: ()=> { state.perks.queueBuffer += 1; }
-    },
-    {
-      id:"treat_speed",
-      title:"Койки получше",
-      desc:"+10% скорость лечения",
-      cost:270,
-      can: ()=> (state.perks.treatSpeed < 30),
-      buy: ()=> { state.perks.treatSpeed += 10; }
-    },
-    {
-  id:"rest_small",
-  title:"Отвар для персонала",
-  desc:"-20% усталости выбранному врачу (в Штате появится кнопка)",
-  cost:70,
-  can: ()=> true,
-  buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }
-},
-{
-  id:"rest_big",
-  title:"Выходной по приказу",
-  desc:"-35% усталости выбранному врачу (в Штате появится кнопка)",
-  cost:140,
-  can: ()=> true,
-  buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }
-},
-{
-  id:"rest_all",
-  title:"Каша для всех",
-  desc:"-12% усталости всем врачам",
-  cost:220,
-  can: ()=> true,
-  buy: ()=> { reduceAllDoctorsFatigue(12, false); }
-},
-{
-  id:"rest_backline",
-  title:"Сон для не-дежурных",
-  desc:"-18% усталости всем, кто НЕ дежурит",
-  cost:180,
-  can: ()=> true,
-  buy: ()=> { reduceAllDoctorsFatigue(18, true); }
-},
-
-  ];
-
-    if(state.flags?.showStarShop){
-  items.push({
-    id:"chest_legendary",
-    title:"Легендарный сундук",
-    desc:"Покупка за Telegram Stars (пока в разработке).",
-    cost:{}, // не через coins/rep/bio
-    can: ()=> false, // пока нельзя
-    buy: ()=> {}
-  });
-}
-  
-  for(const it of items){
-    const disabled = !it.can() || !canAfford(it.cost);
+  for(const it of list){
+    const disabled = (it.can && !it.can()) || !canAfford(it.cost);
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
-  <div class="row">
-    <div style="flex:1;">
-      <div class="listTitle" style="display:flex; align-items:center; gap:10px;">
-        <img src="icons/shop/icon_${it.id}.png" width="32" height="32" alt=""/>
-        <span>${escapeHtml(it.title)}</span>
+      <div class="row">
+        <div style="flex:1;">
+          <div class="listTitle" style="display:flex; align-items:center; gap:10px;">
+            <img src="icons/shop/icon_${it.id}.png" width="32" height="32" alt=""/>
+            <span>${escapeHtml(it.title)}</span>
+          </div>
+
+          <div class="listSub">${escapeHtml(it.desc)}</div>
+          ${formatCost(it.cost)}
+        </div>
+
+        <div class="right">
+          <button class="btn small ok" ${disabled ? "disabled" : ""} onclick="buyPerk('${it.id}')">
+            Купить
+          </button>
+        </div>
       </div>
-
-      <div class="listSub">${escapeHtml(it.desc)}</div>
-
-      ${formatCost(it.cost)}
-    </div>
-
-    <div class="right">
-      <button class="btn small ok" ${disabled?"disabled":""} onclick="buyPerk('${it.id}')">
-        Купить
-      </button>
-    </div>
-  </div>
-`;
+   ` ;
     elShopList.appendChild(div);
   }
 }
@@ -3412,40 +3420,25 @@ function buyPerk(id){
   const it = SHOP.find(x => x.id === id);
   if(!it) return;
 
-  // на всякий случай: чтобы не падало на пустых объектах
-  state.perks   = state.perks   || {};
-  state.unlocks = state.unlocks || {};
+  // страховка
+  state.perks = state.perks || {};
+  state.flags = state.flags || {};
   state.shopBought = state.shopBought || {};
 
-  // если одноразовая покупка
-  if(it.once && state.shopBought[id]) return;
+  // правила
+  if(it.can && !it.can()) return;
+  if(!canAfford(it.cost)) return;
 
-  // цена
-  const cost = (typeof it.cost === "function") ? it.cost() : Number(it.cost || 0);
+  // списываем
+  payCost(it.cost);
 
-  // проверка условий товара (если есть it.can())
-  const canBuyByRules = it.can ? !!it.can() : true;
-
-  if(!canBuyByRules) return;
-  if(state.coins < cost) return;
-
-  // списать деньги
-  state.coins -= cost;
-
-  // применить эффект покупки
-  if(typeof it.buy === "function"){
-    it.buy();
-  }
-
-  // отметить как купленное (если once)
-  if(it.once){
-    state.shopBought[id] = true;
-  }
+  // применяем
+  if(typeof it.buy === "function") it.buy();
 
   saveState();
-  refreshVisibleUI();  // обновит текущий экран
+  renderShop();
+  refreshVisibleUI();
 }
-
   
 window.openShop = openShop;
 window.buyPerk = buyPerk;
