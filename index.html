@@ -1319,7 +1319,7 @@ unlocks: {
   treatSpeed: 0       // % ускорение лечения
 },
     base: {
-  maxQueue: 6,
+  maxQueue: 3,
   baseWaitSec: 120,
   baseTreatSecMin: 120,
   baseTreatSecMax: 300,
@@ -1462,10 +1462,15 @@ function loadState(){
     if(s.base.baseTreatSecMax==null) s.base.baseTreatSecMax = 300;
     if(s.base.baseLabCost==null) s.base.baseLabCost = 15;
 
-    // миграция апгрейдов очереди
-    if(!state.queueUpg) state.queueUpg = {};
-    if(!Number.isFinite(state.queueUpg.capLvl)) state.queueUpg.capLvl = 0;   // 0..3
-    if(!Number.isFinite(state.queueUpg.waitLvl)) state.queueUpg.waitLvl = 0; // 0..∞ (но мы ограничим)
+   // миграция апгрейдов очереди
+    if(!s.queueUpg) s.queueUpg = {};
+    if(!Number.isFinite(s.queueUpg.capLvl)) s.queueUpg.capLvl = 0;   // 0..3
+    if(!Number.isFinite(s.queueUpg.waitLvl)) s.queueUpg.waitLvl = 0; // 0..∞ (но мы ограничим)
+
+    // миграция базовой очереди (для старых сейвов)
+    if(!s.base) s.base = {};
+    if(!Number.isFinite(s.base.maxQueue)) s.base.maxQueue = 3;
+    s.base.maxQueue = Math.min(s.base.maxQueue, 3);
 
     if(!s.flags) s.flags = { showStarShop:false };
     if(typeof s.flags.showStarShop !== "boolean") s.flags.showStarShop = false;
@@ -1992,9 +1997,9 @@ function applyPerks(){
   // очередь из перков лавки
   state.maxQueue = Math.min(
   10,
-  (state.base?.maxQueue ?? 6)
+  (state.base?.maxQueue ?? 3)
   + (state.perks?.queueBuffer ?? 0)
-  + queueCapBonus()
+  + (state.queueUpg?.capLvl ?? 0)
 );
   // остальное (лаба скидка/экстра, скорость лечения) ты считаешь на лету в нужных местах и это норм
 }
