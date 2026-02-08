@@ -58,6 +58,10 @@
       border-radius:18px;
       padding:14px;
       margin:12px 0;
+      /* когда "Неделя" скрыта, поднимаем контент экранов выше */
+body:not(.onClinic) .screen.active .panel:first-child{
+  margin-top: 0;
+}
     }
     h2{margin:0 0 10px 0; font-size:18px}
     .card{
@@ -2577,25 +2581,34 @@ if((p.treatAttempts || 0) >= 2){
 
   let coinsDelta=0, repDelta=0, bioDelta=0;
 
+// 4) Награды/штрафы (нормальный скейл)
+  const repMul = repCoinsMultiplier(state.reputation);
+
+  let coinsDelta = 0, repDelta = 0, bioDelta = 0;
+
   switch(kind){
     case OUTCOMES.CURE:
-      coinsDelta = Math.round(10 * repMul);
+      coinsDelta = Math.round(25 * repMul);
       repDelta = +2;
       break;
-    case OUTCOMES.DISFIGURED:
-      coinsDelta = Math.round(16 * repMul);
-      repDelta = -2;
+
+    case OUTCOMES.DISFIGURED: // выжил, но “с приколом”
+      coinsDelta = Math.round(32 * repMul);
+      repDelta = +1;
       break;
-    case OUTCOMES.INFECTED:
-      coinsDelta = Math.round(20 * repMul);
-      repDelta = -4;
+
+    case OUTCOMES.INFECTED: // вылечили, но насыпали проблем
+      coinsDelta = Math.round(38 * repMul);
+      repDelta = -1;
       break;
-    case OUTCOMES.WORSENED:
-      coinsDelta = Math.round(2 * repMul);
-      repDelta = -5;
+
+    case OUTCOMES.WORSENED: // лечение не помогло
+      coinsDelta = Math.round(6 * repMul);
+      repDelta = -3;
       break;
+
     case OUTCOMES.DEATH:
-      coinsDelta = Math.round(4 * repMul);
+      coinsDelta = Math.round(10 * repMul);
       repDelta = -8;
       bioDelta = 1;
       break;
@@ -2620,12 +2633,12 @@ if((p.treatAttempts || 0) >= 2){
   };
 }
 
-  function makeRewardOptions(){
+function makeRewardOptions(){
   const pool = [
-    { type:"coins", title:"💰 Кошель", desc:"+60 монет", value: 60 },
-    { type:"rep",   title:"⭐ Похвала", desc:"+3 репутации", value: 3 },
-    { type:"bio",   title:"🧫 Образцы", desc:"+2 биоматериала", value: 2 },
-    { type:"perk_treatSpeed", title:"🛏️ Улучшение коек", desc:"+10% скорость лечения", value: 10 }
+    { type:"coins", title:"Кошель", desc:"+90 монет", value: 90 },
+    { type:"rep",   title:"Похвала", desc:"+4 репутации", value: 4 },
+    { type:"bio",   title:"Образцы", desc:"+2 биоматериала", value: 2 },
+    { type:"perk_treatSpeed", title:"Смена ритма", desc:"+10% скорость лечения", value: 10 }
   ];
 
   shuffle(pool);
@@ -2832,6 +2845,13 @@ function startNewShift(){
   w.patients.length = 0;       // очищаем палату
   w.pendingResults = {};
 }
+
+  // запоминаем последнее лечение/исход (чтобы показать "не подействовало")
+  const pp = patientById(patientId);
+  if(pp){
+    pp.lastTreatmentId = treatmentId;
+    pp.lastOutcomeKind = outcome.kind;
+  }
 
   // применяем модификаторы (база + перки + ивент)
   applyAllModifiers();
@@ -3106,6 +3126,9 @@ function showScreen(name){
   const weekPanel = document.getElementById("week-panel");
   if(weekPanel){
     weekPanel.style.display = (name === "clinic") ? "block" : "none";
+
+  // чтобы не было "пустого слота" без недели
+  document.body.classList.toggle("onClinic", name === "clinic");
   }
   if(typeof highlightBottomBar === "function") highlightBottomBar(name);
 }
@@ -3910,7 +3933,12 @@ if(!p.clue){
   saveState();
 }
 
-elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}`;
+const failNote =
+    (p.lastOutcomeKind === OUTCOMES.WORSENED && p.lastTreatmentId)
+      ?`  • ${methodName(p.lastTreatmentId)} не подействовало`
+      : "";
+
+  elPatientSub.textContent = `${p.visibleSymptoms.join(", ")} • ${p.clue}${failNote}`;
 
 elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
   
