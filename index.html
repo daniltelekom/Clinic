@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
   <title>Plague Clinic git test</title>
   <style>
     :root{
@@ -1616,7 +1619,26 @@ function saveState(){
 }
 
 function tgInitData(){
-  return window.Telegram?.WebApp?.initData || "";
+  // 1) нормальный путь (если SDK работает)
+  const sdk = window.Telegram?.WebApp?.initData;
+  if(sdk && typeof sdk === "string" && sdk.length > 0) return sdk;
+
+  // 2) запасной путь: Telegram часто кладёт initData в URL как #tgWebAppData=...
+  try{
+    const hash = (location.hash || "").replace(/^#/, "");
+    const h = new URLSearchParams(hash);
+    const fromHash = h.get("tgWebAppData");
+    if(fromHash) return decodeURIComponent(fromHash);
+
+    // иногда может быть в query (?tgWebAppData=...)
+    const q = new URLSearchParams(location.search || "");
+    const fromQuery = q.get("tgWebAppData");
+    if(fromQuery) return decodeURIComponent(fromQuery);
+  }catch(e){
+    console.log("tgInitData fallback parse failed", e);
+  }
+
+  return "";
 }
 
 async function cloudLoad(){
