@@ -2259,24 +2259,21 @@ function fillQueue(){
   if(!state.shift?.active) return;
 
   if(!state.spawn) state.spawn = { nextAt: now() };
-  if(!Number.isFinite(Number(state.spawn.nextAt))) state.spawn.nextAt = now();
-
-  let guard = 0;
-
-  while(guard++ < 50){
-    if(state.queue.length >= state.maxQueue) break;
-
-    const t = now();                 // ✅ время обновляем
-    if(t < state.spawn.nextAt) break;
-
-    const p = makePatient();
-    state.patients.push(p);
-    state.queue.push(p.id);
-
-    // следующий пациент через 6–10 секунд
-    state.spawn.nextAt = t + randInt(6000, 10000);
+  if(!Number.isFinite(Number(state.spawn.nextAt))){
+    state.spawn.nextAt = now() + randInt(20000, 40000);
+    return;
   }
 
+  if(state.queue.length >= state.maxQueue) return;
+
+  const t = now();
+  if(t < state.spawn.nextAt) return;
+
+  const p = makePatient();
+  state.patients.push(p);
+  state.queue.push(p.id);
+
+  state.spawn.nextAt = t + randInt(20000, 40000);
   saveState();
 }
 
