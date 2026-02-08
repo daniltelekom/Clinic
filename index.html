@@ -499,7 +499,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
 }
 
 /* возвращаем контент поверх вуали */
-.weekPanel > *{
+. > *{
   position: relative;
   z-index: 1;
 }
@@ -683,7 +683,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
   <div class="row" style="align-items:flex-start;">
     <div>
      <div class="listTitle weekTitle" id="week-title">
-  <img class="weekIcon" src="icons/topbar/icon_calendar.png" alt="">
+  <img class="weekIcon" src="img/ui/scroll.png" alt="">
   <span id="week-title-text">Неделя 1: —</span>
 </div>
       <div class="hint" id="week-desc">Эффекты: —</div>
@@ -1937,13 +1937,22 @@ function clearActiveForWard(wardId){
   saveActiveMap(map);
 }
 
- function ensureShiftTimer(){
-  if(!state.shift) return;
+function ensureShiftTimer(){
+  // если shift вообще отсутствует — создаём (после миграций/битых сейвов)
+  if(!state.shift){
+    state.shift = {
+      active: true,
+      durationSec: 3 * 60 * 60,          // 20 минут (поменяешь если надо)
+      endAt: now() + 3 * 60 * 60 * 1000
+    };
+    saveState();
+    return;
+  }
 
   // durationSec может быть кривым после миграций/сейвов
   const dur = Number(state.shift.durationSec);
   if(!Number.isFinite(dur) || dur <= 0){
-    state.shift.durationSec = 3*60*60; // 3 часов в секундах
+    state.shift.durationSec = 20 * 60; // 20 минут
   }
 
   const endAt = Number(state.shift.endAt);
@@ -3802,7 +3811,7 @@ function renderTop(){
   const shiftInWeek = state.calendar?.shiftInWeek ?? 1;
 
 if(elWeekTitleText)
-  elWeekTitleText.textContent = ёНеделя ${week}: ${ev ? ev.name : "--"}ё;
+  elWeekTitleText.textContent = `Неделя ${week}: ${ev ? ev.name : "--"}`;
   if(elWeekDesc)  elWeekDesc.textContent  = `Эффекты: ${ev ? ev.desc : "—"}`;
   if(elWeekShift) elWeekShift.textContent = `Смена: ${shiftInWeek}/7`;
 }
@@ -4690,10 +4699,10 @@ setInterval(()=>{
     ensureShiftTimer();
 
     const endAt = Number(state.shift?.endAt);
-    if(state.shift?.active && now() >= endAt){
-      endShift();
-      return;
-    }
+if(state.shift?.active && Number.isFinite(endAt) && now() >= endAt){
+  endShift();
+  return;
+}
 
     fillQueue(); 
     processQueueTick();
