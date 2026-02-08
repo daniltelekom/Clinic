@@ -963,6 +963,11 @@ const DISEASES = [
     symptoms:["Жар","Озноб","Тяжесть в груди"],
     cureBy: "herbalism",
   badBy: "bloodletting",
+    hints:[
+       "Жар приходит вместе с запахом сырости.",
+  "Голова тяжёлая, мысли вязкие, как туман.",
+  "Кажется, болезнь дышит вместе с пациентом."
+    ],
     weights:{ herbalism: 1.2, prayer: 1.0, bloodletting: 0.8, hypnosis: 0.9, charms: 1.0, demonology: 0.6, amputation: 0.2 }
   },
   {
@@ -972,6 +977,11 @@ const DISEASES = [
     cureBy: "bloodletting",
   badBy: "amputation",
     symptoms:["Чёрные пятна","Слабость","Мрачные речи"],
+    hints:[
+        "Пятна появляются там, где раньше была кожа.",
+  "Они не болят, но будто смотрят.",
+  "Чем дольше смотришь, тем меньше хочется их трогать."
+    ],
     weights:{ bloodletting: 1.3, demonology: 1.1, herbalism: 0.9, prayer: 0.8, hypnosis: 0.7, charms: 1.0, amputation: 0.3 }
   },
   {
@@ -981,6 +991,11 @@ const DISEASES = [
     symptoms:["Кашель","Сухость","Головная муть"],
    cureBy: "herbalism",
   badBy: "amputation",
+    hints:[
+       "Каждый кашель звучит, как треск тонкого стекла.",
+  "Грудь звенит, будто внутри пустая витрина.",
+  "Иногда страшно вдохнуть — вдруг что-то разобьётся."
+    ],
     weights:{ herbalism: 1.2, hypnosis: 1.0, prayer: 0.9, bloodletting: 0.7, charms: 0.8, demonology: 0.5, amputation: 0.1 }
   },
   {
@@ -990,7 +1005,11 @@ const DISEASES = [
     symptoms:["Шепчет молитвы","Пустой взгляд","Зуд под кожей","Светящиеся глисты"],
     cureBy: "prayer",
   badBy: "bloodletting",
-    
+    hints:[
+       "Тело будто храм, но внутри кто-то шевелится.",
+  "Иногда кажется, что молитва внутри отвечает эхом.",
+  "Святость ощущается… слишком буквально."
+    ],
     weights:{ prayer: 1.3, demonology: 1.2, charms: 1.1, hypnosis: 0.9, herbalism: 0.7, bloodletting: 0.6, amputation: 0.4 }
   },
   {
@@ -1103,7 +1122,7 @@ const DISEASES = [
     id:"mirror_fever",
     name:"Зеркальная горячка",
     rarity: RARITY.COMMON,
-    symptoms:["Лицо 'плывёт'","Путает имена","Жар волнами"],
+    symptoms:["Лицо 'плывёт'","Путает имена","Жар волнами","Стеклянные глаза"],
     cureBy:"hypnosis",
     badBy:"demonology",
     hints:[
@@ -1130,23 +1149,23 @@ const DISEASES = [
   },
 ];
 
-const FIRST_NAMES = ["Ганс","Марта","Пахом","Виллем","Иван","Зигмунд","Лупа","Ян","Август","Пупа","Каспар","Саня","Михаил","Заруб","Каспар"];
-const FEMALE_FIRST_NAMES = new Set(["Марта","Фрида","Грета","Ида","Лотта","Зухра","Санина","Мария",]);  
-const LAST_NAMES  = ["Сопливый","Сквозняк","Невезучий","Шаткий","Криповый","Чешуйчатый","Кислый","Бледный","Скрипучий","Плесневый","Сумрачный","Угрюмый"];
+const FIRST_NAMES = ["Ганс","Марта","Пахом","Виллем","Иван","Зигмунд","Лупа","Ян","Август","Пупа","Каспар","Саня","Михаил","Заруб","Каспар","Пупаза","Семён","Филипп"];
+const FEMALE_FIRST_NAMES = new Set(["Марта","Фрида","Грета","Ида","Лотта","Зухра","Санина","Мария","Даздраперма","Мириям","Стрёмка"]);  
+const LAST_NAMES  = ["Сопливый","Сквозняк","Невезучий","Шаткий","Криповый","Чешуйчатый","Кислый","Бледный","Скрипучий","Плесневый","Сумрачный","Угрюмый","Лупу","Гнойный","Пахучий","Мамин","Гнойный"];
 
 const DOCTOR_POOL = [
   // ===== existing (слегка расширим данными) =====
-  { id:"doc_herb",  name:"Доктор Травник",   title:"Знахарь с дипломом от леса", rarity:RARITY.RARE,
+  { id:"doc_herb",  name:"Доктор Травник",   title:"Знахарь с дипломом на листке дуба", rarity:RARITY.RARE,
     methods:["herbalism","charms"], persona:"confident",
    
     likes:["herbalism"], hates:["amputation"], portrait:"img/doctors/doc_herb.png" ,
    fatigue: 0,      // 0–100
 fatigueGain: 15, // сколько усталости за смену
-    bio:"Пахнет аптекой и превосходством. Лечит листьями, словами и пассивной агрессией."
+    bio:"Пахнет аптекой и превосходством. Лечит листьями, словами, слюнями и пассивной агрессией."
    
    
   },
-  { id:"doc_blood", name:"Доктор Пиявка",    title:"Фанат красного", rarity:RARITY.COMMON,
+  { id:"doc_blood", name:"Доктор Пиявка",    title:"Фанат красного и белого", rarity:RARITY.COMMON,
     methods:["bloodletting"], persona:"fanatic",
     likes:["bloodletting"], hates:["hypnosis"], portrait:"img/doctors/doc_blood.png",
    fatigue: 0,      // 0–100
@@ -1167,35 +1186,35 @@ fatigueGain: 15,
 fatigueGain: 15, 
     bio:"Обещает 'быстро и эффективно'. В договоре мелким шрифтом: 'возможно, не вам'."
   },
-  { id:"doc_amput", name:"Мастер Пила",      title:"Хирург без сантиментов", rarity:RARITY.RARE,
+  { id:"doc_amput", name:"Мастер Пила",      title:"Хирург без сантиментов и образования", rarity:RARITY.RARE,
     methods:["amputation","bloodletting"], persona:"cold",
     likes:["amputation"], hates:["prayer"], portrait:"img/doctors/doc_amput.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Уверен, что лишнее мешает жить. У него есть пила и аргументы."
+    bio:"Уверен, что лишнее мешает жить. У него есть пила и аргументы, а у вас лишние запчасти"
   },
   { id:"doc_hypno", name:"Гипнотизёр Нитка", title:"Психотерапия до изобретения психотерапии", rarity:RARITY.COMMON,
     methods:["hypnosis"], persona:"uncertain",
     likes:["hypnosis"], hates:["bloodletting"], portrait:"img/doctors/doc_hypno.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Говорит тихо, смотрит странно, работает непредсказуемо. Как и жизнь."
+    bio:"Говорит тихо(на ушко), смотрит странно, работает непредсказуемо. Как и жизнь."
   },
 
   // ===== NEW (ещё 10 штук) =====
-  { id:"doc_leech", name:"Сестра Жало", title:"Пиявки, банки, уверенность", rarity:RARITY.COMMON,
+  { id:"doc_leech", name:"Сестра Жало", title:"Пиявки, банки, уверенность,грязные руки", rarity:RARITY.COMMON,
     methods:["bloodletting","herbalism"], persona:"confident",
     likes:["bloodletting"], hates:["demonology"], portrait:"img/doctors/doc_leech.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Считает, что баланс жидкостей решает всё. На жалобы отвечает банкой."
+    bio:"Считает, что баланс жидкостей решает всё. На жалобы отвечает банкой иногда по голове."
   },
-  { id:"doc_candle", name:"Мать Свеча", title:"Заговоры и восковые диагнозы", rarity:RARITY.RARE,
+  { id:"doc_candle", name:"Мать Свеча", title:"Заговоры и восковые диагнозы и фигурки", rarity:RARITY.RARE,
     methods:["charms","prayer"], persona:"confident",
     likes:["charms"], hates:["amputation"], portrait:"img/doctors/doc_candle.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Лечит символами, узлами и косым взглядом. В её комнате всегда пахнет воском и тайнами."
+    bio:"Лечит символами, узлами и косым взглядом. В её комнате всегда пахнет воском и тайнами уборной."
   },
   { id:"doc_bell", name:"Доктор Колокол", title:"Успокоит даже смерть", rarity:RARITY.RARE,
     methods:["hypnosis","charms"], persona:"cold",
@@ -1204,14 +1223,14 @@ fatigueGain: 15,
 fatigueGain: 15, 
     bio:"Его голос ровный как приговор. Пациенты перестают паниковать. Некоторые перестают вообще."
   },
-  { id:"doc_ash", name:"Провизор Сажа", title:"Аптекарь с грязной совестью", rarity:RARITY.COMMON,
+  { id:"doc_ash", name:"Провизор Сажа", title:"Аптекарь с грязной совестью ртом", rarity:RARITY.COMMON,
     methods:["herbalism","hypnosis"], persona:"trickster",
     likes:["herbalism"], hates:["prayer"], portrait:"img/doctors/doc_ash.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Размешивает настои так, будто варит судьбу. Иногда варит реально судьбу."
+    bio:"Размешивает настои так, будто варит судьбу. Иногда моет в них ноги."
   },
-  { id:"doc_sawbones", name:"Костоправ Гвоздь", title:"Руки как тиски", rarity:RARITY.COMMON,
+  { id:"doc_sawbones", name:"Костоправ Гвоздь", title:"Руки как тиски, не давай ему соски", rarity:RARITY.COMMON,
     methods:["amputation","herbalism"], persona:"fanatic",
     likes:["amputation"], hates:["charms"], portrait:"img/doctors/doc_sawbones.png",
    fatigue: 0,      // 0–100
@@ -1225,33 +1244,33 @@ fatigueGain: 15,
 fatigueGain: 15, 
     bio:"Требует порядок, чистые отчёты и чистую душу. Не обязательно пациента."
   },
-  { id:"doc_grave", name:"Доктор Могильник", title:"Патологоанатом заранее", rarity:RARITY.RARE,
+  { id:"doc_grave", name:"Доктор Могильник", title:"Патологоанатом заранее, мертвых любит больше", rarity:RARITY.RARE,
     methods:["bloodletting","charms"], persona:"uncertain",
     likes:["charms"], hates:["herbalism"], portrait:"img/doctors/doc_grave.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
     bio:"Всегда готов к худшему. Иногда это помогает. Иногда просто настроение такое."
   },
-  { id:"doc_salt", name:"Солевар Седой", title:"Лечит 'простым'", rarity:RARITY.COMMON,
+  { id:"doc_salt", name:"Солевар Седой", title:"Лечит 'простым' Питерскими солями", rarity:RARITY.COMMON,
     methods:["herbalism","prayer"], persona:"uncertain",
     likes:["herbalism"], hates:["hypnosis"], portrait:"img/doctors/doc_salt.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Говорит: 'ничего лишнего'. Потом даёт траву и молитву. И уходит, пока ты не спросил почему."
+    bio:"Говорит: 'ничего лишнего'. Потом даёт соль и молитву. И уходит, пока ты не начал мычать."
   },
   { id:"doc_night", name:"Ночной Псаломщик", title:"Поёт, пока не полегчает", rarity:RARITY.RARE,
     methods:["prayer","demonology"], persona:"trickster",
     likes:["prayer"], hates:["bloodletting"], portrait:"img/doctors/doc_night.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Умеет и молиться, и спорить с тьмой. Пугает всех, включая результат."
+    bio:"Умеет и молиться, и спорить с тьмой, и петь. Пугает всех, включая результат."
   },
   { id:"doc_worm", name:"Доктор Червяк", title:"Специалист по 'зуду судьбы'", rarity:RARITY.LEGENDARY,
     methods:["charms","demonology"], persona:"fanatic",
     likes:["demonology"], hates:["amputation"], portrait:"img/doctors/doc_worm.png",
    fatigue: 0,      // 0–100
 fatigueGain: 15, 
-    bio:"Смотрит на симптомы как на послания. Иногда послания отвечают."
+    bio:"Смотрит на симптомы как на послания. Иногда послания отвечают.Иногда посылает сам"
   },
 ];
 
@@ -1338,8 +1357,8 @@ unlocks: {
     
     shift: {
   active: true,
-  durationSec: 12 * 60 * 60,    
-  endAt: now() + 12* 60 * 60 * 1000,
+  durationSec: 3*60*60,    
+  endAt: now() + 3*60*60*1000,
   cured: 0,
   deaths: 0,
   left: 0
@@ -1527,15 +1546,15 @@ function loadState(){
     if(!s.shift){
       s.shift = {
         active: true,
-        durationSec: 12 * 60 * 60,
-        endAt: Date.now() + 12 * 60 * 60 * 1000,
+        durationSec: 3*60*60,
+        endAt: Date.now() + 3*60*60*1000,
         cured: 0,
         deaths: 0,
         left: 0
       };
     }
     if(typeof s.shift.active !== "boolean") s.shift.active = true;
-    if(!s.shift.durationSec) s.shift.durationSec = 12 * 60 * 60;
+    if(!s.shift.durationSec) s.shift.durationSec = 3*60*60;
     if(!s.shift.endAt) s.shift.endAt = Date.now() + s.shift.durationSec*1000;
     if(s.shift.cured==null) s.shift.cured = 0;
     if(s.shift.deaths==null) s.shift.deaths = 0;
@@ -1688,7 +1707,7 @@ function clearActiveForWard(wardId){
   // durationSec может быть кривым после миграций/сейвов
   const dur = Number(state.shift.durationSec);
   if(!Number.isFinite(dur) || dur <= 0){
-    state.shift.durationSec = 12 * 60 * 60; // 12 часов в секундах
+    state.shift.durationSec = 3*60*60; // 3 часов в секундах
   }
 
   const endAt = Number(state.shift.endAt);
