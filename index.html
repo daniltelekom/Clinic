@@ -66,7 +66,7 @@
 body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
 }
-
+    }
     h2{margin:0 0 10px 0; font-size:18px}
     .card{
       background:rgba(0,0,0,.12);
@@ -1908,13 +1908,9 @@ function cloudSaveDebounced(){
 ========================================================= */
 
 function getActiveMap(){
-  try{
-    return JSON.parse(localStorage.getItem(LS_ACTIVE) || "{}");
-  }catch(e){
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(LS_ACTIVE) || "{}") || {}; }
+  catch { return {}; }
 }
-
 function saveActiveMap(map){
   localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
 }
@@ -1948,35 +1944,27 @@ function saveActiveMap(map){
 // вернёт объект по палате: { [patientId]: {treatmentId,endAt} }
 function getActiveWardMap(wardId){
   const map = getActiveMap();
-  return map[String(wardId)] || {};
+  return map[wardId] || {};
 }
 
 function getActiveForPatient(wardId, patientId){
   const wardMap = getActiveWardMap(wardId);
-  return wardMap[String(patientId)] || null;
+  return wardMap[patientId] || null;
 }
 
 function setActiveForPatient(wardId, patientId, activeObj){
   const map = getActiveMap();
-  const wid = String(wardId);
-  const pid = String(patientId);
-
-  const wardMap = map[wid] || {};
-  wardMap[pid] = activeObj;
-
-  map[wid] = wardMap;
+  const wardMap = map[wardId] || {};
+  wardMap[patientId] = activeObj;
+  map[wardId] = wardMap;
   saveActiveMap(map);
 }
 
 function clearActiveForPatient(wardId, patientId){
   const map = getActiveMap();
-  const wid = String(wardId);
-  const pid = String(patientId);
-
-  const wardMap = map[wid] || {};
-  delete wardMap[pid];
-
-  map[wid] = wardMap;
+  const wardMap = map[wardId] || {};
+  delete wardMap[patientId];
+  map[wardId] = wardMap;
   saveActiveMap(map);
 }
 
@@ -2532,8 +2520,7 @@ function patientById(id){
 }
 
 function wardById(id){
-  const sid = String(id);
-  return state.wards.find(w => String(w.id) === sid) || null;
+  return state.wards.find(w=>w.id===id) || null;
 }
 
 function findWardByPatient(patientId){
@@ -2715,7 +2702,7 @@ function canUpgrade(w, stat){
   function buyWardB(){
   if(state.unlocks?.wardB) return;
 
-  const cost = 3500;
+  const cost = 200;
   if(state.coins < cost) return;
 
   state.coins -= cost;
@@ -3375,18 +3362,14 @@ function chooseTreatment(treatmentId){
 
   
 function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
-  const wid = String(wardId);
-  const pid = String(patientId);
-
-  const w = wardById(wid);
+  const w = wardById(wardId);
   if(!w) return;
 
   w.pendingResults = w.pendingResults || {};
 
-  // ✅ ключ строго строковый, чтобы потом всегда находилось
-  w.pendingResults[pid] = {
-    patientId: pid,
-    wardId: wid,
+  w.pendingResults[patientId] = {
+    patientId,
+    wardId,
     treatmentId,
 
     kind: outcome.kind,
@@ -3400,30 +3383,20 @@ function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
     time: now()
   };
 
-  // ✅ начисляем сразу
-  state.coins = Math.max(0, (state.coins || 0) + (outcome.coinsDelta ?? 0));
+  // начисляем сразу
+  state.coins = Math.max(0, state.coins + (outcome.coinsDelta ?? 0));
   state.reputation = (state.reputation || 0) + (outcome.reputationDelta ?? 0);
   state.biomaterial = (state.biomaterial || 0) + (outcome.biomaterialDelta ?? 0);
 
-  // ✅ статистика смены (без кривых "пробелов" вместо ||)
   if(state.shift?.active){
-    state.shift.deaths = state.shift.deaths || 0;
-    state.shift.cured  = state.shift.cured  || 0;
-
-    if(outcome.kind === OUTCOMES.DEATH){
-      state.shift.deaths += 1;
-    } else if(
-      outcome.kind === OUTCOMES.CURE ||
-      outcome.kind === OUTCOMES.DISFIGURED ||
-      outcome.kind === OUTCOMES.INFECTED
-    ){
-      state.shift.cured += 1;
-    }
+    if(outcome.kind === OUTCOMES.DEATH) state.shift.deaths += 1;
+    else if(outcome.kind === OUTCOMES.CURE || outcome.kind === OUTCOMES.DISFIGURED || outcome.kind === OUTCOMES.INFECTED) state.shift.cured += 1;
   }
 
   gainDoctorXP(outcome.xpKind);
   saveState();
 }
+
 function completeTreatmentPatient(wardId, patientId){
   const active = getActiveForPatient(wardId, patientId);
   if(!active) return;
@@ -3447,61 +3420,28 @@ function completeTreatmentPatient(wardId, patientId){
 window.completeTreatmentPatient = completeTreatmentPatient;
 
 // (опционально) если где-то у тебя ещё вызывается completeTreatment(wardId, patientId)
-function completeTreatmentPatient(wardId, patientId){
-  const wid = String(wardId);
-  const pid = String(patientId);
-
-  const active = getActiveForPatient(wid, pid);
-  if(!active) return;
-
-  const outcome = rollOutcome(pid, active.treatmentId, wid);
-
-  // ✅ сохраняем “что пробовали” и “получилось ли”
-  const p = patientById(pid);
-  if(p){
-    p.lastTreatmentId = active.treatmentId;
-    p.lastOutcomeKind = outcome.kind;
-    p.lastTreatmentFailed = (outcome.kind === OUTCOMES.WORSENED);
-  }
-
-  // ✅ ВАЖНО: внутри finishTreatmentToPending тоже используй pid как строку
-  finishTreatmentToPending(wid, pid, active.treatmentId, outcome);
-
-  clearActiveForPatient(wid, pid);
-  saveState();
-  refreshVisibleUI();
-}
-window.completeTreatmentPatient = completeTreatmentPatient;
-
 function completeTreatment(wardId, patientId){
   completeTreatmentPatient(wardId, patientId);
 }
 window.completeTreatment = completeTreatment;
 
- function continueTreatment(patientId, wardId){
+  function continueTreatment(patientId, wardId){
   if(!state.shift?.active) return;
 
-  const wid = String(wardId);
-  const pid = String(patientId);
-
-  const w = wardById(wid);
-  const p = patientById(pid);
+  const w = wardById(wardId);
+  const p = patientById(patientId);
   if(!w || !p) return;
 
   w.pendingResults = w.pendingResults || {};
 
   // если нет результата на этого пациента — продолжать нечего
-  if(!w.pendingResults[pid]) return;
+  if(!w.pendingResults[patientId]) return;
 
   // чистим результат, пациента НЕ трогаем (остаётся в палате)
-  delete w.pendingResults[pid];
+  delete w.pendingResults[patientId];
 
   // сбрасываем варианты лечения, чтобы игрок выбирал заново
   p.treatmentOptions = null;
-
-  // сбрасываем отметки прошлого исхода, чтобы UI не жил прошлым
-  p.lastTreatmentFailed = false;
-  p.lastOutcomeKind = null;
 
   // маленький штраф за затяжку
   state.reputation = (state.reputation || 0) - 1;
@@ -3509,38 +3449,32 @@ window.completeTreatment = completeTreatment;
   saveState();
 
   // открыть пациента и дать выбрать лечение заново
-  openPatientById(pid);
+  openPatientById(patientId);
   refreshVisibleUI();
 }
 window.continueTreatment = continueTreatment;
-  
-function dischargePatient(patientId, wardId){
-  const wid = String(wardId);
-  const pid = String(patientId);
 
-  const w = wardById(wid);
-  const p = patientById(pid);
-  if(!w || !p) return;
+function dischargePatient(patientId, wardId){
+  const w = wardById(wardId);
+  if(!w) return;
 
   w.patients = w.patients || [];
   w.pendingResults = w.pendingResults || {};
 
   // убрать из палаты
-  w.patients = w.patients.filter(id => String(id) !== pid);
+  w.patients = w.patients.filter(id => id !== patientId);
 
   // убрать результат
-  delete w.pendingResults[pid];
-
-  // сбросить “не подействовало”
-  p.lastTreatmentFailed = false;
-  p.lastOutcomeKind = null;
+  delete w.pendingResults[patientId];
 
   // убрать активное лечение (на всякий случай)
-  clearActiveForPatient(wid, pid);
+  clearActiveForPatient(wardId, patientId);
 
   saveState();
   backToClinic();
   refreshVisibleUI();
+
+
 }
 window.dischargePatient = dischargePatient;
 
@@ -3564,7 +3498,7 @@ function showScreen(name){
   document.getElementById("screen-shop").classList.toggle("active", name==="shop");
   document.getElementById("screen-research").classList.toggle("active", name==="research");
   // чтобы не было "пустого слота" без недели
-    document.body.classList.toggle("onClinic", name === "clinic");
+  document.body.classList.toggle("onClinic", name === "clinic");
 
   // неделя видна только на главном
   const weekPanel = document.getElementById("week-panel");
@@ -4010,20 +3944,16 @@ const patientsHtml = `
 
     // --- кнопка купить койку (без надписей 3/3/8) ---
    const bedsCap = 8;
+const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
+const bedCost = bedCostForWard(w);
 
-let bedsLine = "";
-if((w.bedsMax || 2) < bedsCap){
-  const bedCost = bedCostForWard(w);
-  const bedBtnDisabled = (state.coins < bedCost) ? "disabled" : "";
-
-  bedsLine = `
-    <div class="row" style="margin-top:10px; justify-content:center;">
-      <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
-        Купить койку <span class="muted">(🪙 ${bedCost})</span>
-      </button>
-    </div>
-`  ;
-}
+const bedsLine = `
+  <div class="row" style="margin-top:10px; justify-content:center;">
+    <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
+      Купить койку <span class="muted">(🪙 ${bedCost})</span>
+    </button>
+  </div>
+`;
 
     // --- карточка палаты ---
     const card = document.createElement("div");
@@ -4071,7 +4001,7 @@ card.innerHTML = `
 
   // кнопка покупки второй палаты
   if(!state.unlocks?.wardB){
-    const cost = 3500;
+    const cost = 200;
     const disabled = state.coins < cost ? "disabled" : "";
     const div = document.createElement("div");
     div.className = "card";
@@ -4313,11 +4243,13 @@ function buyBed(wardId){
   const w = wardById(wardId);
   if(!w) return;
 
-  w.bedsMax = Number(w.bedsMax || 2);
-  const cap = 8;
-  if(w.bedsMax >= cap) return;
+  w.bedsMax = w.bedsMax || 2;
+  if(w.bedsMax >= 8) return;
 
-  const cost = bedCostForWard(w);
+  const base = 30;
+  const step = 25;
+  const cost = base + (w.bedsMax - 2) * step;
+
   if(state.coins < cost) return;
 
   state.coins -= cost;
@@ -4327,20 +4259,11 @@ function buyBed(wardId){
   refreshVisibleUI();
 }
 
- function bedCostForWard(w){
-  // bedsMax: текущий максимум коек в палате
-  w.bedsMax = Number(w.bedsMax || 2);
-
-  // сколько уже куплено сверх старта (старт = 2)
-  const bought = Math.max(0, w.bedsMax - 2);
-
-  // цены "ступенями" (следующая покупка становится сильно дороже)
-  const tiers = [
-    120, 220, 400, 750,   // 3-я, 4-я, 5-я, 6-я койка
-    1300, 2200, 3600,     // 7-я, 8-я, (дальше уже не надо, у тебя cap=8)
-  ];
-
-  return tiers[bought] ?? Math.round(5000 * Math.pow(1.25, bought - tiers.length + 1));
+  function bedCostForWard(w){
+  w.bedsMax = w.bedsMax || 2;
+  const base = 30;
+  const step = 25;
+  return base + (w.bedsMax - 2) * step;
 }
 
 function renderPatient(patientId){
@@ -4352,84 +4275,79 @@ function renderPatient(patientId){
     return;
   }
 
-  // по умолчанию панель действий видна
-  if(elPatientActions) elPatientActions.style.display = "block";
+  // ✅ Всегда по умолчанию показываем панель действий
+if(elPatientActions){
+  elPatientActions.style.display = "block";
+}
 
-  const ward = findWardByPatient(patientId);
+   const ward = findWardByPatient(patientId);
   const inWard = !!ward;
 
-  // ---------- 1) ЕСЛИ ЕСТЬ РЕЗУЛЬТАТ (pending) — ПОКАЗЫВАЕМ РЕЗУЛЬТАТ ----------
-  const pending = ward?.pendingResults?.[String(patientId)];
-  if(pending){
-    // показываем только панель результата
-    if(elTreatPanel) elTreatPanel.style.display = "none";
-    if(elActiveTreatment) elActiveTreatment.style.display = "none";
-    if(elResultPanel) elResultPanel.style.display = "block";
+ if(ward?.pendingResults?.[patientId]){
+  // ✅ когда показываем результат - прячем действия
+  if(elPatientActions) elPatientActions.style.display = "none";
+  showResultForPatient(patientId);
+  return;
+}
 
-    // когда показываем результат — панель действий прячем (как ты хотел)
-    if(elPatientActions) elPatientActions.style.display = "none";
-
-    showResultForPatient(patientId);
-    return;
-  }
-
-  // ---------- Заголовки пациента ----------
   elPatientTitle.textContent = p.name;
 
-  const disease = getDiseaseById(p.trueDiseaseId);
+const disease = getDiseaseById(p.trueDiseaseId);
 
-  if(!p.clue){
-    p.clue = pickClueForDisease(disease);
-    saveState();
-  }
+if(!p.clue){
+  p.clue = pickClueForDisease(disease);
+  saveState();
+}
 
-  // надпись “не подействовало”
-  const failNote =
-    (p.lastTreatmentFailed && p.lastTreatmentId)
-      ? ` • ${methodName(p.lastTreatmentId)} не подействовало`
-      : "";
+const failNote =
+  (p.lastTreatmentFailed && p.lastTreatmentId)
+    ?  `• ${methodName(p.lastTreatmentId)} не подействовало`
+    : "";
 
-  elPatientSub.textContent = `${(p.visibleSymptoms || []).join(", ")} • ${p.clue}${failNote}`;
+elPatientSub.textContent = `${(p.visibleSymptoms || []).join(", ")} • ${p.clue}${failNote}`;
+elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
 
-  // линия болезни
-  elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
-
-  // ---------- Панель действий ----------
+  // ⛔ прошлое лечение не сработало
+if(p.lastTreatmentFailed && p.lastTreatment){
+  const failLine = document.createElement("div");
+  failLine.className = "hint";
+  failLine.style.color = "var(--warn)";
+  failLine.style.marginTop = "6px";
+  failLine.textContent = `${methodName(p.lastTreatment)} не подействовало`;
+  elPatientDisease.appendChild(failLine);
+}
+  
   elPatientActions.innerHTML = "";
 
-  if(!inWard){
-    const free = state.wards.find(w => (w.patients?.length || 0) < (w.bedsMax || 2));
+if(!inWard){
+  const free = state.wards.find(w => (w.patients?.length || 0) < (w.bedsMax || 2));
 
-    elPatientActions.innerHTML = `
-      <h2>Действия</h2>
-      <button class="btn ok" ${free ? "" : "disabled"} onclick="placeSelectedToFreeWard()">
-        🛏 Положить в палату
-        <div class="muted">${free ? "Отправит в первую свободную палату" : "Нет свободных палат"}</div>
-      </button>
-      <button class="btn" onclick="backToClinic()">
-        ✖ Закрыть карточку
-        <div class="muted">Вернуться в клинику</div>
-      </button>
-   ` ;
-  } else {
-    elPatientActions.innerHTML = `
-      <h2>Действия</h2>
-      <div class="hint">Пациент уже в палате: ${escapeHtml(ward.name)}</div>
-      <button class="btn" onclick="backToClinic()">
-        ✖ Закрыть карточку
-        <div class="muted">Вернуться в клинику</div>
-      </button>
-    `;
-  }
+  elPatientActions.innerHTML = `
+    <h2>Действия</h2>
+    <button class="btn ok" ${free ? "" : "disabled"} onclick="placeSelectedToFreeWard()">
+      🛏 Положить в палату
+      <div class="muted">${free ? "Отправит в первую свободную палату" : "Нет свободных палат"}</div>
+    </button>
+    <button class="btn" onclick="backToClinic()">
+      ✖ Закрыть карточку
+      <div class="muted">Вернуться в клинику</div>
+    </button>
+  `;
+} else {
+  elPatientActions.innerHTML = `
+    <h2>Действия</h2>
+    <div class="hint">Пациент уже в палате: ${escapeHtml(ward.name)}</div>
+ ` ;
+}
 
-  // ---------- 2) фиксируем опции лечения ----------
+  // 1) фиксируем 4 опции лечения один раз на пациента
   if(!p.treatmentOptions){
     p.treatmentOptions = pickTreatmentOptions(p);
     saveState();
   }
   const options = p.treatmentOptions;
 
-  // ---------- 3) советы врачей ----------
+  // 2) фиксируем советы один раз, пока не сменили врачей
   if(!p.doctorAdviceCache){
     const docs = dutyDoctors().filter(Boolean);
     p.doctorAdviceCache = docs.map(d => doctorAdviceText(d, options));
@@ -4437,14 +4355,15 @@ function renderPatient(patientId){
   }
   elAdvice.innerHTML = p.doctorAdviceCache.join("<br>");
 
-  // ---------- 4) LAB UI ----------
-  const baseMax = state.lab?.maxPerPatient ?? 2;
-  const max = baseMax + (state.perks?.labExtra ?? 0);
-  const used = p.labUsed ?? 0;
+ // --- LAB UI (обновляем состояние кнопки) ---
+const baseMax = state.lab?.maxPerPatient ?? 2;
+const max = baseMax + (state.perks?.labExtra ?? 0);
 
-  const baseCost = state.lab?.costCoins ?? 15;
-  const discount = Math.min(50, state.perks?.labDiscount ?? 0);
-  const cost = Math.max(1, Math.round(baseCost * (1 - discount/100)));
+const used = p.labUsed ?? 0;
+
+const baseCost = state.lab?.costCoins ?? 15;
+const discount = Math.min(50, state.perks?.labDiscount ?? 0);
+const cost = Math.max(1, Math.round(baseCost * (1 - discount/100)));
 
   const shown = new Set(p.visibleSymptoms || []);
   const hidden = (disease.symptoms || []).filter(s => !shown.has(s));
@@ -4454,25 +4373,27 @@ function renderPatient(patientId){
     && state.coins >= cost
     && hidden.length > 0;
 
-  if(elLabBtn) elLabBtn.disabled = !canLab;
+  elLabBtn.disabled = !canLab;
+ // сначала всегда сбрасываем
+elLabHint.textContent = "";
 
-  if(elLabHint){
-    elLabHint.textContent = "";
-    if((p.labUsed ?? 0) === 0){
-      elLabHint.textContent = "После исследования появятся 2 версии диагноза.";
-    } else if((p.labUsed ?? 0) === 1){
-      elLabHint.textContent = "После второго исследования останется 1 версия (под вопросом).";
-    }
-  }
+if((p.labUsed ?? 0) === 0){
+  elLabHint.textContent = "После исследования появятся 2 версии диагноза.";
+} else if((p.labUsed ?? 0) === 1){
+  elLabHint.textContent = "После второго исследования останется 1 версия (под вопросом).";
+}
 
-  // ---------- 5) ЕСЛИ ИДЁТ ЛЕЧЕНИЕ — ПОКАЗЫВАЕМ ТАЙМЕР ----------
-  const active = ward ? getActiveForPatient(ward.id, patientId) : null;
-  if(active){
-    showActive(active);
-    return;
-  }
+  // --- приоритет: результат / активное лечение ---
+ // --- приоритет: активное лечение (результат уже обработали сверху) ---
+const active = ward ? getActiveForPatient(ward.id, patientId) : null;
 
-  // ---------- 6) ИНАЧЕ ПОКАЗЫВАЕМ ВЫБОР МЕТОДА ----------
+if(active){
+  // ✅ когда лечение уже выбрано, показываем "идёт лечение", а не методы
+  if(elPatientActions) elPatientActions.style.display = "block";
+  showActive(active);
+  return;
+}
+  // иначе показываем варианты лечения
   showTreat(options);
 }
 
@@ -4706,7 +4627,7 @@ function showResultForPatient(patientId){
   if(!ward) return;
 
   ward.pendingResults = ward.pendingResults || {};
- const r = ward.pendingResults[String(patientId)];
+  const r = ward.pendingResults[patientId];
   if(!r) return;
 
   elTreatPanel.style.display = "none";
@@ -4808,12 +4729,9 @@ function processTreatmentsTick(){
   const t = now();
   let changed = false;
 
-  for(const wid of Object.keys(map)){
-    const wardId = String(wid);
+  for(const wardId of Object.keys(map)){
     const wardMap = map[wardId] || {};
-
-    for(const pid of Object.keys(wardMap)){
-      const patientId = String(pid);
+    for(const patientId of Object.keys(wardMap)){
       const a = wardMap[patientId];
       if(!a) continue;
 
@@ -5043,15 +4961,10 @@ elLootOk.addEventListener("click", (e)=>{
 ========================================================= */
 
 boot().then(() => {
-  // ✅ если смена активна — показываем клинику, иначе например лавку/штат можно оставить как было
-  showScreen(state?.shift?.active ? "clinic" : "clinic"); // пока пусть всегда clinic, но условие оставили
-
   if(state?.shift?.active) fillQueue();
-
   if(!localStorage.getItem(LS_TUTORIAL_DONE)){
     startTutorial(false);
   }
-
   refreshVisibleUI();
 }).catch(err => {
   showCrash("BOOT CRASH", err);
