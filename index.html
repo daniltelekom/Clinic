@@ -737,10 +737,9 @@ body:not(.onClinic) .screen.active .panel:first-child{
   min-width: 0;
   white-space: normal;
 
-  /* ВАЖНО: не рвать слова посреди букв */
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   word-break: normal;
-  hyphens: auto;
+  hyphens: none;
 
   line-height: 1.2;
 }
