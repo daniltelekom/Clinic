@@ -3103,11 +3103,6 @@ if(Math.random() < (light * 0.03)){
     kind === OUTCOMES.WORSENED ? "complication" :
     kind === OUTCOMES.DEATH ? "death" :
     "success";
-
-   if(p){
-    p.lastTreatment = treatmentId;
-    p.lastTreatmentFailed = (kind !== OUTCOMES.CURE);
-    saveState();
   }
 
   return {
@@ -3516,14 +3511,13 @@ function finishTreatmentToPending(wardId, patientId, treatmentId, outcome){
   const w = wardById(wardId);
   if(!w) return;
 
-  w.pendingResults = w.pendingResults || {};
-
   const pid = String(patientId);
+  w.pendingResults = w.pendingResults || {};
 
   w.pendingResults[pid] = {
     patientId: pid,
-    wardId,
-    treatmentId,
+    wardId: String(wardId),
+    treatmentId: String(treatmentId),
 
     kind: outcome.kind,
     xpKind: outcome.xpKind,
@@ -3559,28 +3553,30 @@ function completeTreatmentPatient(wardId, patientId){
   if(!active) return;
 
   const p = patientById(patientId);
+  if(!p) return;
 
-  const wasFailedBefore = !!(p && p.lastTreatmentFailed && p.lastTreatmentId);
+  // было ли уже "не помогло/ухудшение" раньше
+  const failedBefore = !!p.lastTreatmentFailed;
 
   let outcome = rollOutcome(patientId, active.treatmentId, wardId);
 
-  // если уже был фейл и снова НЕ cure -> смерть
-  if(wasFailedBefore && outcome.kind !== OUTCOMES.CURE){
+  // Правило: если уже была неудача и снова WORSENED -> смерть
+  if(failedBefore && outcome.kind === OUTCOMES.WORSENED){
     outcome = {
       ...outcome,
       kind: OUTCOMES.DEATH,
-      xpKind: "bad",
-      flavor: "Организм не выдержал повторного издевательства. Добро пожаловать в морг.",
+      xpKind: "death",
+      flavor: "Вторая неудача. Организм сдался. Добро пожаловать в морг.",
       reputationDelta: (outcome.reputationDelta ?? 0) - 2,
       biomaterialDelta: (outcome.biomaterialDelta ?? 0) + 1,
     };
   }
 
-  if(p){
-    p.lastTreatmentId = active.treatmentId;
-    p.lastOutcomeKind = outcome.kind;
-    p.lastTreatmentFailed = (outcome.kind !== OUTCOMES.CURE);
-  }
+  // ✅ сохраняем “что пробовали” и “успех/провал”
+  // ВАЖНО: провал = ТОЛЬКО WORSENED (не CURE/DISFIGURED/INFECTED!)
+  p.lastTreatmentId = active.treatmentId;
+  p.lastOutcomeKind = outcome.kind;
+  p.lastTreatmentFailed = (outcome.kind === OUTCOMES.WORSENED);
 
   finishTreatmentToPending(wardId, patientId, active.treatmentId, outcome);
 
@@ -3632,17 +3628,21 @@ function dischargePatient(patientId, wardId){
   w.patients = w.patients || [];
   w.pendingResults = w.pendingResults || {};
 
+  // убрать из палаты
   w.patients = w.patients.filter(id => String(id) !== pid);
+
+  // убрать результат
   delete w.pendingResults[pid];
 
-  clearActiveForPatient(wardId, pid);
+  // ❗ важно: patientId, а не pid
+  clearActiveForPatient(wardId, patientId);
 
-  // важно: сбрасываем флаг фейла, чтобы следующий пациент не унаследовал драму
+  // сброс флагов лечения
   const p = patientById(patientId);
   if(p){
     p.lastTreatmentFailed = false;
     p.lastOutcomeKind = null;
-    // p.lastTreatmentId = null; // по желанию
+    // p.lastTreatmentId = null; // опционально
   }
 
   saveState();
@@ -3650,7 +3650,6 @@ function dischargePatient(patientId, wardId){
   refreshVisibleUI();
 }
 window.dischargePatient = dischargePatient;
-
 function openPatientById(patientId){
   state.selectedPatientId = patientId;
   saveState();
