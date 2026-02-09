@@ -4239,17 +4239,29 @@ function tryPlaceOrOpen(patientId){
   } 
 }
 
+function bedCostForWard(w){
+  // w.bedsMax — сколько коек уже открыто (старт 2)
+  w.bedsMax = w.bedsMax || 2;
+
+  // Какая по счёту покупка: 3-я койка => n=1, 4-я => n=2 ... 8-я => n=6
+  const n = (w.bedsMax - 2) + 1;
+
+  // Жёсткий рост цены (квадратичный). Это уже “нормальная боль”.
+  // Примерно получится: 3-я~140, 4-я~260, 5-я~420, 6-я~620, 7-я~860, 8-я~1140
+  const cost = Math.round(90 + (n*n)*35 + n*15);
+
+  return cost;
+}
+
 function buyBed(wardId){
   const w = wardById(wardId);
   if(!w) return;
 
   w.bedsMax = w.bedsMax || 2;
-  if(w.bedsMax >= 8) return;
+  const bedsCap = 8;
+  if(w.bedsMax >= bedsCap) return;
 
-  const base = 30;
-  const step = 25;
-  const cost = base + (w.bedsMax - 2) * step;
-
+  const cost = bedCostForWard(w);
   if(state.coins < cost) return;
 
   state.coins -= cost;
@@ -4257,13 +4269,6 @@ function buyBed(wardId){
 
   saveState();
   refreshVisibleUI();
-}
-
-  function bedCostForWard(w){
-  w.bedsMax = w.bedsMax || 2;
-  const base = 30;
-  const step = 25;
-  return base + (w.bedsMax - 2) * step;
 }
 
 function renderPatient(patientId){
