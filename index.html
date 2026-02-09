@@ -3456,7 +3456,8 @@ window.continueTreatment = continueTreatment;
 
 function dischargePatient(patientId, wardId){
   const w = wardById(wardId);
-  if(!w) return;
+  const p = patientById(patientId);
+  if(!w || !p) return;
 
   w.patients = w.patients || [];
   w.pendingResults = w.pendingResults || {};
@@ -3466,9 +3467,11 @@ function dischargePatient(patientId, wardId){
 
   // убрать результат
   delete w.pendingResults[patientId];
+
+  // сбросить “не подействовало”, чтобы не тащилось на следующего пациента
   p.lastTreatmentFailed = false;
-p.lastOutcomeKind = null;
-// p.lastTreatmentId = null; // по желанию
+  p.lastOutcomeKind = null;
+  // p.lastTreatmentId = null; // если хочешь прям полностью чистить
 
   // убрать активное лечение (на всякий случай)
   clearActiveForPatient(wardId, patientId);
@@ -3476,8 +3479,6 @@ p.lastOutcomeKind = null;
   saveState();
   backToClinic();
   refreshVisibleUI();
-
-
 }
 window.dischargePatient = dischargePatient;
 
