@@ -1719,6 +1719,14 @@ function makeWard(letter){
     capVentilation: 6,
     capLight: 6,
 
+      broken: {
+      comfort: false,
+      cleanliness: false,
+      ventilation: false,
+      light: false,
+    },
+
+
     // занятость
 bedsMax: 2,          // старт 2 койки
 patients: [],        // массив patientId
@@ -1848,6 +1856,23 @@ if(Number(s.spawn.nextAt) > Date.now() + 30_000){
     return defaultState();
   }
 }
+
+  function maybeBreakWardUpgrade(w){
+  if(!w) return;
+
+  // шанс поломки 3% за тик
+  if(Math.random() > 0.03) return;
+
+  const parts = ["comfort", "cleanliness", "ventilation", "light"];
+  const part = parts[Math.floor(Math.random() * parts.length)];
+
+  // уже сломано — не ломаем ещё раз
+  if(w.broken?.[part]) return;
+
+  w.broken[part] = true;
+  saveState();
+}
+  
 
 function normalizeCalendar(){
   if(!state.calendar) state.calendar = { week:1, shiftInWeek:1, activeEventId:null };
@@ -2776,11 +2801,21 @@ function wardStatCap(w, stat){
   return 6;
 }
 function upgradeCost(w, stat){
-  // растущая цена: база * (уровень стата+1) * (уровень палаты)
-  const v = wardStatValue(w, stat);
-  const base = 20;
-  return base * (v+1) * w.level;
+  const v = wardStatValue(w, stat); // текущий уровень стата (0..)
+  const base = {
+    comfort: 140,
+    ventilation: 190,
+    light: 165,
+    cleanliness: 155
+  }[stat] || 160;
+
+  // рост цены: уровень стата + уровень палаты
+  const lvlFactor = Math.pow(v + 1, 1.65);          // апгрейды вверх становятся больнее
+  const wardFactor = 1 + Math.max(0, (w.level||1) - 1) * 0.55; // чем выше палата, тем дороже улучшения
+
+  return Math.round(base * lvlFactor * wardFactor);
 }
+  
 function canUpgrade(w, stat){
   return wardStatValue(w, stat) < wardStatCap(w, stat);
 }
@@ -2985,14 +3020,18 @@ function rollOutcome(patientId, treatmentId, wardId){
   } else {
     // нейтральный метод: "помог частично, но с приколом"
     // чистота палаты влияет: чем чище, тем меньше INFECTED
-    const clean = w.cleanliness ?? 1;
-    kind = (clean >= 4) ? OUTCOMES.DISFIGURED : OUTCOMES.INFECTED;
+    const clean = w.broken?.cleanliness ? Math.max(0, (w.cleanliness ?? 1) - 1) : (w.cleanliness ?? 1);
+    const vent = w.broken?.ventilation ? Math.max(0, (w.ventilation ?? 1) - 1) : (w.ventilation ?? 1);
+
+// чем выше вентиляция, тем реже INFECTED
+const infectedChance = Math.max(0.15, 0.75 - vent * 0.10); // 75% → вниз
+kind = (Math.random() < infectedChance) ? OUTCOMES.INFECTED : OUTCOMES.DISFIGURED;
   }
 
   // 2) Комбо палаты: смягчение плохих исходов
   // Комфорт 5+ может превратить WORSENED -> DISFIGURED (пациент выжил, но с минусами)
   if(kind === OUTCOMES.WORSENED){
-    const comfort = w.comfort ?? 1;
+    const comfort = w.broken?.comfort ? Math.max(0, (w.comfort ?? 1) - 1) : (w.comfort ?? 1);
     if(comfort >= 5) kind = OUTCOMES.DISFIGURED;
   }
 
@@ -3000,7 +3039,9 @@ function rollOutcome(patientId, treatmentId, wardId){
 if((p.treatAttempts || 0) >= 2){
   if(kind === OUTCOMES.WORSENED){
     // шанс выжить зависит от комфорта/чистоты, плюс если метод правильный
-    const wardPower = ((w.comfort||1) + (w.cleanliness||1)) / 12; // 0..~1
+    const cEff = w.broken?.comfort ? Math.max(0, (w.comfort ?? 1) - 1) : (w.comfort ?? 1);
+const clEff = w.broken?.cleanliness ? Math.max(0, (w.cleanliness ?? 1) - 1) : (w.cleanliness ?? 1);
+const wardPower = (cEff + clEff) / 12;
     const methodGood = (treatmentId === disease.cureBy) ? 0.25 : 0.0;
 
     const surviveChance = Math.min(0.85, 0.25 + wardPower*0.45 + methodGood);
@@ -3015,6 +3056,15 @@ if((p.treatAttempts || 0) >= 2){
     if(kind === OUTCOMES.DISFIGURED) kind = OUTCOMES.INFECTED;
     else if(kind === OUTCOMES.INFECTED) kind = OUTCOMES.WORSENED;
   }
+
+  const light = w.broken?.light ? Math.max(0, (w.light ?? 1) - 1) : (w.light ?? 1);
+
+// если свет высокий, шанс улучшить исход на 1 ступень
+if(Math.random() < (light * 0.03)){
+  if(kind === OUTCOMES.WORSENED) kind = OUTCOMES.INFECTED;
+  else if(kind === OUTCOMES.INFECTED) kind = OUTCOMES.DISFIGURED;
+  else if(kind === OUTCOMES.DISFIGURED) kind = OUTCOMES.CURE;
+}
 
 // 4) Награды/штрафы (нормальный скейл)
   const repMul = repCoinsMultiplier(state.reputation);
@@ -3303,6 +3353,21 @@ function startNewShift(){
   showScreen("clinic");
   refreshVisibleUI();
 }
+
+  function repairWard(wardId, part){
+  const w = wardById(wardId);
+  if(!w || !w.broken?.[part]) return;
+
+  const cost = 150;
+  if(state.coins < cost) return;
+
+  state.coins -= cost;
+  w.broken[part] = false;
+
+  saveState();
+  refreshVisibleUI();
+}
+window.repairWard = repairWard;
   
 /* =========================================================
    11) FLOW: assign / complete / pending / discharge
@@ -4089,21 +4154,57 @@ card.innerHTML = `
     const upgrades = document.createElement("div");
     upgrades.className = "card";
     upgrades.style.marginTop = "10px";
-    upgrades.innerHTML = `
-      <div class="statRow" style="margin-top:2px">
-        <span class="statPill">Комфорт <b>${w.comfort}</b></span>
-        <span class="statPill">Вент <b>${w.ventilation}</b></span>
-        <span class="statPill">Свет <b>${w.light}</b></span>
-        <span class="statPill">Чистота <b>${w.cleanliness}</b></span>
-      </div>
+  upgrades.innerHTML = `
+  <div class="statRow" style="margin-top:2px">
+    <span class="statPill">Комфорт <b>${w.comfort}</b></span>
+    <span class="statPill">Вент <b>${w.ventilation}</b></span>
+    <span class="statPill">Свет <b>${w.light}</b></span>
+    <span class="statPill">Чистота <b>${w.cleanliness}</b></span>
+  </div>
 
-      <div class="grid2" style="margin-top:10px">
-        ${renderWardUpgradeBtn(w, "comfort", "Комфорт", "Меньше страданий пациента")}
-        ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
-        ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
-        ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
-      </div>
-    `;
+  ${
+    (w.broken?.ventilation)
+      ? `<div class="hint" style="color:var(--warn); margin-top:8px;">
+           Вентиляция сломана (−1 к вентиляции)
+           <button class="btn small" onclick="repairWard('${w.id}','ventilation')">Починить (150 💰)</button>
+         </div>`
+      : ``
+  }
+
+  ${
+    (w.broken?.light)
+      ? `<div class="hint" style="color:var(--warn); margin-top:8px;">
+           Свет сломан (−1 к свету)
+           <button class="btn small" onclick="repairWard('${w.id}','light')">Починить (150 💰)</button>
+         </div>`
+      : ``
+  }
+
+  ${
+    (w.broken?.cleanliness)
+      ? `<div class="hint" style="color:var(--warn); margin-top:8px;">
+           Чистота упала (−1 к чистоте)
+           <button class="btn small" onclick="repairWard('${w.id}','cleanliness')">Починить (150 💰)</button>
+         </div>`
+      : ``
+  }
+
+  ${
+    (w.broken?.comfort)
+      ? `<div class="hint" style="color:var(--warn); margin-top:8px;">
+           Комфорт сломан (−1 к комфорту)
+           <button class="btn small" onclick="repairWard('${w.id}','comfort')">Починить (150 💰)</button>
+         </div>`
+      : ``
+  }
+
+  <div class="grid2" style="margin-top:10px">
+    ${renderWardUpgradeBtn(w, "comfort", "Комфорт", "Меньше страданий пациента")}
+    ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
+    ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
+    ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
+  </div>
+`;
 
     elWards.appendChild(card);
     elWards.appendChild(upgrades);
@@ -4879,11 +4980,16 @@ setInterval(()=>{
   try{
     ensureShiftTimer();
 
+    // ✅ ЛОМАЛКА АПГРЕЙДОВ (1 раз за тик)
+    if(state.shift?.active){
+      (state.wards || []).forEach(w => maybeBreakWardUpgrade(w));
+    }
+
     const endAt = Number(state.shift?.endAt);
-if(state.shift?.active && Number.isFinite(endAt) && now() >= endAt){
-  endShift();
-  return;
-}
+    if(state.shift?.active && Number.isFinite(endAt) && now() >= endAt){
+      endShift();
+      return;
+    }
 
     fillQueue(); 
     processQueueTick();
