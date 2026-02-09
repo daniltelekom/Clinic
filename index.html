@@ -2702,7 +2702,7 @@ function canUpgrade(w, stat){
   function buyWardB(){
   if(state.unlocks?.wardB) return;
 
-  const cost = 200;
+  const cost = 3500;
   if(state.coins < cost) return;
 
   state.coins -= cost;
@@ -3466,6 +3466,9 @@ function dischargePatient(patientId, wardId){
 
   // убрать результат
   delete w.pendingResults[patientId];
+  p.lastTreatmentFailed = false;
+p.lastOutcomeKind = null;
+// p.lastTreatmentId = null; // по желанию
 
   // убрать активное лечение (на всякий случай)
   clearActiveForPatient(wardId, patientId);
@@ -3944,16 +3947,20 @@ const patientsHtml = `
 
     // --- кнопка купить койку (без надписей 3/3/8) ---
    const bedsCap = 8;
-const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
-const bedCost = bedCostForWard(w);
 
-const bedsLine = `
-  <div class="row" style="margin-top:10px; justify-content:center;">
-    <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
-      Купить койку <span class="muted">(🪙 ${bedCost})</span>
-    </button>
-  </div>
-`;
+let bedsLine = "";
+if((w.bedsMax || 2) < bedsCap){
+  const bedCost = bedCostForWard(w);
+  const bedBtnDisabled = (state.coins < bedCost) ? "disabled" : "";
+
+  bedsLine = `
+    <div class="row" style="margin-top:10px; justify-content:center;">
+      <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
+        Купить койку <span class="muted">(🪙 ${bedCost})</span>
+      </button>
+    </div>
+`  ;
+}
 
     // --- карточка палаты ---
     const card = document.createElement("div");
@@ -4001,7 +4008,7 @@ card.innerHTML = `
 
   // кнопка покупки второй палаты
   if(!state.unlocks?.wardB){
-    const cost = 200;
+    const cost = 3500;
     const disabled = state.coins < cost ? "disabled" : "";
     const div = document.createElement("div");
     div.className = "card";
@@ -4243,13 +4250,11 @@ function buyBed(wardId){
   const w = wardById(wardId);
   if(!w) return;
 
-  w.bedsMax = w.bedsMax || 2;
-  if(w.bedsMax >= 8) return;
+  w.bedsMax = Number(w.bedsMax || 2);
+  const cap = 8;
+  if(w.bedsMax >= cap) return;
 
-  const base = 30;
-  const step = 25;
-  const cost = base + (w.bedsMax - 2) * step;
-
+  const cost = bedCostForWard(w);
   if(state.coins < cost) return;
 
   state.coins -= cost;
@@ -4259,11 +4264,20 @@ function buyBed(wardId){
   refreshVisibleUI();
 }
 
-  function bedCostForWard(w){
-  w.bedsMax = w.bedsMax || 2;
-  const base = 30;
-  const step = 25;
-  return base + (w.bedsMax - 2) * step;
+ function bedCostForWard(w){
+  // bedsMax: текущий максимум коек в палате
+  w.bedsMax = Number(w.bedsMax || 2);
+
+  // сколько уже куплено сверх старта (старт = 2)
+  const bought = Math.max(0, w.bedsMax - 2);
+
+  // цены "ступенями" (следующая покупка становится сильно дороже)
+  const tiers = [
+    120, 220, 400, 750,   // 3-я, 4-я, 5-я, 6-я койка
+    1300, 2200, 3600,     // 7-я, 8-я, (дальше уже не надо, у тебя cap=8)
+  ];
+
+  return tiers[bought] ?? Math.round(5000 * Math.pow(1.25, bought - tiers.length + 1));
 }
 
 function renderPatient(patientId){
@@ -4307,13 +4321,13 @@ const failNote =
 elPatientSub.textContent = `${(p.visibleSymptoms || []).join(", ")} • ${p.clue}${failNote}`;
 elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
 
-  // ⛔ прошлое лечение не сработало
-if(p.lastTreatmentFailed && p.lastTreatment){
+ // ⛔ прошлое лечение не сработало (правильное поле)
+if(p.lastTreatmentFailed && p.lastTreatmentId){
   const failLine = document.createElement("div");
   failLine.className = "hint";
   failLine.style.color = "var(--warn)";
   failLine.style.marginTop = "6px";
-  failLine.textContent = `${methodName(p.lastTreatment)} не подействовало`;
+  failLine.textContent = `${methodName(p.lastTreatmentId)} не подействовало`;
   elPatientDisease.appendChild(failLine);
 }
   
