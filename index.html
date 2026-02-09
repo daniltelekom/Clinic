@@ -4311,19 +4311,12 @@ if(elPatientActions){
    const ward = findWardByPatient(patientId);
   // ✅ Если по пациенту уже есть результат — показываем результат, а не выбор лечения
   const pending = ward?.pendingResults?.[String(patientId)];
-  if(pending){
-    showResultForPatient(ward.id, patientId);
-    return;
-  }
-  const inWard = !!ward;
-
- if(ward?.pendingResults?.[patientId]){
-  // ✅ когда показываем результат - прячем действия
-  if(elPatientActions) elPatientActions.style.display = "none";
-  showResultForPatient(patientId);
+ if (ward?.pendingResults?.[String(patientId)]) {
+  elTreatmentBox.style.display = "none";
+  elTreatmentResult.style.display = "block";
+  showResultForPatient(patientId); // <-- ВАЖНО: только patientId
   return;
 }
-
   elPatientTitle.textContent = p.name;
 
 const disease = getDiseaseById(p.trueDiseaseId);
