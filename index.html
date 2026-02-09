@@ -66,7 +66,6 @@
 body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
 }
-    }
     h2{margin:0 0 10px 0; font-size:18px}
     .card{
       background:rgba(0,0,0,.12);
@@ -837,8 +836,10 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
   </div>
 
-  <!-- SCREEN: PATIENT -->
- <div class="panel patientCard">
+<!-- SCREEN: PATIENT -->
+<div class="screen" id="screen-patient">
+
+  <div class="panel patientCard">
     <div class="patientHead">
       <img id="patient-avatar" class="patientAvatar" src="img/patients/placeholder.png" alt="">
       <div class="patientMeta">
@@ -848,6 +849,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
         </div>
 
         <div class="listSub" id="patient-sub">симптомы…</div>
+
         <div class="patientMiniRow">
           <div class="muted">Подозрение:</div>
           <div id="patient-disease" class="patientDisease">?</div>
@@ -863,9 +865,41 @@ body:not(.onClinic) .screen.active .panel:first-child{
     <div id="doctor-advice" class="hint"></div>
   </div>
 
-      <div class="sep"></div>
+  <!-- Лаба -->
+  <button class="btn" id="btn-lab" onclick="labResearchSelected()">
+    🔬 Исследовать в лаборатории
+    <div class="muted" id="lab-sub">Откроет новый симптом</div>
+  </button>
+  <div class="hint" id="lab-hint"></div>
 
-  <!-- SCREEN: RESEARCH -->
+  <!-- Действия -->
+  <div class="panel" id="patient-actions"></div>
+
+  <!-- Назначить лечение -->
+  <div class="panel" id="treat-panel">
+    <h2>Назначить лечение</h2>
+    <div id="treatment-buttons"></div>
+    <div class="hint">Выбирай из 4 вариантов. Один обычно лучше, один обычно хуже, два просто по приколу.</div>
+  </div>
+
+  <!-- Активное лечение -->
+  <div class="panel" id="active-treatment" style="display:none">
+    <h2>Лечение идёт</h2>
+    <div class="muted">Метод:</div>
+    <div id="active-treatment-name" style="font-weight:900; margin:6px 0 10px 0;">—</div>
+    <div class="muted">Осталось:</div>
+    <div id="active-treatment-timer" class="timer">--:--</div>
+  </div>
+
+  <!-- Результат -->
+  <div class="panel" id="result-panel" style="display:none">
+    <h2>Результат</h2>
+    <div id="result-text"></div>
+  </div>
+
+</div>
+
+<!-- SCREEN: RESEARCH -->
 <div id="screen-research" class="screen">
   <div class="panel">
     <div class="row" style="align-items:flex-start;">
@@ -887,38 +921,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
   </div>
 </div>
 
-<button class="btn" id="btn-lab" onclick="labResearchSelected()">
-  🔬 Исследовать в лаборатории
-  <div class="muted" id="lab-sub">Откроет новый симптом</div>
-</button>
-<div class="hint" id="lab-hint"></div>
-    <div class="panel" id="patient-actions"></div>
-
-    <!-- Назначить лечение -->
-    <div class="panel" id="treat-panel">
-      <h2>Назначить лечение</h2>
-      <div id="treatment-buttons"></div>
-      <div class="hint">Выбирай из 4 вариантов. Один обычно лучше, один обычно хуже, два просто по приколу.</div>
-    </div>
-
-    <!-- Активное лечение -->
-    <div class="panel" id="active-treatment" style="display:none">
-      <h2>Лечение идёт</h2>
-      <div class="muted">Метод:</div>
-      <div id="active-treatment-name" style="font-weight:900; margin:6px 0 10px 0;">—</div>
-      <div class="muted">Осталось:</div>
-      <div id="active-treatment-timer" class="timer">--:--</div>
-
-    </div>
-
-    <!-- Результат -->
-    <div class="panel" id="result-panel" style="display:none">
-      <h2>Результат</h2>
-      <div id="result-text"></div>
-    </div>
-   </div>
-
-   <!-- SCREEN: SHIFT END -->
+<!-- SCREEN: SHIFT END -->
 <div class="screen" id="screen-shiftend">
   <div class="panel">
     <div class="listTitle">Смена окончена</div>
