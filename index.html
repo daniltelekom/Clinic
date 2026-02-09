@@ -1907,10 +1907,11 @@ function cloudSaveDebounced(){
    3) ACTIVE MAP (treatments in progress per ward)
 ========================================================= */
 
-function getActiveMap(){
-  try { return JSON.parse(localStorage.getItem(LS_ACTIVE) || "{}") || {}; }
-  catch { return {}; }
+function getActiveWardMap(wardId){
+  const map = getActiveMap();
+  return map[String(wardId)] || {};
 }
+  
 function saveActiveMap(map){
   localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
 }
@@ -1949,22 +1950,30 @@ function getActiveWardMap(wardId){
 
 function getActiveForPatient(wardId, patientId){
   const wardMap = getActiveWardMap(wardId);
-  return wardMap[patientId] || null;
+  return wardMap[String(patientId)] || null;
 }
 
 function setActiveForPatient(wardId, patientId, activeObj){
   const map = getActiveMap();
-  const wardMap = map[wardId] || {};
-  wardMap[patientId] = activeObj;
-  map[wardId] = wardMap;
+  const wid = String(wardId);
+  const pid = String(patientId);
+
+  const wardMap = map[wid] || {};
+  wardMap[pid] = activeObj;
+
+  map[wid] = wardMap;
   saveActiveMap(map);
 }
 
 function clearActiveForPatient(wardId, patientId){
   const map = getActiveMap();
-  const wardMap = map[wardId] || {};
-  delete wardMap[patientId];
-  map[wardId] = wardMap;
+  const wid = String(wardId);
+  const pid = String(patientId);
+
+  const wardMap = map[wid] || {};
+  delete wardMap[pid];
+
+  map[wid] = wardMap;
   saveActiveMap(map);
 }
 
@@ -2520,7 +2529,8 @@ function patientById(id){
 }
 
 function wardById(id){
-  return state.wards.find(w=>w.id===id) || null;
+  const sid = String(id);
+  return state.wards.find(w => String(w.id) === sid) || null;
 }
 
 function findWardByPatient(patientId){
@@ -4744,9 +4754,12 @@ function processTreatmentsTick(){
   const t = now();
   let changed = false;
 
-  for(const wardId of Object.keys(map)){
+  for(const wid of Object.keys(map)){
+    const wardId = String(wid);
     const wardMap = map[wardId] || {};
-    for(const patientId of Object.keys(wardMap)){
+
+    for(const pid of Object.keys(wardMap)){
+      const patientId = String(pid);
       const a = wardMap[patientId];
       if(!a) continue;
 
