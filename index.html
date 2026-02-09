@@ -768,6 +768,20 @@ body:not(.onClinic) .screen.active .panel:first-child{
   }
 }
 
+.patientMiniRow{
+  display:flex;
+  gap:10px;
+  align-items:baseline;
+  flex-wrap:wrap;
+}
+
+.patientMiniRow .miniValue{
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  white-space: normal;
+}
+
 /* Подсветка всей строки по статусу */
 .wardPatientRow.st-result{ background: rgba(73, 209, 125, .16); } /* зелёный: есть результат */
 .wardPatientRow.st-done  { background: rgba(73, 209, 125, .22); } /* ярче: можно забрать */
@@ -862,10 +876,14 @@ body:not(.onClinic) .screen.active .panel:first-child{
         <div class="listSub" id="patient-sub">симптомы…</div>
 
         <div class="patientMiniRow">
-          <div class="muted">Подозрение:</div>
-          <div id="patient-disease" class="patientDisease">?</div>
-        </div>
-      </div>
+  <span class="muted">Подозрение:</span>
+  <span id="patient-clue" class="miniValue">?</span>
+</div>
+
+<div class="patientMiniRow">
+  <span class="muted">Диагноз:</span>
+  <span id="patient-diagnosis" class="miniValue">???</span>
+</div>
 
       <button class="btn small patientBack" type="button" onclick="backToClinic()">←</button>
     </div>
@@ -4266,7 +4284,8 @@ const elDuty = document.getElementById("duty");
 
 const elPatientTitle = document.getElementById("patient-title");
 const elPatientSub = document.getElementById("patient-sub");
-const elPatientDisease = document.getElementById("patient-disease");
+const elPatientClue = document.getElementById("patient-clue");
+const elPatientDiagnosis = document.getElementById("patient-diagnosis");
 const elAdvice = document.getElementById("doctor-advice");
 
 const elTreatPanel = document.getElementById("treat-panel");
@@ -4811,17 +4830,9 @@ const failNote =
     : "";
 
 elPatientSub.textContent = `${(p.visibleSymptoms || []).join(", ")} • ${p.clue}${failNote}`;
-elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
+if(elPatientClue) elPatientClue.textContent = (p.clue || "?");
+if(elPatientDiagnosis) elPatientDiagnosis.textContent = getDiseaseDisplayLine(p);
 
-  // прошлое лечение не сработало
-if(p.lastTreatmentFailed && p.lastTreatmentId){
-  const failLine = document.createElement("div");
-  failLine.className = "hint";
-  failLine.style.color = "var(--warn)";
-  failLine.style.marginTop = "6px";
-  failLine.textContent = `${methodName(p.lastTreatmentId)} не подействовало`;
-  elPatientDisease.appendChild(failLine);
-}
   
   elPatientActions.innerHTML = "";
 
@@ -4907,26 +4918,28 @@ if(active){
   showTreat(options);
 }
 
-  function getDiseaseDisplayLine(p){
-  // 0) до лаборатории
-  if(!p.diffCandidates && !p.diffFinalId){
-    return "❓ Диагноз: ???";
+ function getDiseaseDisplayLine(p){
+  // показываем ТОЛЬКО текст диагноза (без "Диагноз:"), чтобы UI сам решал как рисовать
+
+  // 0) до обследования
+  if(!p?.diffCandidates && !p?.diffFinalId){
+    return "???";
   }
 
-  // 1) после 1 исследования: два варианта
-  if(p.diffCandidates && p.diffCandidates.length === 2 && !p.diffFinalId){
-    const a = getDiseaseById(p.diffCandidates[0]).name;
-    const b = getDiseaseById(p.diffCandidates[1]).name;
-    return `❓ Диагноз: <b>${a}</b> или <b>${b}</b>`;
+  // 1) после 1 обследования: два варианта
+  if(Array.isArray(p.diffCandidates) && p.diffCandidates.length === 2 && !p.diffFinalId){
+    const a = getDiseaseById(p.diffCandidates[0])?.name || "???";
+    const b = getDiseaseById(p.diffCandidates[1])?.name || "???";
+    return `${a} или ${b}`;
   }
 
-  // 2) после 2 исследования: один вариант, но сомнение остаётся
+  // 2) после 2 обследования: один вариант, но сомнение остаётся
   if(p.diffFinalId){
-    const a = getDiseaseById(p.diffFinalId).name;
-    return `❓ Диагноз: <b>${a}</b> (под вопросом)`;
+    const a = getDiseaseById(p.diffFinalId)?.name || "???";
+    return `${a} (под вопросом)`;
   }
 
-  return "❓ Диагноз: ???";
+  return "???";
 }
 
   function scoreDiseaseBySymptoms(disease, symptoms){
