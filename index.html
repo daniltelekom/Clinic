@@ -728,20 +728,27 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
 .patientMiniRow{
   display:flex;
-  gap:8px;
-  align-items:flex-start;   /* было center */
+  gap:10px;
+  align-items:flex-start;
 }
 
 .patientDisease{
-  flex: 1;
-  min-width: 0;
-  white-space: normal;
+  min-width:0;              /* важно для flex */
+  white-space:normal;
+  overflow:hidden;
 
-  overflow-wrap: anywhere;
-  word-break: normal;
-  hyphens: none;
+  /* аккуратно в 2 строки, без адской нарезки по буквам */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+
+  /* запретить переносы типа "Диаг-ноз" */
+  hyphens:none;
+  overflow-wrap:normal;
+  word-break:normal;
 
   line-height: 1.2;
+  opacity:.95;
 }
 
 .patientBack{
@@ -909,19 +916,18 @@ body:not(.onClinic) .screen.active .panel:first-child{
     <div class="row" style="align-items:flex-start;">
       <div>
         <div class="listTitle">🧪 Исследования</div>
-        <div class="listSub">Пока заглушка. Тут будет дерево исследований.</div>
+        <div class="listSub">Трать 💰 и 🧫, жди время, получай грязные преимущества.</div>
       </div>
     </div>
   </div>
 
+  <div id="research-active" class="card" style="margin-top:10px; display:none;"></div>
+
   <div class="card" style="margin-top:10px;">
-    <div class="listTitle">Скоро:</div>
-    <div class="listSub">
-      • дерево технологий<br>
-      • перки клиники<br>
-      • лаборатория / оборудование<br>
-      • мета-прогресс
-    </div>
+    <div class="listTitle">Древо</div>
+    <div class="listSub">Нажми на навык, чтобы начать изучение.</div>
+    <div class="sep"></div>
+    <div id="research-tree"></div>
   </div>
 </div>
 
@@ -1555,6 +1561,7 @@ function normalizeDoctorsFatigue(){
 
 function openResearch(){
   showScreen("research");
+  renderResearch();
 }
   
 
@@ -3524,7 +3531,15 @@ function chooseTreatment(treatmentId){
   const panel = document.querySelector("#screen-patient .panel");
   const savedScroll = panel ? panel.scrollTop : window.scrollY;
 
-  const endAt = now() + (p.treatSec * 1000);
+  // длительность лечения (с учётом перков)
+  let durationMs = (Number(p.treatSec) || 0) * 1000;
+
+  const mul = Number(state.perks?.treatTimeMul ?? 1.0);
+  // страховка от кривых значений
+  const safeMul = (Number.isFinite(mul) && mul > 0) ? mul : 1.0;
+
+  durationMs = Math.max(5_000, Math.round(durationMs * safeMul)); // минимум 5 сек, чтобы не было 0/мгновенно
+  const endAt = now() + durationMs;
 
   p.treatAttempts = (p.treatAttempts || 0) + 1;
   saveState();
@@ -4005,7 +4020,235 @@ function assignDoctorToSlot(docId, slot){
 /* =========================================================
    12) UI RENDER
 ========================================================= */
+// ======================
+// RESEARCH TREE (Skills)
+// ======================
 
+const RESEARCH = [
+  {
+    id:"reg_1",
+    name:"Регистратура I",
+    desc:"Автовыписка: 1 пациент / 60 мин (если есть результат).",
+    costCoins: 220,
+    costBio: 6,
+    timeSec: 90,
+    requires: [],
+    apply(){ state.perks.autoDischargePerHour = 1; }
+  },
+  {
+    id:"reg_2",
+    name:"Регистратура II",
+    desc:"Автовыписка: 1 пациент / 30 мин.",
+    costCoins: 650,
+    costBio: 18,
+    timeSec: 150,
+    requires:["reg_1"],
+    apply(){ state.perks.autoDischargePerHour = 2; }
+  },
+  {
+    id:"reg_3",
+    name:"Регистратура III",
+    desc:"Автовыписка: 2 пациента / 30 мин.",
+    costCoins: 1400,
+    costBio: 40,
+    timeSec: 220,
+    requires:["reg_2"],
+    apply(){ state.perks.autoDischargePerHour = 4; }
+  },
+
+  {
+    id:"triage_1",
+    name:"Триаж I",
+    desc:"+1 к макс очереди.",
+    costCoins: 260,
+    costBio: 8,
+    timeSec: 80,
+    requires: [],
+    apply(){ state.maxQueue = Math.min(12, (state.maxQueue||6) + 1); }
+  },
+  {
+    id:"triage_2",
+    name:"Триаж II",
+    desc:"+1 к макс очереди (ещё).",
+    costCoins: 780,
+    costBio: 20,
+    timeSec: 140,
+    requires:["triage_1"],
+    apply(){ state.maxQueue = Math.min(14, (state.maxQueue||6) + 1); }
+  },
+
+  {
+    id:"treat_speed_1",
+    name:"Быстрые руки I",
+    desc:"Лечение быстрее на 7%.",
+    costCoins: 320,
+    costBio: 10,
+    timeSec: 90,
+    requires: [],
+    apply(){ state.perks.treatTimeMul = Math.max(0.60, (state.perks.treatTimeMul ?? 1.0) * 0.93); }
+  },
+  {
+    id:"treat_speed_2",
+    name:"Быстрые руки II",
+    desc:"Лечение быстрее ещё на 7%.",
+    costCoins: 900,
+    costBio: 26,
+    timeSec: 160,
+    requires:["treat_speed_1"],
+    apply(){ state.perks.treatTimeMul = Math.max(0.55, (state.perks.treatTimeMul ?? 1.0) * 0.93); }
+  },
+
+  {
+    id:"repair_1",
+    name:"Хозяйственник I",
+    desc:"Чинить дешевле на 15%.",
+    costCoins: 420,
+    costBio: 12,
+    timeSec: 120,
+    requires: [],
+    apply(){ state.perks.repairCostMul = 0.85; }
+  },
+  {
+    id:"repair_2",
+    name:"Хозяйственник II",
+    desc:"Чинить дешевле на 30%.",
+    costCoins: 1100,
+    costBio: 30,
+    timeSec: 200,
+    requires:["repair_1"],
+    apply(){ state.perks.repairCostMul = 0.70; }
+  },
+];
+
+function ensureResearchState(){
+  state.perks = state.perks || {};
+  state.perks.unlockedResearch = state.perks.unlockedResearch || {}; // {id:true}
+  state.perks.researching = state.perks.researching || null; // {id, endAt}
+  if(state.perks.autoDischargePerHour == null) state.perks.autoDischargePerHour = 0;
+  if(state.perks.treatTimeMul == null) state.perks.treatTimeMul = 1.0;
+  if(state.perks.repairCostMul == null) state.perks.repairCostMul = 1.0;
+}
+
+function isResearchUnlocked(id){
+  return !!state?.perks?.unlockedResearch?.[id];
+}
+function isResearchAvailable(node){
+  return (node.requires||[]).every(r => isResearchUnlocked(r));
+}
+function getResearchNode(id){
+  return RESEARCH.find(n=>n.id===id) || null;
+}
+
+function startResearch(id){
+  ensureResearchState();
+  const node = getResearchNode(id);
+  if(!node) return;
+  if(isResearchUnlocked(id)) return;
+
+  if(state.perks.researching) return; // только одно исследование за раз, чтобы не было цирка
+
+  if(!isResearchAvailable(node)) return;
+
+  const coins = state.coins || 0;
+  const bio = state.biomaterial || 0;
+  if(coins < node.costCoins) return;
+  if(bio < node.costBio) return;
+
+  state.coins = coins - node.costCoins;
+  state.biomaterial = bio - node.costBio;
+
+  state.perks.researching = { id, endAt: now() + node.timeSec*1000 };
+  saveState();
+  refreshVisibleUI();
+}
+window.startResearch = startResearch;
+
+function finishResearch(id){
+  ensureResearchState();
+  const node = getResearchNode(id);
+  if(!node) return;
+
+  state.perks.unlockedResearch[id] = true;
+  state.perks.researching = null;
+
+  // применяем эффект
+  try{ node.apply && node.apply(); }catch(e){ console.log("apply research err", e); }
+
+  saveState();
+  refreshVisibleUI();
+}
+  function processResearchTick(){
+  ensureResearchState();
+  const r = state.perks.researching;
+  if(!r) return;
+  if(now() >= Number(r.endAt)){
+    finishResearch(r.id);
+  }
+}
+
+function renderResearch(){
+  ensureResearchState();
+
+  const elTree = document.getElementById("research-tree");
+  const elActive = document.getElementById("research-active");
+  if(!elTree || !elActive) return;
+
+  // активное исследование
+  const r = state.perks.researching;
+  if(r){
+    const node = getResearchNode(r.id);
+    const leftMs = Math.max(0, Number(r.endAt) - now());
+    const leftSec = Math.ceil(leftMs/1000);
+    elActive.style.display = "block";
+    elActive.innerHTML = `
+      <div class="listTitle">⏳ Изучается: ${node ? node.name : r.id}</div>
+      <div class="listSub">Осталось: <b>${leftSec}с</b></div>
+    `;
+  } else {
+    elActive.style.display = "none";
+    elActive.innerHTML = "";
+  }
+
+  // дерево
+  let html = "";
+  for(const n of RESEARCH){
+    const locked = !isResearchUnlocked(n.id);
+    const available = isResearchAvailable(n);
+    const disabled = (!available) || (!!state.perks.researching) || !locked;
+
+    const reqText = (n.requires && n.requires.length)
+      ? `Требует: ${n.requires.map(x => getResearchNode(x)?.name || x).join(", ")}`
+      : "Доступно сразу";
+
+    html += `
+      <div class="card" style="margin-top:10px;">
+        <div class="row" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="listTitle">${isResearchUnlocked(n.id) ? "✅" : (available ? "🔓" : "🔒")} ${n.name}</div>
+            <div class="listSub">${n.desc}</div>
+            <div class="listSub" style="margin-top:6px; opacity:.8;">${reqText}</div>
+          </div>
+          <div style="text-align:right; min-width:120px;">
+            <div class="listSub">💰 ${n.costCoins}</div>
+            <div class="listSub">🧫 ${n.costBio}</div>
+            <div class="listSub">⏱ ${n.timeSec}с</div>
+          </div>
+        </div>
+
+        ${
+          isResearchUnlocked(n.id)
+          ? `<div class="hint" style="color:var(--ok); margin-top:8px;">Изучено</div>`
+          : `<button class="btn ${disabled ? "" : "ok"}" style="margin-top:10px; ${disabled ? "opacity:.55; pointer-events:none;" : ""}"
+               onclick="startResearch('${n.id}')">
+               ${available ? "Изучить" : "Недоступно"}
+             </button>`
+        }
+      </div>
+    `;
+  }
+  elTree.innerHTML = html;
+}
+window.renderResearch = renderResearch;
   
 
 const elCoins = document.getElementById("coins");
@@ -4958,6 +5201,10 @@ function refreshVisibleUI(){
   const patientVisible = document.getElementById("screen-patient").classList.contains("active");
   const staffVisible = document.getElementById("screen-staff").classList.contains("active");
   const shopVisible  = document.getElementById("screen-shop").classList.contains("active");
+  const researchVisible = document.getElementById("screen-research").classList.contains("active");
+if(researchVisible){
+  renderResearch();
+}
 
   if(clinicVisible) renderClinic();
   if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
@@ -5016,6 +5263,8 @@ function processTreatmentsTick(){
 setInterval(()=>{
   try{
     ensureShiftTimer();
+
+    processResearchTick();
 
     // ✅ ЛОМАЛКА АПГРЕЙДОВ (1 раз за тик)
     if(state.shift?.active){
