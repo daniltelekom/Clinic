@@ -1907,6 +1907,14 @@ function cloudSaveDebounced(){
    3) ACTIVE MAP (treatments in progress per ward)
 ========================================================= */
 
+function getActiveMap(){
+  try{
+    return JSON.parse(localStorage.getItem(LS_ACTIVE) || "{}");
+  }catch(e){
+    return {};
+  }
+}
+
 function saveActiveMap(map){
   localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
 }
