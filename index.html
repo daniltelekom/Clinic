@@ -1719,18 +1719,12 @@ function makeWard(letter){
     capVentilation: 6,
     capLight: 6,
 
-      broken: {
-      comfort: false,
-      cleanliness: false,
-      ventilation: false,
-      light: false,
-    },
-
-
     // занятость
-bedsMax: 2,          // старт 2 койки
-patients: [],        // массив patientId
-pendingResults: {},  // patientId -> result (или null)
+    bedsMax: 2,          // старт 2 койки
+    patients: [],        // массив patientId
+    pendingResults: {},  // patientId -> result (или null)
+
+    broken: { },
   };
 }
 
@@ -1857,17 +1851,32 @@ if(Number(s.spawn.nextAt) > Date.now() + 30_000){
   }
 }
 
-  function maybeBreakWardUpgrade(w){
+ function ensureWardBrokenField(){
+  if(!state) return;
+  if(!Array.isArray(state.wards)) return;
+
+  state.wards.forEach(w => {
+    if(!w) return;
+    if(!w.broken || typeof w.broken !== "object") w.broken = {};
+  });
+}
+
+ function maybeBreakWardUpgrade(w){
   if(!w) return;
 
-  // шанс поломки 3% за тик
+  // ✅ гарантируем контейнер поломок
+  if(!w.broken || typeof w.broken !== "object") w.broken = {};
+
+  // ломаем только если смена идёт
+  if(!state.shift?.active) return;
+
+  // шанс поломки (подкрути потом)
   if(Math.random() > 0.03) return;
 
   const parts = ["comfort", "cleanliness", "ventilation", "light"];
   const part = parts[Math.floor(Math.random() * parts.length)];
 
-  // уже сломано — не ломаем ещё раз
-  if(w.broken?.[part]) return;
+  if(w.broken[part]) return; // уже сломано
 
   w.broken[part] = true;
   saveState();
@@ -5200,6 +5209,8 @@ boot().then(() => {
   if(!localStorage.getItem(LS_TUTORIAL_DONE)){
     startTutorial(false);
   }
+
+   ensureWardBrokenField();
   refreshVisibleUI();
 }).catch(err => {
   showCrash("BOOT CRASH", err);
