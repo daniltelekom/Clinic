@@ -694,6 +694,70 @@ body:not(.onClinic) .screen.active .panel:first-child{
   white-space:nowrap;
 }
 
+/* ===== PATIENT CARD (new layout) ===== */
+.patientCard{
+  padding: 12px;
+}
+
+.patientHead{
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.patientAvatar{
+  width: 76px;
+  height: 76px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: rgba(0,0,0,.15);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.patientMeta{
+  min-width: 0;
+}
+
+.patientTopLine{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.patientMiniRow{
+  display:flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 6px;
+}
+
+.patientDisease{
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patientBack{
+  height: 34px;
+  min-width: 40px;
+  padding: 0 10px;
+}
+
+@media (max-width: 420px){
+  .patientHead{
+    grid-template-columns: 64px 1fr auto;
+  }
+  .patientAvatar{
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+  }
+}
+
 /* Подсветка всей строки по статусу */
 .wardPatientRow.st-result{ background: rgba(73, 209, 125, .16); } /* зелёный: есть результат */
 .wardPatientRow.st-done  { background: rgba(73, 209, 125, .22); } /* ярче: можно забрать */
@@ -774,27 +838,30 @@ body:not(.onClinic) .screen.active .panel:first-child{
   </div>
 
   <!-- SCREEN: PATIENT -->
-  <div class="screen" id="screen-patient">
-
-    <div class="panel">
-      <div class="row">
-        <div>
+ <div class="panel patientCard">
+    <div class="patientHead">
+      <img id="patient-avatar" class="patientAvatar" src="img/patients/placeholder.png" alt="">
+      <div class="patientMeta">
+        <div class="patientTopLine">
           <div class="listTitle" id="patient-title">Пациент</div>
-          <div class="listSub" id="patient-sub">симптомы…</div>
+          <span id="patient-rarity" class="tag">common</span>
         </div>
-        <button class="btn small" type="button" onclick="backToClinic()">← Назад</button>
+
+        <div class="listSub" id="patient-sub">симптомы…</div>
+        <div class="patientMiniRow">
+          <div class="muted">Подозрение:</div>
+          <div id="patient-disease" class="patientDisease">?</div>
+        </div>
       </div>
 
-      <div class="sep"></div>
-
-      <div class="muted">Подозрение:</div>
-      <div id="patient-disease" style="font-weight:900; margin-top:4px;">?</div>
-
-      <div class="sep"></div>
-
-      <div class="muted">Советы дежурных:</div>
-      <div id="doctor-advice" class="hint"></div>
+      <button class="btn small patientBack" type="button" onclick="backToClinic()">←</button>
     </div>
+
+    <div class="sep"></div>
+
+    <div class="muted">Советы дежурных:</div>
+    <div id="doctor-advice" class="hint"></div>
+  </div>
 
       <div class="sep"></div>
 
@@ -961,6 +1028,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
     <div>Обучение</div>
   </button>
 </div>
+
 
 <script>
 
@@ -4296,6 +4364,18 @@ if(elPatientActions){
 }
 
   elPatientTitle.textContent = p.name;
+
+  // аватар (пока заглушка)
+const ava = document.getElementById("patient-avatar");
+if(ava){
+  ava.src = "img/patients/placeholder.png"; // позже заменим на рандом из пака
+}
+
+// редкость
+const rar = document.getElementById("patient-rarity");
+if(rar){
+  rar.textContent = rarityLabel(p.rarity || RARITY.COMMON).toLowerCase();
+}
 
 const disease = getDiseaseById(p.trueDiseaseId);
 
