@@ -2702,7 +2702,7 @@ function canUpgrade(w, stat){
   function buyWardB(){
   if(state.unlocks?.wardB) return;
 
-  const cost = 200;
+  const cost = 3500;
   if(state.coins < cost) return;
 
   state.coins -= cost;
@@ -4001,7 +4001,7 @@ card.innerHTML = `
 
   // кнопка покупки второй палаты
   if(!state.unlocks?.wardB){
-    const cost = 200;
+    const cost = 3500;
     const disabled = state.coins < cost ? "disabled" : "";
     const div = document.createElement("div");
     div.className = "card";
