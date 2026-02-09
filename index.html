@@ -1907,11 +1907,6 @@ function cloudSaveDebounced(){
    3) ACTIVE MAP (treatments in progress per ward)
 ========================================================= */
 
-function getActiveWardMap(wardId){
-  const map = getActiveMap();
-  return map[String(wardId)] || {};
-}
-  
 function saveActiveMap(map){
   localStorage.setItem(LS_ACTIVE, JSON.stringify(map || {}));
 }
@@ -1945,7 +1940,7 @@ function saveActiveMap(map){
 // вернёт объект по палате: { [patientId]: {treatmentId,endAt} }
 function getActiveWardMap(wardId){
   const map = getActiveMap();
-  return map[wardId] || {};
+  return map[String(wardId)] || {};
 }
 
 function getActiveForPatient(wardId, patientId){
