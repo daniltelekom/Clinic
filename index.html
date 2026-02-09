@@ -66,7 +66,7 @@
 body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
 }
-    }
+
     h2{margin:0 0 10px 0; font-size:18px}
     .card{
       background:rgba(0,0,0,.12);
@@ -3502,7 +3502,7 @@ function showScreen(name){
   document.getElementById("screen-shop").classList.toggle("active", name==="shop");
   document.getElementById("screen-research").classList.toggle("active", name==="research");
   // чтобы не было "пустого слота" без недели
-  document.body.classList.toggle("onClinic", name === "clinic");
+    document.body.classList.toggle("onClinic", name === "clinic");
 
   // неделя видна только на главном
   const weekPanel = document.getElementById("week-panel");
@@ -4976,10 +4976,15 @@ elLootOk.addEventListener("click", (e)=>{
 ========================================================= */
 
 boot().then(() => {
+  // ✅ если смена активна — показываем клинику, иначе например лавку/штат можно оставить как было
+  showScreen(state?.shift?.active ? "clinic" : "clinic"); // пока пусть всегда clinic, но условие оставили
+
   if(state?.shift?.active) fillQueue();
+
   if(!localStorage.getItem(LS_TUTORIAL_DONE)){
     startTutorial(false);
   }
+
   refreshVisibleUI();
 }).catch(err => {
   showCrash("BOOT CRASH", err);
