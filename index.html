@@ -4310,9 +4310,9 @@ if(elPatientActions){
 
    const ward = findWardByPatient(patientId);
   // ✅ Если по пациенту уже есть результат — показываем результат, а не выбор лечения
-  const pending = w?.pendingResults?.[String(patientId)];
+  const pending = ward?.pendingResults?.[String(patientId)];
   if(pending){
-    showResultForPatient(w.id, patientId);
+    showResultForPatient(ward.id, patientId);
     return;
   }
   const inWard = !!ward;
