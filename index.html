@@ -732,11 +732,16 @@ body:not(.onClinic) .screen.active .panel:first-child{
 }
 
 .patientDisease{
-  flex:1;
-  min-width:0;
-  white-space:normal;
-  overflow-wrap:anywhere;
-  line-height:1.2;
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+
+  /* ВАЖНО: не рвать слова посреди букв */
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+
+  line-height: 1.2;
 }
 
 .patientBack{
@@ -1864,21 +1869,41 @@ if(Number(s.spawn.nextAt) > Date.now() + 30_000){
  function maybeBreakWardUpgrade(w){
   if(!w) return;
 
-  // ✅ гарантируем контейнер поломок
+  // контейнер поломок
   if(!w.broken || typeof w.broken !== "object") w.broken = {};
 
-  // ломаем только если смена идёт
+  // ломаем только когда смена идёт
   if(!state.shift?.active) return;
 
-  // шанс поломки (подкрути потом)
-  if(Math.random() > 0.03) return;
+  const t = now();
 
-  const parts = ["comfort", "cleanliness", "ventilation", "light"];
+  // ---- КУЛДАУН: проверяем поломку редко, а не 2 раза в секунду ----
+  // первая инициализация: через 2-4 минуты после старта
+  if(!Number.isFinite(Number(w.nextBreakAt))){
+    w.nextBreakAt = t + randInt(120, 240) * 1000; // 2..4 минуты
+    return;
+  }
+
+  // ещё рано проверять
+  if(t < Number(w.nextBreakAt)) return;
+
+  // следующая проверка через 2-4 минуты
+  w.nextBreakAt = t + randInt(120, 240) * 1000;
+
+  // ---- шанс поломки НА ОДНУ ПРОВЕРКУ ----
+  // 20% раз в 2-4 минуты = примерно 1 поломка на палату раз в 10-20 минут (в среднем)
+  const CHANCE = 0.20;
+  if(Math.random() > CHANCE) return;
+
+  // ломаем только то, что ещё не сломано
+  const parts = ["comfort", "cleanliness", "ventilation", "light"]
+    .filter(p => !w.broken[p]);
+
+  if(!parts.length) return;
+
   const part = parts[Math.floor(Math.random() * parts.length)];
-
-  if(w.broken[part]) return; // уже сломано
-
   w.broken[part] = true;
+
   saveState();
 }
   
@@ -3448,7 +3473,8 @@ async function boot(){
   normalizeCalendar();
   normalizeActiveMap();
   applyAllModifiers();
-
+  ensureWardBrokenField();
+  saveState();
   refreshVisibleUI();
 }
 
@@ -4559,17 +4585,21 @@ if(p.lastTreatmentFailed && p.lastTreatmentId){
 if(!inWard){
   const free = state.wards.find(w => (w.patients?.length || 0) < (w.bedsMax || 2));
 
-  elPatientActions.innerHTML = `
-    <h2>Действия</h2>
+ elPatientActions.innerHTML = `
+  <h2>Действия</h2>
+
+  <div class="grid2" style="margin-top:10px;">
     <button class="btn ok" ${free ? "" : "disabled"} onclick="placeSelectedToFreeWard()">
       🛏 Положить в палату
       <div class="muted">${free ? "Отправит в первую свободную палату" : "Нет свободных палат"}</div>
     </button>
+
     <button class="btn" onclick="backToClinic()">
       ✖ Закрыть карточку
       <div class="muted">Вернуться в клинику</div>
     </button>
-  `;
+  </div>
+`;
 } else {
   elPatientActions.innerHTML = `
     <h2>Действия</h2>
