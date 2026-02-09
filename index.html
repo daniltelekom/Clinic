@@ -727,18 +727,16 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
 .patientMiniRow{
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:flex-start;   /* было center */
 }
 
 .patientDisease{
-  min-width:0;              /* важно для flex */
-  white-space:normal;       /* было nowrap */
-  overflow:hidden;
-  display:-webkit-box;      /* аккуратные 2 строки */
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-  opacity:.95;
+  flex:1;
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.2;
 }
 
 .patientBack{
@@ -2599,8 +2597,8 @@ function findWardByPatient(patientId){
   return state.wards.find(w => (w.patients || []).includes(patientId)) || null;
 }
 
-const MALE_PORTRAITS = ["m1.png","m2.png","m3.png","m4.png","m5.png","m6.png"];
-const FEMALE_PORTRAITS = ["f1.png"];
+const MALE_PORTRAITS = ["m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m10.png"];
+const FEMALE_PORTRAITS = ["f1.png","f2.png","f3.png","f4.png","f5.png"];
 
 function ensurePatientPortrait(p){
   if(!p) return "img/patients/placeholder.png";
@@ -3487,10 +3485,27 @@ function completeTreatmentPatient(wardId, patientId){
   const active = getActiveForPatient(wardId, patientId);
   if(!active) return;
 
-  const outcome = rollOutcome(patientId, active.treatmentId, wardId);
-
-  // ✅ сохраняем “что пробовали” и “получилось ли”
   const p = patientById(patientId);
+
+  // было ли уже "не подействовало" до текущей попытки
+  const wasFailedBefore = !!(p && p.lastTreatmentFailed);
+
+  let outcome = rollOutcome(patientId, active.treatmentId, wardId);
+
+  // правило: если продолжили лечение после провала и снова WORSENED -> смерть
+  if(wasFailedBefore && outcome.kind === OUTCOMES.WORSENED){
+    outcome = {
+      ...outcome,
+      kind: OUTCOMES.DEATH,
+      xpKind: "bad",
+      flavor: "Организм не выдержал повторного издевательства. Добро пожаловать в морг.",
+      coinsDelta: outcome.coinsDelta ?? 0,
+      reputationDelta: (outcome.reputationDelta ?? 0) - 2,
+      biomaterialDelta: (outcome.biomaterialDelta ?? 0) + 1,
+    };
+  }
+
+  // сохраняем что пробовали и исход
   if(p){
     p.lastTreatmentId = active.treatmentId;
     p.lastOutcomeKind = outcome.kind;
@@ -3511,20 +3526,20 @@ function completeTreatment(wardId, patientId){
 }
 window.completeTreatment = completeTreatment;
 
-  function continueTreatment(patientId, wardId){
+ function continueTreatment(patientId, wardId){
   if(!state.shift?.active) return;
 
   const w = wardById(wardId);
   const p = patientById(patientId);
   if(!w || !p) return;
 
+  const pid = String(patientId);
+
   w.pendingResults = w.pendingResults || {};
+  if(!w.pendingResults[pid]) return;
 
-  // если нет результата на этого пациента — продолжать нечего
-  if(!w.pendingResults[patientId]) return;
-
-  // чистим результат, пациента НЕ трогаем (остаётся в палате)
-  delete w.pendingResults[patientId];
+  // чистим результат, пациента НЕ трогаем
+  delete w.pendingResults[pid];
 
   // сбрасываем варианты лечения, чтобы игрок выбирал заново
   p.treatmentOptions = null;
@@ -3533,8 +3548,6 @@ window.completeTreatment = completeTreatment;
   state.reputation = (state.reputation || 0) - 1;
 
   saveState();
-
-  // открыть пациента и дать выбрать лечение заново
   openPatientById(patientId);
   refreshVisibleUI();
 }
@@ -3544,23 +3557,27 @@ function dischargePatient(patientId, wardId){
   const w = wardById(wardId);
   if(!w) return;
 
+  const pid = String(patientId);
+
   w.patients = w.patients || [];
   w.pendingResults = w.pendingResults || {};
 
-  // убрать из палаты
-  w.patients = w.patients.filter(id => id !== patientId);
+  w.patients = w.patients.filter(id => String(id) !== pid);
+  delete w.pendingResults[pid];
 
-  // убрать результат
-  delete w.pendingResults[patientId];
-
-  // убрать активное лечение (на всякий случай)
   clearActiveForPatient(wardId, patientId);
+
+  // важно: сбрасываем флаг фейла, чтобы следующий пациент не унаследовал драму
+  const p = patientById(patientId);
+  if(p){
+    p.lastTreatmentFailed = false;
+    p.lastOutcomeKind = null;
+    // p.lastTreatmentId = null; // по желанию
+  }
 
   saveState();
   backToClinic();
   refreshVisibleUI();
-
-
 }
 window.dischargePatient = dischargePatient;
 
@@ -4373,10 +4390,12 @@ if(elPatientActions){
   elPatientActions.style.display = "block";
 }
 
-   const ward = findWardByPatient(patientId);
-  const inWard = !!ward;
+const ward = findWardByPatient(patientId);
+const inWard = !!ward;
 
- if(ward?.pendingResults?.[patientId]){
+const pid = String(patientId);
+
+if(ward?.pendingResults?.[pid]){
   // ✅ когда показываем результат - прячем действия
   if(elPatientActions) elPatientActions.style.display = "none";
   showResultForPatient(patientId);
@@ -4412,13 +4431,13 @@ const failNote =
 elPatientSub.textContent = `${(p.visibleSymptoms || []).join(", ")} • ${p.clue}${failNote}`;
 elPatientDisease.innerHTML = getDiseaseDisplayLine(p);
 
-  // ⛔ прошлое лечение не сработало
-if(p.lastTreatmentFailed && p.lastTreatment){
+  // прошлое лечение не сработало
+if(p.lastTreatmentFailed && p.lastTreatmentId){
   const failLine = document.createElement("div");
   failLine.className = "hint";
   failLine.style.color = "var(--warn)";
   failLine.style.marginTop = "6px";
-  failLine.textContent = `${methodName(p.lastTreatment)} не подействовало`;
+  failLine.textContent = `${methodName(p.lastTreatmentId)} не подействовало`;
   elPatientDisease.appendChild(failLine);
 }
   
@@ -4731,9 +4750,10 @@ function showResultForPatient(patientId){
   const ward = findWardByPatient(patientId);
   if(!ward) return;
 
-  ward.pendingResults = ward.pendingResults || {};
-  const r = ward.pendingResults[patientId];
-  if(!r) return;
+ ward.pendingResults = ward.pendingResults || {};
+const pid = String(patientId);
+const r = ward.pendingResults[pid];
+if(!r) return;
 
   elTreatPanel.style.display = "none";
   elActiveTreatment.style.display = "none";
