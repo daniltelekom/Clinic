@@ -1810,7 +1810,7 @@ rewards: {
     },
 
     lab: {
-  costCoins: 15,      // цена исследования
+  costCoins: 25,      // цена исследования
   maxPerPatient: 2    // сколько раз можно ковыряться в одном пациенте
 },
     
@@ -3407,12 +3407,12 @@ const CHESTS = {
   common: {
     title: " Обычный сундук",
     desc: "Шанс на полезняк. Иногда даже без боли.",
-    costCoins: 120,
+    costCoins: 350,
     loot: [
-      { type:"coins", min:40, max:120, weight:35 },
+      { type:"coins", min:70, max:400, weight:35 },
       { type:"bio",   min:1,  max:3,   weight:15 },
       { type:"rep",   min:1,  max:3,   weight:15 },
-      { type:"doctor_unlock", rarity:"any", weight:4 },
+      { type:"doctor_unlock", rarity:"any", weight:7 },
 
       // отдых-токены под твою уже сделанную механику
       { type:"rest_small", value:1, weight:20 },
@@ -4111,7 +4111,7 @@ const SHOP = [
     id:"lab_extra",
     title:"Лаборант",
     desc:"+1 исследование на пациента",
-    cost:{ coins: 10 },
+    cost:{ coins: 20 },
     can: ()=> Number(state.perks?.labExtra || 0) < 2,
     buy: ()=> { state.perks.labExtra = Number(state.perks.labExtra || 0) + 1; }
   },
@@ -4138,7 +4138,7 @@ const SHOP = [
     id:"queue_buffer",
     title:"Расширение очереди",
     desc:"+1 к размеру очереди",
-    cost:{ coins: 300 },
+    cost:{ coins: 600 },
     can: ()=> (Number(state.perks?.queueBuffer || 0) < 4),
     buy: ()=> { state.perks.queueBuffer = Number(state.perks.queueBuffer || 0) + 1; }
   },
@@ -4147,7 +4147,7 @@ const SHOP = [
     id:"treat_speed",
     title:"Койки получше",
     desc:"+10% скорость лечения",
-    cost:{ coins: 270 },
+    cost:{ coins: 570 },
     can: ()=> (Number(state.perks?.treatSpeed || 0) < 30),
     buy: ()=> { state.perks.treatSpeed = Number(state.perks.treatSpeed || 0) + 10; }
   },
@@ -4156,7 +4156,7 @@ const SHOP = [
     id:"rest_small",
     title:"Отвар для персонала",
     desc:"-20% усталости выбранному врачу (в Штате появится кнопка)",
-    cost:{ coins: 70 },
+    cost:{ coins: 150 },
     can: ()=> true,
     buy: ()=> { state._shopRestToken = (state._shopRestToken || 0) + 1; }
   },
@@ -4165,7 +4165,7 @@ const SHOP = [
     id:"rest_big",
     title:"Выходной по приказу",
     desc:"-35% усталости выбранному врачу (в Штате появится кнопка)",
-    cost:{ coins: 140 },
+    cost:{ coins: 540 },
     can: ()=> true,
     buy: ()=> { state._shopRestTokenBig = (state._shopRestTokenBig || 0) + 1; }
   },
@@ -4174,7 +4174,7 @@ const SHOP = [
     id:"rest_all",
     title:"Каша для всех",
     desc:"-12% усталости всем врачам",
-    cost:{ coins: 220 },
+    cost:{ coins: 320 },
     can: ()=> true,
     buy: ()=> { reduceAllDoctorsFatigue(12, false); }
   },
@@ -4183,7 +4183,7 @@ const SHOP = [
     id:"rest_backline",
     title:"Сон для не-дежурных",
     desc:"-18% усталости всем, кто НЕ дежурит",
-    cost:{ coins: 180 },
+    cost:{ coins: 380 },
     can: ()=> true,
     buy: ()=> { reduceAllDoctorsFatigue(18, true); }
   },
@@ -4453,18 +4453,7 @@ const RESEARCH = [
     state.perks.queueWaitMul = Math.max(state.perks.queueWaitMul || 1.0, 1.5);
   }
 },
-  {
-  id:"queue_wait_plus",
-  name:"Терпение народа",
-  desc:"Пациенты дольше ждут в очереди (+50%)",
-  costCoins: 250,
-  costBio: 6,
-  timeSec: 120,
-  requires: [],
-  apply(){
-    state.perks.queueWaitMul = Math.max(state.perks.queueWaitMul || 1.0, 1.5);
-  }
-}
+
 ];
 
 function studyMul(def){
@@ -4771,10 +4760,15 @@ function renderTop(){
   const week = state.calendar?.week ?? 1;
   const shiftInWeek = state.calendar?.shiftInWeek ?? 1;
 
-if(elWeekTitleText)
+if(elWeekTitleText){
   elWeekTitleText.textContent = `Неделя ${week}: ${ev ? ev.name : "--"}`;
-  if(elWeekDesc)  elWeekDesc.textContent  = `Эффекты: ${ev ? ev.desc : "—"}`;
-  if(elWeekShift) elWeekShift.textContent = `Смена: ${shiftInWeek}/7`;
+}
+  if(elWeekDesc){
+      elWeekDesc.textContent  = `Эффекты: ${ev ? ev.desc : "—"}`;
+  }
+   if(elWeekShift){
+      elWeekShift.textContent = `Смена: ${shiftInWeek}/7`;
+  }
 }
 
 function renderClinic(){
@@ -4953,7 +4947,7 @@ card.innerHTML = `
   // кнопка покупки второй палаты
   if(!state.unlocks?.wardB){
     const cost = 3500;
-    const disabled = (state.coins < price) ? "disabled" : "";
+    const disabled = (state.coins < cost) ? "disabled" : "";
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
