@@ -14,7 +14,7 @@
       --panel2:#0f1730;
       --text:#e9eefc;
       --muted:#9fb0d9;
-      --line:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,0.08);
       --ok:#49d17d;
       --warn:#ffcc66;
       --bad:#ff6b6b;
@@ -27,7 +27,7 @@
       margin:0; font-family:system-ui,Segoe UI,Roboto,Arial;
      background:
   url("img/ui/global_bg.png") center/cover no-repeat,
-  radial-gradient(1200px 700px at 30% -20%, rgba(91,124,255,.25), transparent 60%),
+  radial-gradient(1200px 700px at 30% -20%, rgba(91,124,255,0.25), transparent 60%),
   var(--bg);
       color:var(--text);
     }
@@ -42,7 +42,7 @@
   padding:12px 14px; 
   border:1px solid var(--line); 
   border-radius:16px;
-  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
   margin-bottom:12px;
    background:
     url("img/topbar_bg.png") center/cover no-repeat,
@@ -1778,7 +1778,7 @@ unlocks: {
   treatSpeed: 0       // % ускорение лечения
 },
     base: {
-  maxQueue: 3,
+  maxQueue: 6,
   baseWaitSec: 120,
   baseTreatSecMin: 120,
   baseTreatSecMax: 300,
@@ -1894,10 +1894,10 @@ function loadState(){
     if(!Array.isArray(s.doctorsOwned)) s.doctorsOwned = [];
 
     if(!s.duty) s.duty={slot1:pickRandomDoctorId(), slot2:pickRandomDoctorId(true)};
-    if(!s.maxQueue) s.maxQueue=6;
-    if(!s.baseWaitSec) s.baseWaitSec=120;
-    if(!s.baseTreatSecMin) s.baseTreatSecMin=120;
-    if(!s.baseTreatSecMax) s.baseTreatSecMax=300;
+    if(s.maxQueue == null) s.maxQueue = 6;
+    if(s.baseWaitSec == null) s.baseWaitSec = 120;
+    if(s.baseTreatSecMin == null) s.baseTreatSecMin = 120;
+    if(s.baseTreatSecMax == null) s.baseTreatSecMax = 300;
 
     if(!s.lab) s.lab = { costCoins: 15, maxPerPatient: 2 };
     if(s.lab.costCoins==null) s.lab.costCoins = 15;
@@ -1926,8 +1926,8 @@ function loadState(){
 
     // миграция базовой очереди (для старых сейвов)
     if(!s.base) s.base = {};
-    if(!Number.isFinite(s.base.maxQueue)) s.base.maxQueue = 3;
-    s.base.maxQueue = Math.min(s.base.maxQueue, 3);
+    if(!Number.isFinite(s.base.maxQueue)) s.base.maxQueue = 6;
+    s.base.maxQueue = Math.min(s.base.maxQueue, 6);
 
     if(!s.flags) s.flags = { showStarShop:false };
     if(typeof s.flags.showStarShop !== "boolean") s.flags.showStarShop = false;
@@ -2664,7 +2664,7 @@ function applyPerks(){
   // очередь из перков лавки
   state.maxQueue = Math.min(
   10,
-  (state.base?.maxQueue ?? 3)
+  (state.base?.maxQueue ?? 6)
   + (state.perks?.queueBuffer ?? 0)
   + (state.queueUpg?.capLvl ?? 0)
 );
@@ -4738,10 +4738,12 @@ const elResultText = document.getElementById("result-text");
 const elRewardList = document.getElementById("reward-list");
 const elRewardHint = document.getElementById("reward-hint");
 const elNextShiftBtn = document.getElementById("btn-next-shift");
+if(elNextShiftBtn){
   elNextShiftBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  startNewShift();
-});
+    e.preventDefault();
+    startNewShift();
+  });
+}
 
 const elLabBtn = document.getElementById("btn-lab");
 const elLabSub = document.getElementById("lab-sub");
@@ -5209,6 +5211,7 @@ function tryPlaceOrOpen(patientId){
 }
 
 function bedCostForWard(w){
+  
   // w.bedsMax — сколько коек уже открыто (старт 2)
   w.bedsMax = w.bedsMax || 2;
 
@@ -5221,6 +5224,8 @@ function bedCostForWard(w){
 
   return cost;
 }
+
+
 
 function buyBed(wardId){
   const w = wardById(wardId);
@@ -5762,7 +5767,6 @@ setInterval(()=>{
     fillQueue(); 
     processQueueTick();
     processTreatmentsTick();
-    state.wards.forEach(w => maybeBreakWardUpgrade(w));
     refreshVisibleUI();
   }catch(err){
     console.log("TICK CRASH", err);
