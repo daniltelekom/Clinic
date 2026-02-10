@@ -447,16 +447,19 @@ body:not(.onClinic) .screen.active .panel:first-child{
 }
 
 /* Плашка пациента в палате (обводка как у чипа) */
+/* Строка пациента: не даём flex-разъезжаться */
 .wardPatientRow{
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.22);
-  border-radius: 14px;
-  padding: 10px 12px;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  width:100%;
+  min-width:0;
+  padding:8px 10px;
+  border-radius:12px;
+  box-sizing:border-box;
+  cursor:pointer;
+  transition: transform .08s ease, filter .08s ease;
 }
 
 /* ===== подсветка статусов пациента (вся карточка) ===== */
@@ -507,11 +510,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   .wardPatientsGrid{
     grid-template-columns: 1fr;   /* было 2 колонки, станет 1 */
     gap: 10px;
-  }
-
-  .wardPatientRow{
-    padding: 8px 10px;            /* компактнее */
-    border-radius: 12px;
   }
 
   .wardPatientName{
@@ -647,21 +645,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   vertical-align: -3px;
   margin-right: 6px;
   opacity: .95;
-}
-
-/* Строка пациента: не даём flex-разъезжаться */
-.wardPatientRow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  width:100%;
-  min-width:0;
-  padding:8px 10px;
-  border-radius:12px;
-  box-sizing:border-box;
-  cursor:pointer;
-  transition: transform .08s ease, filter .08s ease;
 }
 
 .wardPatientRow:active{
@@ -847,10 +830,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   width:50%;
   background: rgba(255,255,255,.55);
 }
-.queueAvatarBtn{
-  position: relative;
-}
-
 .queueTimeText{
   position:absolute;
   left:50%;
