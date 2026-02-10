@@ -874,6 +874,60 @@ body:not(.onClinic) .screen.active .panel:first-child{
 .queueTimeText.warn{ color: var(--warn); }
 .queueTimeText.bad{ color: var(--bad); }
 
+
+/* ========== PHARMACY ========== */
+.cardBg{
+  background-size: cover;
+  background-position: center;
+}
+
+.pharmacyBg{ background-image: url("img/bg/pharmacy_main.jpg"); }
+.pharmacyOrderBg{ background-image: url("img/bg/pharmacy_order.jpg"); }
+.pharmacyMedsBg{ background-image: url("img/bg/pharmacy_meds.jpg"); }
+.pharmacyResultBg{ background-image: url("img/bg/pharmacy_result.jpg"); }
+
+.queueGrid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+}
+
+.queueAvatarBtn{
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.25);
+  aspect-ratio: 1 / 1;
+}
+
+.queueAvatarImg{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  filter: contrast(1.05);
+}
+
+.queueAvatarBtn.common{ box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset; }
+.queueAvatarBtn.rare{ box-shadow: 0 0 0 2px rgba(255,215,0,.25) inset; }
+.queueAvatarBtn.legendary{ box-shadow: 0 0 0 2px rgba(120,220,255,.25) inset; }
+
+.queueTimerTiny{
+  position:absolute;
+  left:8px; right:8px; bottom:8px;
+  height:8px;
+  border-radius:6px;
+  background: rgba(0,0,0,.35);
+  overflow:hidden;
+}
+.queueTimerTiny i{
+  display:block;
+  height:100%;
+  background: rgba(255, 190, 70, .95);
+  border-radius:6px;
+}
+
 /* Подсветка всей строки по статусу */
 .wardPatientRow.st-result{ background: rgba(73, 209, 125, .16); } /* зелёный: есть результат */
 .wardPatientRow.st-done  { background: rgba(73, 209, 125, .22); } /* ярче: можно забрать */
@@ -1154,10 +1208,96 @@ body:not(.onClinic) .screen.active .panel:first-child{
     <div>Исслед.</div>
   </button>
 
+<button class="bbItem" id="bb-apteka" onclick="startPharmacy()">
+    <img src="img/control/apteka.png" alt="">
+    <div>Аптека</div>
+  </button>
+  
   <button class="bbItem" id="bb-tutorial" onclick="startTutorial(true)">
     <img src="img/control/tutorial.png" alt="">
     <div>Обучение</div>
   </button>
+</div>
+
+
+<!-- SCREEN: PHARMACY -->
+<div class="screen" id="screen-pharmacy">
+  <div class="panel cardBg pharmacyBg">
+    <div class="row" style="align-items:center; justify-content:space-between;">
+      <div class="listTitle">🏺 Аптека</div>
+      <button class="btn small" type="button" onclick="backToClinic()">✖ Закрыть</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <button class="btn ok" type="button" onclick="openPharmacyMeds()">🧪 Лекарства</button>
+
+    <div class="sep"></div>
+
+    <div class="muted" style="margin-bottom:8px;">Очередь клиентов</div>
+    <div id="pharmacy-queue"></div>
+
+    <div class="hint" style="margin-top:10px; opacity:.85;">
+      Клиенты приходят редко. В “Изучении” можно прокачать частоту.
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: PHARM ORDER -->
+<div class="screen" id="screen-pharm-order">
+  <div class="panel cardBg pharmacyOrderBg">
+    <div class="row" style="align-items:center; justify-content:space-between;">
+      <div class="listTitle">📜 Заказ</div>
+      <button class="btn small" type="button" onclick="openPharmacy()">✖ Закрыть</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div id="pharm-order-text" class="hint"></div>
+
+    <div class="sep"></div>
+
+    <div class="muted">Варианты ответа:</div>
+    <div id="pharm-order-answers" style="margin-top:8px;"></div>
+
+    <div class="sep"></div>
+
+    <div class="muted">Подходящие средства (если изучены):</div>
+    <div id="pharm-order-meds" class="hint" style="margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- SCREEN: PHARM MEDS LIST -->
+<div class="screen" id="screen-pharm-meds">
+  <div class="panel cardBg pharmacyMedsBg">
+    <div class="row" style="align-items:center; justify-content:space-between;">
+      <div class="listTitle">🧪 Лекарства</div>
+      <button class="btn small" type="button" onclick="openPharmacy()">← Назад</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div id="pharm-meds-active" class="hint" style="display:none;"></div>
+    <div id="pharm-meds-list"></div>
+  </div>
+</div>
+
+<!-- SCREEN: PHARM RESULT -->
+<div class="screen" id="screen-pharm-result">
+  <div class="panel cardBg pharmacyResultBg">
+    <div class="row" style="align-items:center; justify-content:space-between;">
+      <div class="listTitle">📌 Итог</div>
+      <button class="btn small" type="button" onclick="openPharmacy()">✖ Закрыть</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div id="pharm-result-text" class="hint"></div>
+
+    <div class="sep"></div>
+
+    <div id="pharm-result-reward" class="hint"></div>
+  </div>
 </div>
 
 
@@ -1845,6 +1985,17 @@ spawn: {
 
 },
 
+pharmacy: {
+  queue: [],          // список id клиентов
+  clients: {},        // id -> client data
+  nextAt: 0,          // когда ждать следующего клиента
+  lastResult: null,   // для экрана итога
+  medsStudied: {},    // medId -> true
+  medsStudying: null, // { id, endAt }
+  served: 0,
+  perfect: 0
+},
+
 flags: {
   showStarShop: false // легендарный сундук скрыт
 },
@@ -1959,6 +2110,17 @@ function loadState(){
 
     if(!s.rewards) s.rewards = { pending:null, chosenId:null };
     if(s.rewards.chosenId === undefined) s.rewards.chosenId = null;
+
+    // --- migrate pharmacy ---
+s.pharmacy = s.pharmacy || {};
+s.pharmacy.queue = s.pharmacy.queue || [];
+s.pharmacy.clients = s.pharmacy.clients || {};
+s.pharmacy.medsStudied = s.pharmacy.medsStudied || {};
+s.pharmacy.medsStudying = s.pharmacy.medsStudying || null;
+s.pharmacy.nextAt = Number(s.pharmacy.nextAt || 0);
+s.pharmacy.lastResult = s.pharmacy.lastResult || null;
+s.pharmacy.served = Number(s.pharmacy.served || 0);
+s.pharmacy.perfect = Number(s.pharmacy.perfect || 0);
 
     // если в pending старая структура — сброс
     if(s.rewards?.pending && Array.isArray(s.rewards.pending)){
@@ -2964,6 +3126,136 @@ const treatSec = Math.max(30, Math.round(baseTreat * (1 - speed/100)));
     diffFinalId: null
     
   };
+}
+
+const PHARM_MEDICINES = [
+  {
+    id:"belladonna",
+    name:"Беладонна",
+    tags:["pain","fever","sleep"],
+    studyCoins: 120,
+    studyTimeSec: 90,
+    desc:"Снимает боль и жар. Опасна. Дозировку соблюдай, а то клиент уйдёт в ад без очереди.",
+    req: { served: 0, perfect: 0 }
+  },
+  {
+    id:"warm_stone",
+    name:"Тёплый камень",
+    tags:["pain","cold","calm"],
+    studyCoins: 160,
+    studyTimeSec: 120,
+    desc:"Снимает боль, даёт тепло и чувство, что жизнь не бессмысленна.",
+    req: { served: 3, perfect: 0 }
+  },
+  {
+    id:"herbs_mix",
+    name:"Настой трав",
+    tags:["calm","sleep","stomach"],
+    studyCoins: 140,
+    studyTimeSec: 110,
+    desc:"Успокаивает, иногда даже лечит. Иногда просто красиво пахнет.",
+    req: { served: 0, perfect: 1 }
+  },
+];
+
+function medById(id){
+  return PHARM_MEDICINES.find(m => m.id === id) || null;
+}
+
+const PHARM_ORDER_TEMPLATES = [
+  {
+    id:"order_headache",
+    keywords:["pain","sleep"],
+    text:`У моего мужа очень сильно болит голова, он не может спать, вечно на взводе. Раньше бил сильнее.`,
+    answers:[
+      { text:"Дать Беладонну (аккуратно)", kind:"good" },
+      { text:"Пусть выпьет настой трав и молится", kind:"neutral" },
+      { text:"Кровопускание, чтобы не выпендривался", kind:"bad" },
+      { text:"Двойная дозировка, чтобы наверняка", kind:"lethal" },
+    ]
+  },
+  {
+    id:"order_cold",
+    keywords:["cold","pain"],
+    text:`Он мёрзнет даже в бане, суставы ломит, но работать заставляет его барин.`,
+    answers:[
+      { text:"Тёплый камень и покой", kind:"good" },
+      { text:"Настой трав (чтобы не ныл)", kind:"neutral" },
+      { text:"Соль в рану. Закалка.", kind:"bad" },
+    ]
+  }
+];
+
+function ensurePharmacyState(){
+  state.pharmacy = state.pharmacy || {};
+  state.pharmacy.queue = state.pharmacy.queue || [];
+  state.pharmacy.clients = state.pharmacy.clients || {};
+  state.pharmacy.medsStudied = state.pharmacy.medsStudied || {};
+  state.pharmacy.medsStudying = state.pharmacy.medsStudying || null;
+  state.pharmacy.nextAt = Number(state.pharmacy.nextAt || 0);
+  state.pharmacy.lastResult = state.pharmacy.lastResult || null;
+  state.pharmacy.served = Number(state.pharmacy.served || 0);
+  state.pharmacy.perfect = Number(state.pharmacy.perfect || 0);
+}
+
+function pharmacyUnlocked(){
+  return !!state.perks?.pharmacyOpen;
+}
+
+function makePharmClient(){
+  const tpl = pick(PHARM_ORDER_TEMPLATES);
+  const id = "c" + Math.random().toString(16).slice(2,8);
+
+  // аватарку можно reuse из пациентов:
+  const fakePatient = { gender: (Math.random()<0.5 ? "m" : "f") };
+  const portrait = ensurePatientPortrait(fakePatient);
+
+  return {
+    id,
+    portrait,
+    tplId: tpl.id,
+    text: tpl.text,
+    keywords: tpl.keywords,
+    answers: tpl.answers
+  };
+}
+
+function scheduleNextPharmClient(){
+  // базово “редко”: раз в 12–20 минут
+  let minSec = 12*60;
+  let maxSec = 20*60;
+
+  // прокачки: уменьшаем интервал
+  const mul = (state.perks?.pharmacySpawnMul ?? 1.0); // 1.0 норм, 0.8 быстрее и т.п.
+  minSec = Math.round(minSec * mul);
+  maxSec = Math.round(maxSec * mul);
+
+  const dt = randInt(minSec, maxSec);
+  state.pharmacy.nextAt = now() + dt*1000;
+}
+
+function processPharmacyTick(){
+  if(!state.shift?.active) return;
+  ensurePharmacyState();
+  if(!pharmacyUnlocked()) return;
+
+  // если очередь переполнена, не спавним
+  if(state.pharmacy.queue.length >= 9) return;
+
+  if(!state.pharmacy.nextAt){
+    scheduleNextPharmClient();
+    saveState();
+    return;
+  }
+
+  if(now() >= state.pharmacy.nextAt){
+    const c = makePharmClient();
+    state.pharmacy.clients[c.id] = c;
+    state.pharmacy.queue.push(c.id);
+
+    scheduleNextPharmClient();
+    saveState();
+  }
 }
 
 function shuffle(arr){
@@ -4097,7 +4389,7 @@ function renderStaff(){
 
 function openShop(){
   showScreen("shop");
-  renderShop();
+  ();
 }
 
 
@@ -4121,7 +4413,7 @@ function useRestOnDoctor(docId, type){
 window.useRestOnDoctor = useRestOnDoctor;
 
 
-  // ===== ЕДИНЫЙ КАТАЛОГ ЛАВКИ (чтобы renderShop и buyPerk жили в одной реальности) =====
+  // ===== ЕДИНЫЙ КАТАЛОГ ЛАВКИ (чтобы  и buyPerk жили в одной реальности) =====
 const SHOP = [
   {
     id:"lab_extra",
@@ -4480,7 +4772,46 @@ const RESEARCH = [
   apply(){
     state.perks.queueWaitMul = Math.max(state.perks.queueWaitMul || 1.0, 1.5);
   }
-}
+},
+{
+  id:"pharmacy_open",
+  name:"Аптека",
+  desc:"Открывает аптеку. Клиенты приходят редко, но дают деньги и репутацию.",
+  costCoins: 900,
+  costBio: 0,
+  timeSec: 180,
+  req: [],
+  apply(){
+    state.perks.pharmacyOpen = true;
+    state.perks.pharmacySpawnMul = state.perks.pharmacySpawnMul ?? 1.0;
+  }
+},
+{
+  id:"pharmacy_rate1",
+  name:"Слухи о целебных средствах",
+  desc:"Клиенты в аптеку приходят чаще.",
+  costCoins: 700,
+  costBio: 1,
+  timeSec: 160,
+  req:["pharmacy_open"],
+  apply(){
+    // быстрее на 15%
+    state.perks.pharmacySpawnMul = Math.max(0.55, (state.perks.pharmacySpawnMul ?? 1.0) * 0.85);
+  }
+},
+{
+  id:"pharmacy_rate2",
+  name:"Очередь у прилавка",
+  desc:"Клиенты в аптеку приходят ещё чаще.",
+  costCoins: 1100,
+  costBio: 2,
+  timeSec: 220,
+  req:["pharmacy_rate1"],
+  apply(){
+    state.perks.pharmacySpawnMul = Math.max(0.45, (state.perks.pharmacySpawnMul ?? 1.0) * 0.80);
+  }
+},
+
 ];
 
 const STUDY_COST_MUL = 3;
@@ -4517,6 +4848,9 @@ function rebuildPerksFromResearch(){
   state.perks.autoDischarge = false;
   state.perks.coinsMul = 1.0;
   state.perks.treatTimeMul = 1.0;
+
+  state.perks.pharmacyOpen = false;
+state.perks.pharmacySpawnMul = 1.0;
 
   // новые
   state.perks.fatigueGainMul = 1.0;  // < 1 = усталость медленнее
@@ -5045,6 +5379,279 @@ if(state.queue.length===0){
   elQueue.appendChild(grid);
 }
 }
+
+function openPharmacy(){
+  showScreen("pharmacy");
+  renderPharmacy();
+}
+window.openPharmacy = openPharmacy;
+
+function openPharmacyMeds(){
+  showScreen("pharm-meds");
+  renderPharmacyMeds();
+}
+window.openPharmacyMeds = openPharmacyMeds;
+
+function openPharmOrder(clientId){
+  state.pharmacy.selectedClientId = String(clientId);
+  saveState();
+  showScreen("pharm-order");
+  renderPharmOrder();
+}
+window.openPharmOrder = openPharmOrder;
+
+function openPharmResult(){
+  showScreen("pharm-result");
+  renderPharmResult();
+}
+window.openPharmResult = openPharmResult;
+
+function renderPharmacy(){
+  ensurePharmacyState();
+  const el = document.getElementById("pharmacy-queue");
+  if(!el) return;
+
+  if(!pharmacyUnlocked()){
+    el.innerHTML =` <div class="hint">Аптека закрыта. Открой её в “Изучении”.</div>`;
+    return;
+  }
+
+  if(state.pharmacy.queue.length === 0){
+    el.innerHTML =` <div class="hint">Клиентов нет. Подозрительно тихо.</div>`;
+    return;
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "queueGrid";
+
+  for(const cid of state.pharmacy.queue){
+    const c = state.pharmacy.clients[cid];
+    if(!c) continue;
+
+    const btn = document.createElement("div");
+    btn.className = "queueAvatarBtn common";
+    btn.onclick = ()=> openPharmOrder(c.id);
+
+    const img = document.createElement("img");
+    img.className = "queueAvatarImg";
+    img.src = c.portrait || "img/patients/placeholder.png";
+
+    btn.appendChild(img);
+    grid.appendChild(btn);
+  }
+
+  el.innerHTML = "";
+  el.appendChild(grid);
+}
+
+function studiedMedsMatching(keywords){
+  const studied = state.pharmacy.medsStudied || {};
+  const res = [];
+  for(const m of PHARM_MEDICINES){
+    if(!studied[m.id]) continue;
+    if(m.tags.some(t => keywords.includes(t))) res.push(m);
+  }
+  return res;
+}
+
+function renderPharmOrder(){
+  ensurePharmacyState();
+  const c = state.pharmacy.clients[state.pharmacy.selectedClientId];
+  const elText = document.getElementById("pharm-order-text");
+  const elAns  = document.getElementById("pharm-order-answers");
+  const elMeds = document.getElementById("pharm-order-meds");
+  if(!c || !elText || !elAns || !elMeds){
+    openPharmacy();
+    return;
+  }
+
+  elText.textContent = c.text;
+
+  elAns.innerHTML = "";
+  c.answers.forEach((a, idx)=>{
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.style.marginTop = "8px";
+    b.textContent = a.text;
+    b.onclick = ()=> answerPharm(c.id, idx);
+    elAns.appendChild(b);
+  });
+
+  const match = studiedMedsMatching(c.keywords);
+  if(match.length === 0){
+    elMeds.textContent = "Нет подходящих изученных средств.";
+  }else{
+    elMeds.innerHTML = match.map(m => `• ${m.name}`).join("<br>");
+  }
+}
+
+function answerPharm(clientId, answerIndex){
+  ensurePharmacyState();
+  const c = state.pharmacy.clients[String(clientId)];
+  if(!c) return;
+
+  const ans = c.answers[answerIndex];
+  if(!ans) return;
+
+  // базовые награды/штрафы
+  let coins = 0;
+  let rep = 0;
+  let text = "";
+
+  if(ans.kind === "good"){
+    coins = 35; rep = +3;
+    text = "Клиент доволен. Подозрительно, но приятно.";
+    state.pharmacy.perfect += 1;
+  }else if(ans.kind === "neutral"){
+    coins = 15; rep = +1;
+    text = "Сработало… вроде. Никто не умер, уже успех.";
+  }else if(ans.kind === "bad"){
+    coins = 10; rep = -2;
+    text = "Вышло сомнительно. Слухи пошли быстрее, чем лечение.";
+  }else if(ans.kind === "lethal"){
+    coins = 0; rep = -4;
+    text = "Летальный исход. Средневековье одобряет твою инициативу.";
+  }
+
+  // недельные моды, если у тебя уже есть getCurrentEvent()
+  const ev = (typeof getCurrentEvent === "function") ? getCurrentEvent() : null;
+  if(ev?.id === "tainted_water"){
+    // +10% монет и репы только если они положительные
+    if(coins > 0) coins = Math.round(coins * 1.10);
+    if(rep > 0) rep = Math.round(rep * 1.10);
+  }
+
+  state.coins = Math.max(0, (state.coins||0) + coins);
+  state.reputation = (state.reputation||0) + rep;
+
+  state.pharmacy.served += 1;
+  // убрать клиента из очереди
+  state.pharmacy.queue = state.pharmacy.queue.filter(x => String(x) !== String(clientId));
+  delete state.pharmacy.clients[String(clientId)];
+  state.pharmacy.selectedClientId = null;
+
+  state.pharmacy.lastResult = { text, coins, rep };
+  saveState();
+
+  openPharmResult();
+}
+window.answerPharm = answerPharm;
+
+function renderPharmResult(){
+  ensurePharmacyState();
+  const r = state.pharmacy.lastResult;
+  const elT = document.getElementById("pharm-result-text");
+  const elR = document.getElementById("pharm-result-reward");
+  if(!elT || !elR) return;
+
+  if(!r){
+    elT.textContent = "Пусто. Значит, кто-то где-то всё сломал.";
+    elR.textContent = "";
+    return;
+  }
+
+  elT.textContent = r.text;
+  elR.innerHTML = `Награда: <b>${r.coins} 💰</b> • Репутация: <b>${r.rep}</b>`;
+}
+
+function renderPharmacyMeds(){
+  ensurePharmacyState();
+
+  const elActive = document.getElementById("pharm-meds-active");
+  const elList = document.getElementById("pharm-meds-list");
+  if(!elActive || !elList) return;
+
+  // активное изучение
+  const a = state.pharmacy.medsStudying;
+  if(a){
+    const m = medById(a.id);
+    const leftMs = Math.max(0, Number(a.endAt) - now());
+    elActive.style.display = "block";
+    elActive.innerHTML = `⏳ Изучается: <b>${m ? m.name : a.id}</b> • осталось ${Math.ceil(leftMs/1000)}с`;
+  }else{
+    elActive.style.display = "none";
+    elActive.innerHTML = "";
+  }
+
+  const studied = state.pharmacy.medsStudied || {};
+
+  let html = "";
+  for(const m of PHARM_MEDICINES){
+    const isStudied = !!studied[m.id];
+
+    // требования
+    const needServed = m.req?.served || 0;
+    const needPerfect = m.req?.perfect || 0;
+    const okReq = (state.pharmacy.served >= needServed) && (state.pharmacy.perfect >= needPerfect);
+
+    const disabled = !!state.pharmacy.medsStudying || isStudied || !okReq;
+
+    html += `
+      <div class="card" style="margin-top:10px;">
+        <div class="row" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="listTitle">${isStudied ? "✅" : "🧪"} ${m.name}</div>
+            <div class="listSub" style="opacity:.85;">Теги: ${m.tags.join(", ")}</div>
+            <div class="listSub" style="margin-top:6px; opacity:.75;">
+              Требует: обслужено ${needServed}, идеально ${needPerfect}
+            </div>
+            ${isStudied ? `<div class="hint" style="margin-top:8px;">${m.desc}</div>` : ``}
+          </div>
+          <div style="text-align:right; min-width:120px;">
+            <div class="listSub">💰 ${m.studyCoins}</div>
+            <div class="listSub">⏱️ ${m.studyTimeSec}с</div>
+          </div>
+        </div>
+
+        ${
+          isStudied
+            ? `<div class="hint" style="color:var(--ok); margin-top:8px;">Изучено</div>`
+            :` <button class="btn ${disabled ? "" : "ok"}" style="margin-top:10px; ${disabled ? "opacity:.55; pointer-events:none;" : ""}"
+                 onclick="startMedStudy('${m.id}')">
+                 ${okReq ? "Изучить" : "Недоступно"}
+               </button>`
+        }
+      </div>
+    `;
+  }
+
+  elList.innerHTML = html;
+}
+
+function startMedStudy(medId){
+  ensurePharmacyState();
+  if(state.pharmacy.medsStudying) return;
+
+  const m = medById(medId);
+  if(!m) return;
+
+  // требования
+  const needServed = m.req?.served || 0;
+  const needPerfect = m.req?.perfect || 0;
+  if(state.pharmacy.served < needServed) return;
+  if(state.pharmacy.perfect < needPerfect) return;
+
+  if((state.coins||0) < m.studyCoins) return;
+
+  state.coins -= m.studyCoins;
+  state.pharmacy.medsStudying = { id: m.id, endAt: now() + m.studyTimeSec*1000 };
+
+  saveState();
+  renderPharmacyMeds();
+}
+window.startMedStudy = startMedStudy;
+
+function processPharmStudyTick(){
+  ensurePharmacyState();
+  const a = state.pharmacy.medsStudying;
+  if(!a) return;
+  if(now() >= Number(a.endAt)){
+    state.pharmacy.medsStudied[a.id] = true;
+    state.pharmacy.medsStudying = null;
+    saveState();
+  }
+}
+  
 
 function renderDutySlot(idx, d){
   const div = document.createElement("div");
@@ -5653,7 +6260,7 @@ if(researchVisible){
   if(clinicVisible) renderClinic();
   if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
   if(staffVisible) renderStaff();
-  if(shopVisible) renderShop();
+  if(shopVisible) ();
 }
 
 /* =========================================================
@@ -5724,6 +6331,8 @@ setInterval(()=>{
     fillQueue(); 
     processQueueTick();
     processTreatmentsTick();
+    processPharmStudyTick();
+    processPharmacyTick();
     state.wards.forEach(w => maybeBreakWardUpgrade(w));
     refreshVisibleUI();
   }catch(err){
@@ -5831,6 +6440,17 @@ function buildTutorialSteps(){
       hint:"Выбирай осознанно: экономику, стабильность или ускорение.",
       focus: "#screen-shiftend"
     }
+
+    tut.steps.push({
+  title:"Аптека",
+  text:"🏺 Появилась Аптека. Клиенты приходят редко, но дают деньги и репутацию. Частоту можно прокачать во вкладке “Изучение”."
+});
+
+tut.steps.push({
+  title:"Лекарства",
+  text:"🧪 В Аптеке можно изучать лекарства за деньги и время. Изученные лекарства подсвечиваются как “подходящие” к запросам клиентов."
+});
+    
   ];
 }
 
