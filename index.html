@@ -2079,8 +2079,10 @@ function normalizeCalendar(){
 
   
 function saveState(){
-  localStorage.setItem(LS_STATE, JSON.stringify(state));
+  // ✅ метка “когда этот state был реально сохранён”
+  state._cloudAt = now();
 
+  localStorage.setItem(LS_STATE, JSON.stringify(state));
   cloudSaveDebounced();
 }
 
@@ -2131,9 +2133,9 @@ async function cloudLoad(){
 
 let cloudTimer = null;
 
-  
 function cloudSaveDebounced(){
   clearTimeout(cloudTimer);
+
   cloudTimer = setTimeout(async ()=>{
     const initData = tgInitData();
     if(!initData){
@@ -2142,6 +2144,9 @@ function cloudSaveDebounced(){
     }
 
     try{
+      // ✅ метка свежести перед отправкой
+      state._cloudAt = now();
+
       const r = await fetch("/api/save", {
         method:"PUT",
         headers:{ "Content-Type":"application/json" },
@@ -2150,6 +2155,10 @@ function cloudSaveDebounced(){
 
       const txt = await r.text().catch(()=> "");
       console.log("cloudSave status:", r.status, txt.slice(0,200));
+
+      if(!r.ok){
+        console.log("cloud save failed:", r.status, txt.slice(0,200));
+      }
     }catch(e){
       console.log("cloud save crashed", e);
     }
@@ -2160,30 +2169,47 @@ function cloudSaveDebounced(){
   const init = tgInitData();
   const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || null;
 
-  let status = null;
-  let body = null;
+  const out = {
+    href: location.href,
+    host: location.host,
+    initLen: init ? init.length : 0,
+    userId,
+    get: { status:null, body:null },
+    put: { status:null, body:null }
+  };
 
+  // GET/LOAD (у тебя POST load)
   try{
     const r = await fetch("/api/save", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ initData: init })
     });
-    status = r.status;
-    body = (await r.text()).slice(0, 300);
+    out.get.status = r.status;
+    out.get.body = (await r.text()).slice(0, 300);
   }catch(e){
-    status = "FETCH_FAIL";
-    body = String(e);
+    out.get.status = "FETCH_FAIL";
+    out.get.body = String(e);
   }
 
-  alert(JSON.stringify({
-    href: location.href,
-    host: location.host,
-    initLen: init ? init.length : 0,
-    userId,
-    apiStatus: status,
-    apiBody: body
-  }, null, 2));
+  // PUT/SAVE (проверим сохранение)
+  try{
+    // маленький тестовый пинг, не ломает игру
+    const testState = { test: true, at: Date.now() };
+
+    const r = await fetch("/api/save", {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ initData: init, state: testState })
+    });
+    out.put.status = r.status;
+    out.put.body = (await r.text()).slice(0, 300);
+  }catch(e){
+    out.put.status = "FETCH_FAIL";
+    out.put.body = String(e);
+  }
+
+  alert(JSON.stringify(out, null, 2));
 };
 /* =========================================================
    3) ACTIVE MAP (treatments in progress per ward)
@@ -3643,23 +3669,45 @@ function reconcileState(){
 let loadedFromCloud = false;
 
 async function boot(){
-  state = loadState();
+  // 1) локально
+  const local = loadState();
+  state = local;
 
+  // 2) облако
   const cloud = await cloudLoad();
+
+  // 3) выбираем что свежее
   if(cloud){
-    state = cloud;
-    loadedFromCloud = true;
-    localStorage.setItem(LS_STATE, JSON.stringify(state));
+    const localAt = Number(local?._cloudAt || 0);
+    const cloudAt = Number(cloud?._cloudAt || 0);
+
+    console.log("BOOT compare cloud/local:", { cloudAt, localAt });
+
+    if(cloudAt > localAt){
+      state = cloud;
+      localStorage.setItem(LS_STATE, JSON.stringify(state));
+      console.log("BOOT: using CLOUD state");
+    }else{
+      state = local;
+      localStorage.setItem(LS_STATE, JSON.stringify(state));
+      console.log("BOOT: using LOCAL state; pushing to cloud...");
+      cloudSaveDebounced();
+    }
   }
 
+  // 4) нормализации (один раз)
   normalizeDoctorsFatigue();
   initStartingDoctors();
   reconcileState();
   normalizeCalendar();
   normalizeActiveMap();
   applyAllModifiers();
-  ensureWardBrokenField();
-  saveState();
+
+  // если эти функции у тебя есть:
+  if(typeof ensureWardBrokenField === "function") ensureWardBrokenField();
+  if(typeof ensureShiftTimer === "function") ensureShiftTimer();
+
+  // 5) финал
   refreshVisibleUI();
 }
 
@@ -5839,12 +5887,12 @@ elLootOk.addEventListener("click", (e)=>{
 ========================================================= */
 
 boot().then(() => {
-  if(state?.shift?.active) fillQueue();
+  showScreen("clinic"); // если тебе надо всегда стартовать с клиники
+
   if(!localStorage.getItem(LS_TUTORIAL_DONE)){
     startTutorial(false);
   }
 
-   ensureWardBrokenField();
   refreshVisibleUI();
 }).catch(err => {
   showCrash("BOOT CRASH", err);
