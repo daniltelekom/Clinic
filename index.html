@@ -841,6 +841,27 @@ body:not(.onClinic) .screen.active .panel:first-child{
   width:50%;
   background: rgba(255,255,255,.55);
 }
+.queueAvatarBtn{
+  position: relative;
+}
+
+.queueTimeText{
+  position:absolute;
+  left:50%;
+  bottom:6px;
+  transform:translateX(-50%);
+  font-weight:800;
+  font-size:12px;
+  padding:2px 6px;
+  border-radius:10px;
+  background: rgba(0,0,0,.45);
+  letter-spacing: .3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+.queueTimeText.ok{ color: var(--ok); }
+.queueTimeText.warn{ color: var(--warn); }
+.queueTimeText.bad{ color: var(--bad); }
 
 /* Подсветка всей строки по статусу */
 .wardPatientRow.st-result{ background: rgba(73, 209, 125, .16); } /* зелёный: есть результат */
@@ -2256,11 +2277,11 @@ function clearActiveForWard(wardId){
 }
 
 function ensureShiftTimer(){
-  // если shift вообще отсутствует — создаём (после миграций/битых сейвов)
+  // если shift вообще отсутствует — создаём (первый запуск/битый сейв)
   if(!state.shift){
     state.shift = {
       active: true,
-      durationSec: 3 * 60 * 60,          // 20 минут (поменяешь если надо)
+      durationSec: 3 * 60 * 60,  // 3 часа
       endAt: now() + 3 * 60 * 60 * 1000
     };
     saveState();
@@ -2268,12 +2289,22 @@ function ensureShiftTimer(){
   }
 
   // durationSec может быть кривым после миграций/сейвов
-  const dur = Number(state.shift.durationSec);
+  let dur = Number(state.shift.durationSec);
   if(!Number.isFinite(dur) || dur <= 0){
-    state.shift.durationSec = 20 * 60; // 20 минут
+    dur = 3 * 60 * 60;
+    state.shift.durationSec = dur;
   }
 
-  const endAt = Number(state.shift.endAt);
+  let endAt = Number(state.shift.endAt);
+
+  // ✅ КРИТИЧНЫЙ ФИКС:
+  // если endAt похож на "секунды" (например 1712345678), а не "мс" (1712345678000)
+  // то умножаем на 1000
+  if(Number.isFinite(endAt) && endAt > 0 && endAt < 1e12){
+    endAt = endAt * 1000;
+    state.shift.endAt = endAt;
+    saveState();
+  }
 
   // если endAt отсутствует/битый — создаём заново
   if(!Number.isFinite(endAt) || endAt <= 0){
@@ -4908,12 +4939,16 @@ if(state.queue.length===0){
     const k = Math.max(0, Math.min(1, left / total));
 
     const bar = document.createElement("div");
+    const timeText = document.createElement("div");
+    timeText.className = "queueTimeText " + (left < 15000 ? "bad" : left < 40000 ? "warn" : "ok");
+    timeText.textContent = formatLeft(left); // у тебя уже есть formatLeft
     bar.className = "queueTimerTiny";
     bar.innerHTML = `<i style="width:${Math.round(k*100)}%"></i>`;
 
     btn.appendChild(img);
     btn.appendChild(dot);
     btn.appendChild(bar);
+    btn.appendChild(timeText); 
 
     grid.appendChild(btn);
   }
