@@ -1208,7 +1208,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
     <div>Исслед.</div>
   </button>
 
-<button class="bbItem" id="bb-apteka" onclick="startPharmacy()">
+<button class="bbItem" id="bb-apteka" onclick="openPharmacy()">
     <img src="img/control/apteka.png" alt="">
     <div>Аптека</div>
   </button>
@@ -4389,7 +4389,7 @@ function renderStaff(){
 
 function openShop(){
   showScreen("shop");
-  ();
+  renderShop();
 }
 
 
@@ -6260,7 +6260,7 @@ if(researchVisible){
   if(clinicVisible) renderClinic();
   if(patientVisible && state.selectedPatientId) renderPatient(state.selectedPatientId);
   if(staffVisible) renderStaff();
-  if(shopVisible) ();
+  if(shopVisible) renderShop();
 }
 
 /* =========================================================
