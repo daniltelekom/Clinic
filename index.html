@@ -875,17 +875,18 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
         <div class="listSub" id="patient-sub">симптомы…</div>
 
+        <!--
         <div class="patientMiniRow">
-  <span class="muted">Подозрение:</span>
-  <span id="patient-clue" class="miniValue">?</span>
-</div>
+          <span class="muted">Подозрение:</span>
+          <span id="patient-clue" class="miniValue">?</span>
+        </div>
+        -->
 
-<div class="patientMiniRow">
-  <span class="muted">Диагноз:</span>
-  <span id="patient-diagnosis" class="miniValue">???</span>
-</div>
-
-      <button class="btn small patientBack" type="button" onclick="backToClinic()">←</button>
+        <div class="patientMiniRow">
+          <span class="muted">Диагноз:</span>
+          <span id="patient-diagnosis" class="miniValue">???</span>
+        </div>
+      </div>
     </div>
 
     <div class="sep"></div>
@@ -909,6 +910,9 @@ body:not(.onClinic) .screen.active .panel:first-child{
     <h2>Назначить лечение</h2>
     <div id="treatment-buttons"></div>
     <div class="hint">Выбирай из 4 вариантов. Один обычно лучше, один обычно хуже, два просто по приколу.</div>
+    <button class="btn" onclick="backToClinic()" style="width:100%; margin-top:10px;">
+    ← Назад
+  </button>
   </div>
 
   <!-- Активное лечение -->
@@ -968,8 +972,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
   <div class="muted">Очередь обновится, таймер сбросится</div>
 </button>
   </div>
- </div>
-</div>  
+</div>
 
 <!-- SCREEN: STAFF -->
 <div class="screen" id="screen-staff">
