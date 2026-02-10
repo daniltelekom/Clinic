@@ -25,9 +25,10 @@
     *{box-sizing:border-box}
     body{
       margin:0; font-family:system-ui,Segoe UI,Roboto,Arial;
-      background: radial-gradient(1200px 700px at 30% -20%, rgba(91,124,255,.25), transparent 60%),
-                  radial-gradient(900px 600px at 70% 0%, rgba(73,209,125,.14), transparent 60%),
-                  var(--bg);
+     background:
+  url("img/ui/global_bg.png") center/cover no-repeat,
+  radial-gradient(1200px 700px at 30% -20%, rgba(91,124,255,.25), transparent 60%),
+  var(--bg);
       color:var(--text);
     }
     
@@ -67,6 +68,13 @@
 body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
 }
+
+    .dutyPanel{
+  background:
+    url("img/ui/duty_bg.png") center/cover no-repeat,
+    linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
+}
+    
     h2{margin:0 0 10px 0; font-size:18px}
     .card{
       background:rgba(0,0,0,.12);
@@ -151,20 +159,18 @@ body:not(.onClinic) .screen.active .panel:first-child{
     .tutTitle{
   font-weight:900;
   font-size:18px;
-  color:#f5e6;
-  text-shadow:0 2px 6px rgba(0,0,0,.8);
+  color:#2a1c10;
+  text-shadow:0 1px 0 rgba(255,255,255,.4);
 }
 
 .tutText{
-  color:#f0eadc;
-  line-height:1.4;
-  text-shadow:0 1px 4px rgba(0,0,0,.75);
+  color:#2b2218;
+  line-height:1.45;
 }
 
 .tutHint{
-  color:#d8cfae;
+  color:#5a4633;
   font-size:12px;
-  opacity:.9;
 }
 
 .tutTitle{ font-weight:900; font-size:16px; margin-bottom:8px; }
@@ -850,13 +856,18 @@ body:not(.onClinic) .screen.active .panel:first-child{
   left:50%;
   bottom:6px;
   transform:translateX(-50%);
-  font-weight:800;
-  font-size:12px;
+  font-weight:900;
+  font-size:13px;
   padding:2px 6px;
   border-radius:10px;
-  background: rgba(0,0,0,.45);
+  background: rgba(0,0,0,.65);
   letter-spacing: .3px;
   text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+    .queuePanel{
+  background:
+    url("img/ui/queue_bg.png") center/cover no-repeat,
+    linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.6));
 }
 
 .queueTimeText.ok{ color: var(--ok); }
@@ -918,6 +929,8 @@ body:not(.onClinic) .screen.active .panel:first-child{
   </div>
 </div>
 
+  <div class="panel dutyPanel">
+
   <!-- SCREEN: CLINIC -->
   <div class="screen active" id="screen-clinic">
 
@@ -933,7 +946,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
       <div class="hint">Дежурные дают советы и штрафуют методы, которые “не умеют”.</div>
     </div>
 
-    <div class="panel">
+    <div class="panel queuePanel">
       <h2>Очередь пациентов</h2>
       <div id="queue-upgrades" class="grid2" style="margin:10px 0;"></div>
       <div id="queue"></div>
