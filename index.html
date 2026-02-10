@@ -782,6 +782,66 @@ body:not(.onClinic) .screen.active .panel:first-child{
   white-space: normal;
 }
 
+/* очередь аватарками */
+.queueGrid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+}
+
+.queueAvatarBtn{
+  position:relative;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background: rgba(0,0,0,.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.queueAvatarBtn:active{ transform: scale(.98); }
+
+.queueAvatarImg{
+  width:64px;
+  height:64px;
+  border-radius:14px;
+  object-fit:cover;
+  border:1px solid rgba(255,255,255,.10);
+}
+
+.queueRarityDot{
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.35);
+  background: rgba(255,255,255,.45);
+}
+
+.queueAvatarBtn.rare .queueRarityDot{ background: rgba(255,215,0,.9); }
+.queueAvatarBtn.legendary .queueRarityDot{ background: rgba(255,105,180,.95); }
+
+.queueTimerTiny{
+  position:absolute;
+  left:8px;
+  right:8px;
+  bottom:6px;
+  height:6px;
+  border-radius:999px;
+  background: rgba(255,255,255,.12);
+  overflow:hidden;
+}
+
+.queueTimerTiny > i{
+  display:block;
+  height:100%;
+  width:50%;
+  background: rgba(255,255,255,.55);
+}
+
 /* Подсветка всей строки по статусу */
 .wardPatientRow.st-result{ background: rgba(73, 209, 125, .16); } /* зелёный: есть результат */
 .wardPatientRow.st-done  { background: rgba(73, 209, 125, .22); } /* ярче: можно забрать */
@@ -1599,7 +1659,7 @@ function rarityLabel(r){
   {
     id: "holy_week",
     name: "Неделя святого шествия",
-    desc: "Только молитва (вместо всех методов). Смерть в очереди не бьёт по репутации.",
+    desc: "ТОЛЬКО МОЛИТВА спасет. Смерть в очереди не бьёт по репутации.",
     apply(){
       // Ничего “цифрового” не меняем, правила будем проверять в UI/логике
     }
@@ -1609,7 +1669,7 @@ function rarityLabel(r){
   {
     id: "tainted_water",
     name: "Неделя мути",
-    desc: "Кто-то отравил колодцы. Смертей больше, но за успешное лечение +10% 💰 и +10% репутации.",
+    desc: "Кто-то отравил колодцы. Смертей больше, но за успешное лечение больше денег и репутации.",
     apply(){
       // числа не трогаем здесь, награды/смерти усилим в соответствующих функциях
     }
@@ -1642,7 +1702,7 @@ function rarityLabel(r){
   {
     id: "fair_week",
     name: "Неделя ярмарки",
-    desc: "Больше клиентов с деньгами: +10% 💰 за исходы, но очередь меньше терпит (-10% ожидания).",
+    desc: "Больше клиентов с деньгами: но очередь меньше терпит.",
     apply(){
       state.baseWaitSec = Math.max(60, Math.round(state.baseWaitSec * 0.90));
       // деньги усилим в finishTreatmentToPending
@@ -1653,7 +1713,7 @@ function rarityLabel(r){
   {
     id: "barber_week",
     name: "Неделя цирюльника",
-    desc: "Лечим быстрее (-10% времени), но нейтральные методы чаще дают осложнения.",
+    desc: "Лечим быстрее, но нейтральные методы чаще дают осложнения.",
     apply(){
       state.baseTreatSecMin = Math.max(10, Math.round(state.baseTreatSecMin * 0.90));
       state.baseTreatSecMax = Math.max(15, Math.round(state.baseTreatSecMax * 0.90));
@@ -1688,13 +1748,14 @@ unlocks: {
   staffScreen: true // штат включим сразу, просто пока без магазина
 },
     
-    shift: {
-  active: true,
-  durationSec: 3*60*60,    
-  endAt: now() + 3*60*60*1000,
+   shift: {
+  active: false,          // ⛔️ важно: по умолчанию смена НЕ идёт
+  durationSec: 3*60*60,   // 3 часа
+  endAt: 0,               // 0 = нет активной смены
   cured: 0,
   deaths: 0,
-  left: 0
+  left: 0,
+  breaksCount: 0
 },
 
     perks: {
@@ -4810,39 +4871,55 @@ if(elQueueUpgrades){
   `;
 }
 
-  // ========== ОЧЕРЕДЬ ==========
-  elQueue.innerHTML = "";
-  if(state.queue.length===0){
-    elQueue.innerHTML = `<div class="hint">Очередь пуста. Это подозрительно.</div>`;
-  } else {
-    for(const pid of state.queue){
-      const p = patientById(pid);
-      if(!p) continue;
-      const left = p.leaveAt - now();
+ // ========== ОЧЕРЕДЬ (аватарки 3 в ряд) ==========
+elQueue.innerHTML = "";
 
-      const rarityTag =
-        p.rarity===RARITY.LEGENDARY ? `<span class="tag">✨ legendary</span> `:
-        p.rarity===RARITY.RARE ? `<span class="tag">⭐ rare</span>` :
-        `<span class="tag">common</span>`;
+if(state.queue.length===0){
+  elQueue.innerHTML = `<div class="hint">Очередь пуста. Это подозрительно.</div>`;
+} else {
+  const grid = document.createElement("div");
+  grid.className = "queueGrid";
 
-      const div = document.createElement("div");
-      div.className = "listBtn";
-      div.onclick = ()=> openPatientById(pid);
+  for(const pidRaw of state.queue){
+    const pid = String(pidRaw);
+    const p = patientById(pid);
+    if(!p) continue;
 
-      div.innerHTML = `
-        <div class="row">
-          <div>
-            <div class="listTitle">${escapeHtml(p.name)} ${rarityTag}</div>
-          </div>
-          <div class="right">
-            <div class="timer ${left<15000?'bad':left<40000?'warn':'ok'}">${formatLeft(left)}</div>
-            <div class="muted" style="font-size:12px">до ухода/смерти</div>
-          </div>
-        </div>
-      `;
-      elQueue.appendChild(div);
-    }
+    const btn = document.createElement("div");
+
+    const rarityClass =
+      (p.rarity===RARITY.LEGENDARY) ? "legendary" :
+      (p.rarity===RARITY.RARE) ? "rare" : "common";
+
+    btn.className = "queueAvatarBtn " + rarityClass;
+    btn.onclick = ()=> openPatientById(pid);
+
+    const img = document.createElement("img");
+    img.className = "queueAvatarImg";
+    img.src = ensurePatientPortrait(p);  // ✅ та же логика, что в карточке пациента
+    img.alt = "";
+
+    const dot = document.createElement("div");
+    dot.className = "queueRarityDot";
+
+    // маленький таймер-полоска (чтобы было видно, что он “горит”)
+    const left = Math.max(0, Number(p.leaveAt) - now());
+    const total = Math.max(1, Number(state.baseWaitSec || 120) * 1000);
+    const k = Math.max(0, Math.min(1, left / total));
+
+    const bar = document.createElement("div");
+    bar.className = "queueTimerTiny";
+    bar.innerHTML = `<i style="width:${Math.round(k*100)}%"></i>`;
+
+    btn.appendChild(img);
+    btn.appendChild(dot);
+    btn.appendChild(bar);
+
+    grid.appendChild(btn);
   }
+
+  elQueue.appendChild(grid);
+}
 }
 
 function renderDutySlot(idx, d){
