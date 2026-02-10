@@ -217,8 +217,8 @@ body:not(.onClinic) .screen.active .panel:first-child{
 }
 
 .icon{
-  width:18px;
-  height:18px;
+  width:16px;
+  height:16px;
   display:inline-block;
   image-rendering:auto;
   filter: brightness(1.2) contrast(1.2);
@@ -2377,6 +2377,11 @@ function rewardIcon(type){
 }
 
 function renderWardUpgradeBtn(w, stat, title, hint){
+  // ✅ если уже максимум — кнопку вообще не показываем
+  if(wardStatValue(w, stat) >= wardStatCap(w, stat)){
+    return "";
+  }
+
   const can = canUpgrade(w, stat);
   const cost = can ? upgradeCost(w, stat) : "MAX";
 
@@ -4462,21 +4467,38 @@ const RESEARCH = [
 }
 ];
 
-const STUDY_COST_MUL = 3;
-const REGISTRY_COST_MUL = 5;
-
 function studyMul(def){
   // регистратура имба -> x5
   if(def.id === "registry") return REGISTRY_COST_MUL;
   return STUDY_COST_MUL;
 }
 
+const STUDY_COST_MUL = 3;
+const REGISTRY_COST_MUL = 5;
+
+const STUDY_TIME_MUL = 3;
+const REGISTRY_TIME_MUL = 5;
+
+function isRegistryNode(def){
+  return String(def?.id || "").startsWith("reg_"); // ✅ reg_1/reg_2/reg_3
+}
+
 function getStudyCost(def){
-  const mul = studyMul(def);
+  const costMul = isRegistryNode(def) ? REGISTRY_COST_MUL : STUDY_COST_MUL;
+  const timeMul = isRegistryNode(def) ? REGISTRY_TIME_MUL : STUDY_TIME_MUL;
+
+  // timeMin — в минутах. Если у ноды ещё старое timeSec, переводим в минуты.
+  const baseMin =
+    Number.isFinite(def.timeMin) ? Number(def.timeMin) :
+    Number.isFinite(def.timeSec) ? Math.ceil(Number(def.timeSec) / 60) :
+    30;
+
+  const timeMin = Math.max(30, Math.round(baseMin * timeMul)); // ✅ минимум 30 минут
+
   return {
-    coins: Math.round((def.costCoins || 0) * mul),
-    bio: Math.round((def.costBio || 0) * mul),
-    timeSec: Math.round((def.timeSec || 0) * mul),
+    coins: Math.max(0, Math.round((def.costCoins || 0) * costMul)),
+    bio:   Math.max(0, Math.round((def.costBio || 0) * costMul)),
+    timeMin
   };
 }
 
@@ -4527,11 +4549,11 @@ function startResearch(id){
   // уже открыто
   if(state.perks.unlockedResearch?.[id]) return;
 
-  // проверка зависимостей
-  if(def.req){
-    const ok = def.req.every(rid => state.perks.unlockedResearch?.[rid]);
-    if(!ok) return;
-  }
+  // проверка зависимостей (✅ requires)
+if(def.requires && def.requires.length){
+  const ok = def.requires.every(rid => state.perks.unlockedResearch?.[rid]);
+  if(!ok) return;
+}
 
   const c = getStudyCost(def);
 
@@ -4542,10 +4564,10 @@ function startResearch(id){
   state.coins -= c.coins;
   state.biomaterial -= c.bio;
 
-  state.perks.researching = {
-    id,
-    endAt: now() + c.timeSec * 1000
-  };
+ state.perks.researching = {
+  id,
+  endAt: now() + c.timeMin * 60 * 1000
+};
 
   saveState();
   refreshVisibleUI();
@@ -4594,29 +4616,47 @@ function renderResearch(){
   const elActive = document.getElementById("research-active");
   if(!elTree || !elActive) return;
 
-  // активное исследование
+  // --- активное изучение ---
   const r = state.perks.researching;
   if(r){
     const node = getResearchNode(r.id);
     const leftMs = Math.max(0, Number(r.endAt) - now());
-    const leftSec = Math.ceil(leftMs/1000);
+    const leftMin = Math.ceil(leftMs / 60000);
+
     elActive.style.display = "block";
     elActive.innerHTML = `
-      <div class="listTitle">⏳ Изучается: ${node ? node.name : r.id}</div>
-      <div class="listSub">Осталось: <b>${leftSec}с</b></div>
+      <div class="listTitle">
+        <img class="icon" src="icons/topbar/icon_time.png" alt="">
+        Изучается: ${escapeHtml(node ? node.name : r.id)}
+      </div>
+      <div class="listSub">Осталось: <b>${formatStudyTime(leftMin)}</b></div>
     `;
   } else {
     elActive.style.display = "none";
     elActive.innerHTML = "";
   }
 
-  // дерево
+  // --- дерево ---
   let html = "";
   for(const n of RESEARCH){
+    const unlocked = isResearchUnlocked(n.id);
+
+    // ✅ если изучено — сворачиваем карточку
+    if(unlocked){
+      html += `
+        <div class="card" style="margin-top:10px;">
+          <div class="row">
+            <div class="listTitle">✅ ${escapeHtml(n.name)}</div>
+            <span class="tag ok">Изучено</span>
+          </div>
+        </div>
+      `;
+      continue;
+    }
+
     const c = getStudyCost(n);
-    const locked = !isResearchUnlocked(n.id);
     const available = isResearchAvailable(n);
-    const disabled = (!available) || (!!state.perks.researching) || !locked;
+    const disabled = (!available) || (!!state.perks.researching);
 
     const reqText = (n.requires && n.requires.length)
       ? `Требует: ${n.requires.map(x => getResearchNode(x)?.name || x).join(", ")}`
@@ -4626,31 +4666,45 @@ function renderResearch(){
       <div class="card" style="margin-top:10px;">
         <div class="row" style="align-items:flex-start;">
           <div style="flex:1;">
-            <div class="listTitle">${isResearchUnlocked(n.id) ? "✅" : (available ? "🔓" : "🔒")} ${n.name}</div>
-            <div class="listSub">${n.desc}</div>
-            <div class="listSub" style="margin-top:6px; opacity:.8;">${reqText}</div>
+            <div class="listTitle">${available ? "🔓" : "🔒"} ${escapeHtml(n.name)}</div>
+            <div class="listSub">${escapeHtml(n.desc)}</div>
+            <div class="listSub" style="margin-top:6px; opacity:.8;">${escapeHtml(reqText)}</div>
           </div>
-          <div style="text-align:right; min-width:120px;">
-            <div class="listSub">💰 ${c.coins}</div>
-            <div class="listSub">🧫 ${c.bio}</div>
-            <div class="listSub">⏱️ ${c.timeSec}с</div>
+
+          <div style="text-align:right; min-width:140px;">
+            <div class="listSub">
+              <img class="icon" src="icons/topbar/icon_coins.png" alt=""> ${c.coins}
+            </div>
+            <div class="listSub">
+              <img class="icon" src="icons/topbar/icon_bio.png" alt=""> ${c.bio}
+            </div>
+            <div class="listSub">
+              <img class="icon" src="icons/topbar/icon_time.png" alt=""> ${formatStudyTime(c.timeMin)}
+            </div>
           </div>
         </div>
 
-        ${
-          isResearchUnlocked(n.id)
-          ? `<div class="hint" style="color:var(--ok); margin-top:8px;">Изучено</div>`
-          : `<button class="btn ${disabled ? "" : "ok"}" style="margin-top:10px; ${disabled ? "opacity:.55; pointer-events:none;" : ""}"
-               onclick="startResearch('${n.id}')">
-               ${available ? "Изучить" : "Недоступно"}
-             </button>`
-        }
+        <button class="btn ${(!disabled ? "ok" : "")}"
+          style="margin-top:10px; ${disabled ? "opacity:.55; pointer-events:none;" : ""}"
+          onclick="startResearch('${n.id}')">
+          ${available ? "Изучить" : "Недоступно"}
+        </button>
       </div>
     `;
   }
+
   elTree.innerHTML = html;
 }
 window.renderResearch = renderResearch;
+
+function formatStudyTime(min){
+  min = Math.max(0, Math.round(Number(min) || 0));
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if(h <= 0) return `${m} мин`;
+  if(m === 0) return `${h} ч`;
+  return `${h} ч ${m} мин`;
+}
   
 
 const elCoins = document.getElementById("coins");
@@ -4797,17 +4851,22 @@ const patientsHtml = `
 `;
 
     // --- кнопка купить койку (без надписей 3/3/8) ---
-   const bedsCap = 8;
-const bedBtnDisabled = (w.bedsMax >= bedsCap) ? "disabled" : "";
-const bedCost = bedCostForWard(w);
+ const bedsCap = 8;
+let bedsLine = "";
 
-const bedsLine = `
-  <div class="row" style="margin-top:10px; justify-content:center;">
-    <button class="btn small" onclick="buyBed('${w.id}')" ${bedBtnDisabled}>
-      Купить койку <span class="muted">(🪙 ${bedCost})</span>
-    </button>
-  </div>
-`;
+w.bedsMax = w.bedsMax || 2;
+
+if(w.bedsMax < bedsCap){
+  const price = bedCostForWard(w);
+  const disabled = (state.coins < price) ? "disabled" : "";
+  bedsLine = `
+    <div class="row" style="margin-top:10px; justify-content:center;">
+      <button class="btn small" onclick="buyBed('${w.id}')" ${disabled}>
+        Купить койку • ${price}
+      </button>
+    </div>
+  `;
+}
 
     // --- карточка палаты ---
     const card = document.createElement("div");
@@ -4892,7 +4951,7 @@ card.innerHTML = `
   // кнопка покупки второй палаты
   if(!state.unlocks?.wardB){
     const cost = 3500;
-    const disabled = state.coins < cost ? "disabled" : "";
+    const disabled = (state.coins < price) ? "disabled" : "";
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
