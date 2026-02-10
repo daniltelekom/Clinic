@@ -1897,43 +1897,46 @@ if(Number(s.spawn.nextAt) > Date.now() + 30_000){
   });
 }
 
- function maybeBreakWardUpgrade(w){
+function maybeBreakWardUpgrade(w){
+  if(!state.shift?.active) return;
   if(!w) return;
 
-  // контейнер поломок
-  if(!w.broken || typeof w.broken !== "object") w.broken = {};
-
-  // ломаем только когда смена идёт
-  if(!state.shift?.active) return;
+  // ✅ глобальный лимит: максимум 3 поломки за смену на всю клинику
+  if(typeof state.shift.breaksCount !== "number") state.shift.breaksCount = 0;
+  if(state.shift.breaksCount >= 3) return;
 
   const t = now();
 
-  // ---- КУЛДАУН: проверяем поломку редко, а не 2 раза в секунду ----
-  // первая инициализация: через 2-4 минуты после старта
-  if(!Number.isFinite(Number(w.nextBreakAt))){
-    w.nextBreakAt = t + randInt(120, 240) * 1000; // 2..4 минуты
+  // ✅ проверяем реже: раз в 10–18 минут на палату
+  const CHECK_MIN = 10 * 60 * 1000;
+  const CHECK_MAX = 18 * 60 * 1000;
+
+  if(!w.lastBreakCheck){
+    w.lastBreakCheck = t + CHECK_MIN + Math.random()*(CHECK_MAX - CHECK_MIN);
     return;
   }
 
-  // ещё рано проверять
-  if(t < Number(w.nextBreakAt)) return;
+  if(t < w.lastBreakCheck) return;
+  w.lastBreakCheck = t + CHECK_MIN + Math.random()*(CHECK_MAX - CHECK_MIN);
 
-  // следующая проверка через 2-4 минуты
-  w.nextBreakAt = t + randInt(120, 240) * 1000;
+  // если уже что-то сломано в палате — не ломаем ещё раз
+  w.broken = w.broken || {};
+  if(w.broken.comfort || w.broken.cleanliness || w.broken.ventilation || w.broken.light) return;
 
-  // ---- шанс поломки НА ОДНУ ПРОВЕРКУ ----
-  // 20% раз в 2-4 минуты = примерно 1 поломка на палату раз в 10-20 минут (в среднем)
-  const CHANCE = 0.20;
-  if(Math.random() > CHANCE) return;
+  // ✅ шанс сильно ниже (иначе лимит 3 будет выбиваться за первые 20 минут)
+  const CHANCE = 0.06; // 6% на проверку
+  if(Math.random() >= CHANCE) return;
 
-  // ломаем только то, что ещё не сломано
-  const parts = ["comfort", "cleanliness", "ventilation", "light"]
-    .filter(p => !w.broken[p]);
+  // выбрать что ломаем
+  const pool = ["comfort","cleanliness","ventilation","light"];
+  const which = pool[Math.floor(Math.random()*pool.length)];
 
-  if(!parts.length) return;
+  w.broken[which] = true;
 
-  const part = parts[Math.floor(Math.random() * parts.length)];
-  w.broken[part] = true;
+  // ✅ увеличиваем глобальный счётчик поломок этой смены
+  state.shift.breaksCount += 1;
+
+  addLog(`⚠️ В палате сломалось: ${which}. Нужно чинить.`);
 
   saveState();
 }
@@ -3371,6 +3374,7 @@ function startNewShift(){
   // сброс смены
   state.shift = state.shift || {};
   state.shift.active = true;
+  state.shift.breaksCount = 0; // ✅ за эту смену сколько поломок уже случилось
 
   // всегда 3 часа, без "подхвата" старого значения
   const dur = 3 * 60 * 60;
@@ -5434,6 +5438,7 @@ setInterval(()=>{
     fillQueue(); 
     processQueueTick();
     processTreatmentsTick();
+    state.wards.forEach(w => maybeBreakWardUpgrade(w));
     refreshVisibleUI();
   }catch(err){
     console.log("TICK CRASH", err);
