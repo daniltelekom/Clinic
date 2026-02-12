@@ -4268,24 +4268,25 @@ let currentScreen = null;
 
 function showScreen(name){
   // если уже на этом экране, не трогаем скролл вообще
-  if(currentScreen === name) return;
-
+  const isSameScreen = (currentScreen === name);
   currentScreen = name;
 
+
   document.querySelectorAll(".screen").forEach(el=>{
-    el.style.display = "none";
-    el.classList.remove("active");
-  });
+  el.style.display = "none";
+  el.classList.remove("active");
+});
 
-  const target = document.getElementById("screen-" + name);
-  if(target){
-    target.style.display = "block";
-    target.classList.add("active");
-  }
+const target = document.getElementById("screen-" + name);
+if(target){
+  target.style.display = "block";
+  target.classList.add("active");
+}
 
-  highlightBottomBar(name);
+highlightBottomBar(name);
 
-  // скролл наверх только при РЕАЛЬНОМ переключении экрана
+// Скроллим только если экран реально сменился
+if(!isSameScreen){
   requestAnimationFrame(() => {
     try { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); } catch(e){}
   });
