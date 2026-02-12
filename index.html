@@ -1326,8 +1326,8 @@ const RARITY = {
   LEGENDARY: "legendary"
 };
 
-const LS_STATE = "plague_state_v7.7";
-const LS_ACTIVE = "plague_active_map_v7.7";
+const LS_STATE = "plague_state_v7.4";
+const LS_ACTIVE = "plague_active_map_v7.4";
 
 /* =========================================================
    1) DATA: methods / diseases / doctors / names
@@ -1977,9 +1977,9 @@ function pickNewWeekEvent(){
 
 function defaultState(){
   return {
-    coins: 99999,
+    coins: 120,
     reputation: 0,
-    biomaterial: 999999,
+    biomaterial: 0,
     doctorsOwned: [], // id врачей, которые есть у игрока
 unlocks: {
   wardB: false,
