@@ -849,6 +849,126 @@ body:not(.onClinic) .screen.active .panel:first-child{
     linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.6));
 }
 
+/* Аптека: один общий фон на всю панель */
+.pharmBg{
+  position: relative;
+  overflow: hidden;
+
+  background:
+    url("img/topbar_bg.png") center/cover no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+}
+
+/* затемнение, чтобы текст читался */
+.pharmBg::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.42);
+  pointer-events:none;
+}
+
+/* контент поверх затемнения */
+.pharmBg > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* Кнопка "Лекарства": фон подгоняем под кнопку */
+.btnMeds{
+  background-image:url("img/pharmacy/meds_btn_bg.png");
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size: 100% 100%; /* без кропа, ровно под кнопку */
+}
+
+
+.resultBadge{
+  display:inline-block;
+  padding:8px 12px;
+  border-radius:12px;
+  font-weight:900;
+  letter-spacing:.2px;
+  margin-bottom:6px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.resultBadge.worsened{
+  background: rgba(255, 204, 102, .18);
+  border-color: rgba(255, 204, 102, .35);
+  color: var(--warn);
+}
+
+.resultBadge.death{
+  background: rgba(255, 107, 107, .16);
+  border-color: rgba(255, 107, 107, .35);
+  color: var(--bad);
+}
+
+.resultBadge.okish{
+  background: rgba(73, 209, 125, .10);
+  border-color: rgba(73, 209, 125, .25);
+  color: var(--ok);
+}
+
+.wardUpgradeNow{
+  margin-top:4px;
+  font-size:12px;
+  line-height:1.2;
+  color: var(--muted);
+  opacity: .95;
+}
+
+.wardEffectLine{
+  font-size:12px;
+  color: var(--muted);
+  margin-top:6px;
+  line-height:1.25;
+}
+.wardEffectLine b{ color: var(--text); }
+
+.wardEffects{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background: rgba(0,0,0,.12);
+}
+
+/* ЕДИНЫЙ ФОН ДЛЯ АПТЕКИ (из верхней картинки) */
+.pharmUnifiedBg{
+  position: relative;
+  overflow: hidden;
+
+  background: url("img/pharmacy/pharmacy_top.png") top center / cover no-repeat;
+}
+
+/* затемнение, чтобы текст читался */
+.pharmUnifiedBg::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.38);
+  pointer-events:none;
+}
+
+/* весь контент поверх затемнения */
+.pharmUnifiedBg > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* кнопка "Лекарства" фон под кнопку */
+.btnMeds{
+  background-image: url("img/pharmacy/meds_btn_bg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}
+
+.wardEffects .listTitle{ font-size:14px; }
+
 .queueTimeText.ok{ color: var(--ok); }
 .queueTimeText.warn{ color: var(--warn); }
 .queueTimeText.bad{ color: var(--bad); }
@@ -862,6 +982,16 @@ body:not(.onClinic) .screen.active .panel:first-child{
     .costLine{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .costPill{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:rgba(0,0,0,.18); font-weight:800}
 .costPill img{width:16px; height:16px; opacity:.95}
+
+.medReqLine{
+  margin-top:6px;
+  font-size:12px;
+  color: var(--muted);
+}
+.medReqLine.bad{
+  color: var(--warn);
+}
+
     
   </style>
 </head>
@@ -1097,7 +1227,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
 <!-- SCREEN: PHARMACY -->
 <div class="screen" id="screen-pharmacy">
-  <div class="panel">
+  <div class="panel pharmUnifiedBg">
     <div class="row" style="align-items:flex-start;">
       <div>
         <div class="listTitle">🧴 Аптека</div>
@@ -1108,16 +1238,12 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
     <div class="sep"></div>
 
-    <!-- верхняя картинка аптеки -->
-    <div class="card" style="padding:0; overflow:hidden;">
-      <img src="img/pharmacy/pharmacy_top.png" alt="" style="width:100%; display:block;">
-    </div>
+
 
     <div class="sep"></div>
 
     <!-- кнопка Лекарства -->
-    <button class="btn" onclick="openPharmMeds()"
-      style="width:100%; background-image:url('img/pharmacy/meds_btn_bg.png'); background-size:cover;">
+  <button class="btn btnMeds" onclick="openPharmMeds()" style="width:100%;">
       💊 Лекарства
       <div class="muted">Изучай свойства и ключевые слова</div>
     </button>
@@ -1149,7 +1275,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
 
 <!-- SCREEN: PHARM CASE -->
 <div class="screen" id="screen-pharm-case">
-  <div class="panel">
+  <div class="panel pharmUnifiedBg">
     <div class="row">
       <div>
         <div class="listTitle">Клиент</div>
@@ -1326,8 +1452,8 @@ const RARITY = {
   LEGENDARY: "legendary"
 };
 
-const LS_STATE = "plague_state_v7.4";
-const LS_ACTIVE = "plague_active_map_v7.4";
+const LS_STATE = "plague_state_v7.7";
+const LS_ACTIVE = "plague_active_map_v7.7";
 
 /* =========================================================
    1) DATA: methods / diseases / doctors / names
@@ -1977,9 +2103,9 @@ function pickNewWeekEvent(){
 
 function defaultState(){
   return {
-    coins: 120,
+    coins: 99999,
     reputation: 0,
-    biomaterial: 0,
+    biomaterial: 999999,
     doctorsOwned: [], // id врачей, которые есть у игрока
 unlocks: {
   wardB: false,
@@ -2625,7 +2751,7 @@ function rewardIcon(type){
 }
 
 function renderWardUpgradeBtn(w, stat, title, hint){
-  // ✅ если уже максимум — кнопку вообще не показываем
+  // если уже максимум — кнопку вообще не показываем
   if(wardStatValue(w, stat) >= wardStatCap(w, stat)){
     return "";
   }
@@ -2638,17 +2764,51 @@ function renderWardUpgradeBtn(w, stat, title, hint){
       class="wardUpgrade ${can ? "" : "disabled"}"
       onclick="${can ? `upgradeWardStat('${w.id}','${stat}')` : ""}"
     >
-      <img
-        src="img/stats/${stat}.png"
-        class="wardIconStat"
-        alt=""
-      >
+      <img src="img/stats/${stat}.png" class="wardIconStat" alt="">
       <div class="wardUpgradeText">
         <div class="wardUpgradeTitle">${title} +1</div>
         <div class="wardUpgradeSub">${hint} • ${cost}</div>
       </div>
     </div>
   `;
+}
+
+function wardEffectiveStat(w, stat){
+  const base = Number(w?.[stat] ?? 0);
+  const broken = !!(w?.broken?.[stat]);
+  return broken ? Math.max(0, base - 1) : base;
+}
+
+function wardBonusLine(w, stat){
+  const v = wardEffectiveStat(w, stat);
+
+  if(stat === "ventilation"){
+    // формула из rollOutcome: infectedChance = 0.75 - vent*0.10 (снизу зажато)
+    // ниже мы её нерфнем, но подпись тоже под это подстроим
+    const infectedChance = Math.max(0.25, 0.75 - v * 0.06); // нерф-версия
+    return` Снижает риск “Инфекция” до ~${Math.round(infectedChance*100)}% (на нейтральном лечении)`;
+  }
+
+  if(stat === "light"){
+    const upChance = Math.min(0.12, v * 0.02); // нерф-версия
+    return `Шанс улучшить исход на 1 ступень: ~${Math.round(upChance*100)}%`;
+  }
+
+  if(stat === "comfort"){
+    // вместо “комфорт 5 = магия” сделаем шанс
+    const soften = Math.min(0.30, Math.max(0, (v - 3)) * 0.08); // с 4 уровня начинает расти
+    return soften > 0
+      ?` Шанс смягчить “Стало хуже”: ~${Math.round(soften*100)}%`
+      :` Начинает спасать от “хуже” с ур. 4`;
+  }
+
+  if(stat === "cleanliness"){
+    // влияет на шанс выживания при повторных попытках + общая “сила палаты”
+    const power = Math.min(0.35, v * 0.035); // просто “понятная” метрика
+    return` Повышает “устойчивость палаты” примерно на +${Math.round(power*100)}%`;
+  }
+
+  return "";
 }
 
 function reduceDoctorFatigue(docId, amount){
@@ -4746,6 +4906,23 @@ function renderPharmMeds(){
   for(const m of PHARM_MEDS){
     const known = !!state.pharmacy.medsKnown[m.id];
     const can = canStudyMed(m);
+    const s = state.pharmacy.stats || { served: 0, perfect: 0 };
+
+    const needServed  = Number(m.requires?.served || 0);
+    const needPerfect = Number(m.requires?.perfect || 0);
+    const hasReq = (needServed > 0) || (needPerfect > 0);
+
+    const metReq =
+      (!hasReq) ||
+      ((s.served >= needServed) && (s.perfect >= needPerfect));
+
+    const reqParts = [];
+    if(needServed > 0)  reqParts.push(`Закрыто: ${s.served}/${needServed}`);
+    if(needPerfect > 0) reqParts.push(`Идеальных: ${s.perfect}/${needPerfect}`);
+
+    const reqHtml = (!known && hasReq)
+      ? `<div class="medReqLine ${metReq ? "" : "bad"}">🔒 Требуется: ${reqParts.join(" • ")}</div>`
+      : "";
 
     html += `
       <div class="card" style="margin-top:10px;">
@@ -4754,6 +4931,8 @@ function renderPharmMeds(){
             <div class="listTitle">${known ? "✅" : "❓"} ${escapeHtml(m.name)}</div>
             <div class="listSub">${known ? escapeHtml(m.desc) : "Не изучено. Нажми изучить."}</div>
             <div class="hint">Ключевые слова: ${known ? m.keywords.map(escapeHtml).join(", ") : "???"}</div>
+                  <div class="hint">Ключевые слова: ${known ? m.keywords.map(escapeHtml).join(", ") : "???"}</div>
+${reqHtml}
 
             <!-- ✅ стоимость/время как в дереве -->
             ${known ? "" : `
@@ -5912,11 +6091,21 @@ card.innerHTML = `
       : ``
   }
 
-  <div class="grid2" style="margin-top:10px">
+<div class="grid2" style="margin-top:10px">
     ${renderWardUpgradeBtn(w, "comfort", "Койки", "Меньше страданий пациента")}
     ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
     ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
     ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
+  </div>
+
+  <div class="wardEffects">
+    <div class="listTitle">Что дают улучшения сейчас</div>
+    <div class="sep"></div>
+
+    <div class="wardEffectLine"><b>Койки:</b> ${wardBonusLine(w, "comfort")}</div>
+    <div class="wardEffectLine"><b>Вентиляция:</b> ${wardBonusLine(w, "ventilation")}</div>
+    <div class="wardEffectLine"><b>Свет:</b> ${wardBonusLine(w, "light")}</div>
+    <div class="wardEffectLine"><b>Чистота:</b> ${wardBonusLine(w, "cleanliness")}</div>
   </div>
 `;
 
@@ -6597,10 +6786,12 @@ function showResultForPatient(patientId){
   const ward = findWardByPatient(patientId);
   if(!ward) return;
 
- ward.pendingResults = ward.pendingResults || {};
-const pid = String(patientId);
-const r = ward.pendingResults[pid];
-if(!r) return;
+  // гарантируем объект результатов
+  ward.pendingResults = ward.pendingResults || {};
+
+  const pid = String(patientId);
+  const r = ward.pendingResults[pid];
+  if(!r) return;
 
   elTreatPanel.style.display = "none";
   elActiveTreatment.style.display = "none";
@@ -6609,11 +6800,17 @@ if(!r) return;
   const kind = r.kind;
 
   const label =
-    kind===OUTCOMES.CURE ? "✅ Вылечен" :
-    kind===OUTCOMES.DISFIGURED ? "✅ Вылечен (но покалечен)" :
-    kind===OUTCOMES.INFECTED ? "✅ Вылечен (но инфицирован)" :
-    kind===OUTCOMES.WORSENED ? "⚠️ Стало хуже" :
+    kind === OUTCOMES.CURE ? "✅ Вылечен" :
+    kind === OUTCOMES.DISFIGURED ? "✅ Вылечен (но покалечен)" :
+    kind === OUTCOMES.INFECTED ? "✅ Вылечен (но инфицирован)" :
+    kind === OUTCOMES.WORSENED ? "⚠️ Стало хуже" :
     "☠️ Смерть";
+
+  // КЛАСС ДЛЯ ПОДЛОЖКИ
+  const labelClass =
+    kind === OUTCOMES.WORSENED ? "resultBadge worsened" :
+    kind === OUTCOMES.DEATH ? "resultBadge death" :
+    "resultBadge okish";
 
   let primaryBtnHtml = "";
 
@@ -6624,12 +6821,12 @@ if(!r) return;
         <div class="muted">Пациент в кризисе: либо вытащим, либо он отъедет</div>
       </button>
       <button class="btn" onclick="dischargePatient('${patientId}','${ward.id}')">
-        ✖ Закрыть случай
+        ✖️ Закрыть случай
         <div class="muted">Ты сдаёшься. Репутация всё запомнит.</div>
       </button>
-   ` ;
+    `;
   } else {
-    const btnText = (kind===OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
+    const btnText = (kind === OUTCOMES.DEATH) ? "В морг (закрыть случай)" : "Выписать";
     primaryBtnHtml = `
       <button class="btn ok" onclick="dischargePatient('${patientId}','${ward.id}')">
         ${btnText}
@@ -6639,17 +6836,19 @@ if(!r) return;
   }
 
   elResultText.innerHTML = `
-    <div class="listTitle">${label}</div>
-    <div class="listSub">${escapeHtml(r.flavor || "")}</div>
+    <div class="${labelClass}">${label}</div>
+    <div class="listSub">${escapeHtml((r.flavor || ""))}</div>
     <div class="sep"></div>
     <div class="hint">
-      💰 ${r.coins>=0?"+":""}${r.coins} • ⭐ ${r.reputation>=0?"+":""}${r.reputation} • 🧫 ${r.biomaterial>=0?"+":""}${r.biomaterial}
+      💰 ${r.coins>=0?"+":""}${r.coins} • ⭐️ ${r.reputation>=0?"+":""}${r.reputation} • 🧫 ${r.biomaterial>=0?"+":""}${r.biomaterial}
     </div>
     <div class="sep"></div>
     ${primaryBtnHtml}
   `;
 }
 window.showResultForPatient = showResultForPatient;
+
+
 function refreshVisibleUI(){
   // если смена закончилась — всегда показываем итоги и стопаем остальной рендер
   if(!state.shift?.active){
