@@ -1326,8 +1326,8 @@ const RARITY = {
   LEGENDARY: "legendary"
 };
 
-const LS_STATE = "plague_state_v7.4";
-const LS_ACTIVE = "plague_active_map_v7.4";
+const LS_STATE = "plague_state_v7.7";
+const LS_ACTIVE = "plague_active_map_v7.7";
 
 /* =========================================================
    1) DATA: methods / diseases / doctors / names
@@ -1977,9 +1977,9 @@ function pickNewWeekEvent(){
 
 function defaultState(){
   return {
-    coins: 120,
+    coins: 99999,
     reputation: 0,
-    biomaterial: 0,
+    biomaterial: 999999,
     doctorsOwned: [], // id врачей, которые есть у игрока
 unlocks: {
   wardB: false,
@@ -4264,25 +4264,31 @@ function backToClinic(){
   refreshVisibleUI();
 }
 
+let currentScreen = null;
+
 function showScreen(name){
-  // 1) прячем все экраны
+  // если уже на этом экране, не трогаем скролл вообще
+  if(currentScreen === name) return;
+
+  currentScreen = name;
+
   document.querySelectorAll(".screen").forEach(el=>{
     el.style.display = "none";
-    el.classList.remove("active"); // ✅ ВАЖНО
+    el.classList.remove("active");
   });
 
-  // 2) показываем нужный
   const target = document.getElementById("screen-" + name);
   if(target){
     target.style.display = "block";
-    target.classList.add("active"); // ✅ ВАЖНО
+    target.classList.add("active");
   }
 
-  // 3) подсветка нижнего меню
   highlightBottomBar(name);
 
-  // 4) чтобы в телеге не оставалось прокрутки посередине
-  try{ window.scrollTo(0,0); }catch(e){}
+  // скролл наверх только при РЕАЛЬНОМ переключении экрана
+  requestAnimationFrame(() => {
+    try { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); } catch(e){}
+  });
 }
 
 
