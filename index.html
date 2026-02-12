@@ -992,6 +992,79 @@ body:not(.onClinic) .screen.active .panel:first-child{
   color: var(--warn);
 }
 
+/* --- FIX: мобильная верстка, чтобы панели не вылезали за экран --- */
+html, body{
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden; /* убираем горизонтальный вылет */
+}
+
+.topbar, .bottombar{
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* безопасные отступы (особенно iOS, но и везде норм) */
+.topbar{
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+
+.bottombar{
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* чтобы кнопки нижнего меню не распирали ширину */
+.bottombar .tab{
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.bottombar .tab .label{
+  font-size: 12px;     /* меньше шрифт, меньше вылет */
+  white-space: nowrap; /* не переносим в 2 строки */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* если в topbar есть ряд с ресурсами/иконками: не распираем */
+.topbar .row{
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* --- Кнопка "Лекарства": растягиваем только фон --- */
+.btnMeds{
+  position: relative;
+  overflow: visible; /* разрешаем фону чуть выходить */
+}
+
+.btnMeds::before{
+  content: "";
+  position: absolute;
+  inset: -6px -10px;   /* ← магия */
+  /*
+     -6px  → вверх/вниз (ввысь)
+     -10px → влево/вправо (шире)
+  */
+
+  background: url("img/pharmacy/meds_btn_bg.png") center/100% 100% no-repeat;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* чтобы текст был поверх */
+.btnMeds > *{
+  position: relative;
+  z-index: 1;
+}
+
     
   </style>
 </head>
@@ -1292,7 +1365,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
     </div>
 
     <div class="card" style="margin-top:10px;">
-      <div class="listTitle">Подсказки (по ключевым словам)</div>
+      <div class="listTitle">Подсказки</div>
       <div class="listSub" id="pharm-case-hints">…</div>
     </div>
 
@@ -1472,31 +1545,31 @@ const METHODS = [
 const METHOD_HINTS = {
   bloodletting: {
     tags: ["застой", "тяжесть", "давление", "чернильный кашель"],
-    examples: ["потемнения кожи", "чёрный кашель", "жар и тяжесть", "что-то надо “выпустить”"]
+    examples: ["потемнения кожи", "чёрный кашель", "жар и тяжесть", "что-то надо “выпустить”","озноб","проблемы с жкт"]
   },
   herbalism: {
     tags: ["лихорадка", "кашель", "слабость", "жажда"],
-    examples: ["миазмы и лихорадка", "стеклянный кашель", "изменение цвета языка", "простуда веками"]
+    examples: ["миазмы и лихорадка", "стеклянный/черный кашель", "изменение цвета языка", "простуда","слабость","зуд/сыпь"]
   },
   prayer: {
     tags: ["святость", "шёпот", "сны", "черви"],
-    examples: ["святые черви", "святое шуршание", "шепчет под нос", "когда у тебя нет других идей"]
+    examples: ["святые черви", "святое шуршание", "шепчет под нос", "когда у тебя нет других идей","тошнота"]
   },
   demonology: {
     tags: ["чужие глаза", "тень отдельно", "контракт", "одержимость"],
-    examples: ["кто-то внутри", "тень живёт отдельно", "смех не к месту", "когда надо говорить с проблемой на её языке"]
+    examples: ["кто-то внутри", "тень живёт отдельно", "смех не к месту", "когда надо говорить с проблемой на её языке","жажда","хололный пот"]
   },
   amputation: {
     tags: ["гниль", "плесень", "локально", "расползается"],
-    examples: ["плесень на костях", "признаки гнили", "пятно растёт", "лучше минус часть, чем минус всё"]
+    examples: ["плесень на костях", "признаки гнили", "пятно растёт", "лучше минус часть, чем минус всё","голод","Бледность"]
   },
   hypnosis: {
     tags: ["звон", "путает имена", "волнами", "нервы"],
-    examples: ["звон в костях", "зеркальная горячка", "сумашествие", "когда надо успокоить голову"]
+    examples: ["звон в костях", "зеркальная горячка", "сумашествие", "когда надо успокоить голову","бессонница"]
   },
   charms: {
     tags: ["воск", "знаки", "липания", "символы"],
-    examples: ["восковая кожа", "кожные повреждения", "когда надо ‘снять порчу’", "когда пациент похож на свечу"]
+    examples: ["проблемы с глазами", "кожные изменения", "когда надо ‘снять порчу’", "когда пациент похож на свечу","головная боль"]
   },
 };
 
@@ -1748,7 +1821,8 @@ const DISEASES = [
     "Кашляешь так, будто в лёгких кто-то жжёт письма.",
     "Каждый вдох пахнет костром, которого тут нет.",
     "Грудь скрипит, как дверь в подвал."
-  ]
+  ],
+  weights:{ amputation: 0.8, bloodletting: 0.35, herbalism: 1.25, demonology: 0.85, charms: 0.75, hypnosis: 0.7, prayer: 0.95 }
 },
 {
   id:"nail_eyes",
@@ -1761,7 +1835,8 @@ const DISEASES = [
     "Плачешь, а на вкус будто ржавчина.",
     "Свет режет глаза как нож без ручки.",
     "Моргнуть больно. Жить тоже."
-  ]
+  ],
+  weights:{ amputation: 0.75, bloodletting: 0.95, herbalism: 0.8, demonology: 0.35, charms: 1.25, hypnosis: 0.7, prayer: 0.85 }
 },
 {
   id:"mire_belly",
@@ -1774,7 +1849,8 @@ const DISEASES = [
     "Внутри будто кто-то мешает суп палкой.",
     "Живот звучит как трясина ночью.",
     "Тепло не держится ни в костях, ни в надежде."
-  ]
+  ],
+  weights:{ amputation: 0.96, bloodletting: 1.25, herbalism: 0.8, demonology: 0.85, charms: 0.75, hypnosis: 0.35, prayer: 0.7 }
 },
 {
   id:"wax_mood",
@@ -1787,7 +1863,8 @@ const DISEASES = [
     "Сон приходит, смотрит и уходит как коллектор.",
     "Плечи тяжелее, чем обещания лекарей.",
     "В голове мягко, но страшно, как воск перед огнём."
-  ]
+  ],
+  weights:{ amputation: 0.35, bloodletting: 0.95, herbalism: 0.8, demonology: 0.85, charms: 0.75, hypnosis: 1.25, prayer: 0.8 }
 },
 {
   id:"bell_skull",
@@ -1800,7 +1877,8 @@ const DISEASES = [
     "В голове звон, будто церковь сняли и поставили внутрь.",
     "Каждый звук как удар по нервам.",
     "Тишина не лечит, она просто ждёт."
-  ]
+  ],
+  weights:{ amputation: 0.85, bloodletting: 0.95, herbalism: 0.8, demonology: 0.35, charms: 0.75, hypnosis: 0.7, prayer: 1.25}
 },
 {
   id:"itching_scriptures",
@@ -1813,7 +1891,8 @@ const DISEASES = [
     "Кожа зудит, будто кто-то пишет на ней проклятья.",
     "Пятна растут как долги.",
     "Чешется так, что хочется снять себя и повесить сушиться."
-  ]
+  ],
+  weights:{ amputation: 0.8, bloodletting: 0.95, herbalism: 1.25, demonology: 0.85, charms: 0.35, hypnosis: 0.7, prayer: 0.75 }
 },
 {
   id:"saints_bloat",
@@ -1826,7 +1905,8 @@ const DISEASES = [
     "Живот как барабан, но плясать никто не будет.",
     "Дышать тяжело, будто проглотил подушку.",
     "Молитва смотрит и молчит."
-  ]
+  ],
+  weights:{ amputation: 0.95, bloodletting: 1.25, herbalism: 0.8, demonology: 0.85, charms: 0.75, hypnosis: 0.7, prayer: 0.35 }
 },
 {
   id:"black_psalm",
@@ -1839,7 +1919,8 @@ const DISEASES = [
     "Шепчет так, будто череп стал исповедальней.",
     "Кровь выходит без спроса, как налог.",
     "Молитва помогает. Иногда. Если ты ей нравишься."
-  ]
+  ],
+  weights:{ amputation: 0.95, bloodletting: 0.35, herbalism: 0.8, demonology: 0.85, charms: 0.75, hypnosis: 0.7, prayer: 1.25}
 },
 {
   id:"grave_honey",
@@ -1852,7 +1933,8 @@ const DISEASES = [
     "Во рту сладко, но радости ноль.",
     "Пьёшь, а жажда смеётся.",
     "Пот холодный, как рука покойника на плече."
-  ]
+  ],
+  weights:{ amputation: 0.8, bloodletting: 0.95, herbalism: 0.35, demonology: 1.25, charms: 0.75, hypnosis: 0.7, prayer: 0.85 }
 },
 {
   id:"silk_worms",
@@ -1865,7 +1947,8 @@ const DISEASES = [
     "Голод будто внутри живёт второй человек.",
     "Тянет в животе, как нитку из раны.",
     "Лицо белее, чем твои планы на счастье."
-  ]
+  ],
+  weights:{ amputation: 1.25, bloodletting: 0.95, herbalism: 0.8, demonology: 0.85, charms: 0.75, hypnosis: 0.35, prayer: 0.7 }
 },
 ];
 
@@ -4427,30 +4510,29 @@ function backToClinic(){
 let currentScreen = null;
 
 function showScreen(name){
-  // если уже на этом экране, не трогаем скролл вообще
-  const isSameScreen = (currentScreen === name);
-  currentScreen = name;
-
-
+  // 1) прячем все экраны
   document.querySelectorAll(".screen").forEach(el=>{
-  el.style.display = "none";
-  el.classList.remove("active");
-});
-
-const target = document.getElementById("screen-" + name);
-if(target){
-  target.style.display = "block";
-  target.classList.add("active");
-}
-
-highlightBottomBar(name);
-
-// Скроллим только если экран реально сменился
-if(!isSameScreen){
-  requestAnimationFrame(() => {
-    try { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); } catch(e){}
+    el.style.display = "none";
+    el.classList.remove("active");
   });
-}
+
+  // 2) показываем нужный
+  const target = document.getElementById("screen-" + name);
+  if(target){
+    target.style.display = "block";
+    target.classList.add("active");
+  }
+
+  // 2.5) ✅ ВАЖНО: неделя показывается только когда body.onClinic
+  // хочешь видеть "Неделю" и на пациенте тоже? оставь как есть.
+  const clinicLike = (name === "clinic");
+  document.body.classList.toggle("onClinic", clinicLike);
+
+  // 3) подсветка нижнего меню
+  highlightBottomBar(name);
+
+  // 4) чтобы в телеге не оставалось прокрутки посередине
+  try{ window.scrollTo(0,0); }catch(e){}
 }
 
 
