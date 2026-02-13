@@ -1216,6 +1216,29 @@ html, body{
 .framePanelLight .btn{
   color:#2a1c10;
 }
+
+/* чтобы внутри рамки ничего не вылезало */
+.framePanelLight{
+  overflow: hidden;
+}
+
+/* сетка должна вписываться */
+.framePanelLight .grid2{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* кнопки апгрейда не должны раздувать контейнер */
+.framePanelLight .grid2 > *{
+  min-width: 0;
+}
+
+/* если твои карточки апгрейда — это кнопки */
+.framePanelLight .grid2 button,
+.framePanelLight .grid2 .btn{
+  max-width: 100%;
+  box-sizing: border-box;
+}
     
   </style>
 </head>
@@ -6481,9 +6504,9 @@ card.innerHTML = `
   </div>
 `;
           // --- апгрейды под палатой ---
-    const upgrades = document.createElement("div");
-    upgrades.className = "card";
-    upgrades.style.marginTop = "10px";
+   const upgrades = document.createElement("div");
+upgrades.className = "framePanelLight";     // ✅ общий фон на всё
+upgrades.style.marginTop = "10px";
   upgrades.innerHTML = `
   <div class="statRow" style="margin-top:2px">
     <span class="statPill">Койки <b>${w.comfort}</b></span>
@@ -6528,16 +6551,12 @@ card.innerHTML = `
       : ``
   }
 
-<div class="framePanelLight" style="margin-top:10px;">
-  <div class="listTitle">Улучшения палаты</div>
-  <div class="sep"></div>
-
-  <div class="grid2">
-    ${renderWardUpgradeBtn(w, "comfort", "Койки", "Меньше страданий пациента")}
-    ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
-    ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
-    ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
-  </div>
+<div class="grid2" style="margin-top:10px">
+  ${renderWardUpgradeBtn(w, "comfort", "Койки", "Меньше страданий пациента")}
+  ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
+  ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
+  ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
+</div>
 </div>
 
   <div class="wardEffects framePanelLight" style="margin-top:10px;">
