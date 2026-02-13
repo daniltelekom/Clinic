@@ -1221,6 +1221,33 @@ html, body{
   font-weight: 900;
 }
 
+/* ===== ПРОЗРАЧНЫЕ КНОПКИ ===== */
+
+.btn{
+  background: transparent;
+  color: #2a1c10;
+
+  border: 1.5px solid rgba(40,30,20,0.6);
+  border-radius: 14px;
+
+  backdrop-filter: blur(2px);
+}
+
+/* hover */
+.btn:hover{
+  background: rgba(255,255,255,0.15);
+}
+
+/* нажатие */
+.btn:active{
+  background: rgba(0,0,0,0.12);
+}
+
+
+.btn .muted{
+  color: rgba(40,30,20,0.65);
+}
+
 
 
     
