@@ -1239,6 +1239,51 @@ html, body{
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* Светлая рамка → тёмный текст */
+.framePanelLight{
+  color: #2b2b2b;
+}
+
+/* Заголовки внутри рамки */
+.framePanelLight .listTitle{
+  color: #1a1a1a;
+}
+
+/* Подтекст */
+.framePanelLight .listSub,
+.framePanelLight .muted{
+  color: #555;
+}
+
+.framePanelLight .statPill{
+  background: rgba(0,0,0,0.08);
+  color: #222;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+
+.framePanelLight .hint{
+  color: #444;
+}
+
+.framePanelLight .hint[style*="var(--warn)"]{
+  color: #9a6b00 !important;   /* тёплый тёмно-жёлтый */
+}
+
+.framePanelLight .hint.warn{
+  color: var(--warnText);
+}
+
+.framePanelLight .btn{
+  background: #2e3f75;
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.4);
+}
+
+/* hover если есть */
+.framePanelLight .btn:hover{
+  background: #3b5194;
+}
     
   </style>
 </head>
