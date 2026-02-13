@@ -484,22 +484,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   border-color: rgba(91, 124, 255, .45);
 }
 
-.wardPatientName{
-  font-weight: 800;
-  letter-spacing: .2px;
-
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wardPatientTimer{
-  font-weight: 800;
-  opacity: .9;
-}
-
 /* чтобы кнопки не “раздували” строку */
 .wardPatientRow .btn.small{
   white-space: nowrap;
@@ -652,15 +636,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   filter: brightness(1.05);
 }
 
-/* Имя пациента: не расширяет строку, а аккуратно обрезается */
-.wardPatientName{
-  flex:1;
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
 /* Правая “иконка статуса”: фикс ширина, чтоб ничего не прыгало */
 .wardPatientStatus{
   width:34px;
@@ -671,16 +646,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   border-radius:10px;
   font-size:16px;
   flex:0 0 auto;
-}
-
-/* Таймер: тоже фикс по ширине, чтобы на мобиле не разносило */
-.wardPatientTimer{
-  width:86px;           /* можно 78–96 по вкусу */
-  flex:0 0 auto;
-  text-align:right;
-  opacity:.95;
-  font-variant-numeric: tabular-nums;
-  white-space:nowrap;
 }
 
 /* ===== PATIENT CARD (new layout) ===== */
@@ -849,40 +814,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
     linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.6));
 }
 
-/* Аптека: один общий фон на всю панель */
-.pharmBg{
-  position: relative;
-  overflow: hidden;
-
-  background:
-    url("img/topbar_bg.png") center/cover no-repeat,
-    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-}
-
-/* затемнение, чтобы текст читался */
-.pharmBg::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,.42);
-  pointer-events:none;
-}
-
-/* контент поверх затемнения */
-.pharmBg > *{
-  position: relative;
-  z-index: 1;
-}
-
-/* Кнопка "Лекарства": фон подгоняем под кнопку */
-.btnMeds{
-  background-image:url("img/pharmacy/meds_btn_bg.png");
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size: 100% 100%; /* без кропа, ровно под кнопку */
-}
-
-
 .resultBadge{
   display:inline-block;
   padding:8px 12px;
@@ -935,38 +866,6 @@ body:not(.onClinic) .screen.active .panel:first-child{
   border:1px solid var(--line);
   background: rgba(0,0,0,.12);
 }
-
-/* ЕДИНЫЙ ФОН ДЛЯ АПТЕКИ (из верхней картинки) */
-.pharmUnifiedBg{
-  position: relative;
-  overflow: hidden;
-
-  background: url("img/pharmacy/pharmacy_top.png") top center / cover no-repeat;
-}
-
-/* затемнение, чтобы текст читался */
-.pharmUnifiedBg::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,.38);
-  pointer-events:none;
-}
-
-/* весь контент поверх затемнения */
-.pharmUnifiedBg > *{
-  position: relative;
-  z-index: 1;
-}
-
-/* кнопка "Лекарства" фон под кнопку */
-.btnMeds{
-  background-image: url("img/pharmacy/meds_btn_bg.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% 100%;
-}
-
 .wardEffects .listTitle{ font-size:14px; }
 
 .queueTimeText.ok{ color: var(--ok); }
@@ -999,7 +898,7 @@ html, body{
   overflow-x: hidden; /* убираем горизонтальный вылет */
 }
 
-.topbar, .bottombar{
+.topbar, .bottomBar{
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
@@ -1014,19 +913,19 @@ html, body{
   padding-top: calc(10px + env(safe-area-inset-top));
 }
 
-.bottombar{
+.bottomBar{
   padding-left: 8px;
   padding-right: 8px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
 }
 
 /* чтобы кнопки нижнего меню не распирали ширину */
-.bottombar .tab{
+.bottomBar .tab{
   flex: 1 1 0;
   min-width: 0;
 }
 
-.bottombar .tab .label{
+.bottomBar .tab .label{
   font-size: 12px;     /* меньше шрифт, меньше вылет */
   white-space: nowrap; /* не переносим в 2 строки */
   overflow: hidden;
@@ -1037,32 +936,6 @@ html, body{
 .topbar .row{
   flex-wrap: wrap;
   gap: 8px;
-}
-
-/* --- Кнопка "Лекарства": растягиваем только фон --- */
-.btnMeds{
-  position: relative;
-  overflow: visible; /* разрешаем фону чуть выходить */
-}
-
-.btnMeds::before{
-  content: "";
-  position: absolute;
-  inset: -6px -10px;   /* ← магия */
-  /*
-     -6px  → вверх/вниз (ввысь)
-     -10px → влево/вправо (шире)
-  */
-
-  background: url("img/pharmacy/meds_btn_bg.png") center/100% 100% no-repeat;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* чтобы текст был поверх */
-.btnMeds > *{
-  position: relative;
-  z-index: 1;
 }
 
 .shiftSegment{
@@ -1161,128 +1034,165 @@ html, body{
   color: #e7d7b5;
 }
 
-/* ===== UNIVERSAL FRAME PANEL ===== */
+/* =========================
+   CLEAN OVERRIDES (final)
+   ========================= */
+
+/* Универсальный “фон + затемнение”, чтобы текст читался */
+.bgDim{
+  position:relative;
+  overflow:hidden;
+}
+.bgDim::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.38);
+  pointer-events:none;
+}
+.bgDim > *{ position:relative; z-index:1; }
+
+/* Аптека: единый фон */
+.pharmUnifiedBg{
+  background: url("img/pharmacy/pharmacy_top.png") top center / cover no-repeat;
+}
+.pharmUnifiedBg{ position:relative; overflow:hidden; }
+.pharmUnifiedBg::before{
+  content:"";
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.38);
+  pointer-events:none;
+}
+.pharmUnifiedBg > *{ position:relative; z-index:1; }
+
+/* Кнопка “Лекарства”: растягиваем только фон */
+.btnMeds{
+  position: relative;
+  overflow: visible;
+}
+.btnMeds::before{
+  content:"";
+  position:absolute;
+  inset: -6px -10px; /* выше/шире */
+  background: url("img/pharmacy/meds_btn_bg.png") center/100% 100% no-repeat;
+  z-index:0;
+  pointer-events:none;
+}
+.btnMeds > *{ position:relative; z-index:1; }
+
+/* FIX: не даём странице улетать по X на мобиле */
+html, body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+/* bottom bar: исправляем неверные селекторы */
+.bottomBar{
+  left:0 !important;
+  right:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  box-sizing:border-box;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* элементы нижнего меню не распирают */
+.bbItem{
+  min-width:0;
+}
+.bbItem span, .bbItem .label{
+  font-size:12px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ===== Светлая рамка (пергамент) для блоков ===== */
 .framePanelLight{
-  width: 100%;
-  box-sizing: border-box;
-  margin: 10px 0;
+  width:100%;
+  box-sizing:border-box;
+  margin:10px 0;
 
   background-image: url("img/ui/segment_frame.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% 100%;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:100% 100%;
 
-  padding: 16px 18px;
-  border-radius: 16px;
+  padding:16px 18px;
+  border-radius:16px;
 
-  /* светлая подложка */
   background-color: rgba(245, 232, 205, 0.92);
   border: 1px solid rgba(60,40,20,0.35);
-}
 
-/* текст внутри светлой рамки */
-.framePanelLight .listTitle{
-  color: #2a1c10;
-  text-shadow: none;
-}
-
-.framePanelLight .listSub{
-  color: #3b2a1a;
-}
-
-.framePanelLight .hint,
-.framePanelLight .muted{
-  color: #5a4633;
-}
-
-.framePanelLight .wardEffectLine{
-  color:#3b2a1a;
-  margin-top:8px;
-  line-height:1.25;
-}
-
-.framePanelLight .wardEffectLine b{
+  overflow:hidden;
   color:#2a1c10;
+}
+
+.framePanelLight .listTitle{
+  color:#2a1c10;
+  text-shadow:none;
+}
+.framePanelLight .listSub,
+.framePanelLight .muted,
+.framePanelLight .hint{
+  color:#4b3726;
 }
 
 .framePanelLight .sep{
-  background: rgba(60,40,20,.25);
-}
-
-.framePanelLight .grid2{
-  margin-top: 6px;
-}
-    
-.framePanelLight .btn{
-  color:#2a1c10;
-}
-
-/* чтобы внутри рамки ничего не вылезало */
-.framePanelLight{
-  overflow: hidden;
-}
-
-/* сетка должна вписываться */
-.framePanelLight .grid2{
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* кнопки апгрейда не должны раздувать контейнер */
-.framePanelLight .grid2 > *{
-  min-width: 0;
-}
-
-/* если твои карточки апгрейда — это кнопки */
-.framePanelLight .grid2 button,
-.framePanelLight .grid2 .btn{
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* Светлая рамка → тёмный текст */
-.framePanelLight{
-  color: #2b2b2b;
-}
-
-/* Заголовки внутри рамки */
-.framePanelLight .listTitle{
-  color: #1a1a1a;
-}
-
-/* Подтекст */
-.framePanelLight .listSub,
-.framePanelLight .muted{
-  color: #555;
+  background: rgba(60,40,20,.22);
 }
 
 .framePanelLight .statPill{
   background: rgba(0,0,0,0.08);
-  color: #222;
+  color:#2a1c10;
   border: 1px solid rgba(0,0,0,0.15);
 }
 
-.framePanelLight .hint{
-  color: #444;
-}
-
+/* Поломка: вместо жёлтого делаем читаемый красный */
+.framePanelLight .hint.warn,
 .framePanelLight .hint[style*="var(--warn)"]{
-  color: #9a6b00 !important;   /* тёплый тёмно-жёлтый */
+  color:#8b1e1e !important;
+  font-weight:800;
 }
 
-.framePanelLight .hint.warn{
-  color: var(--warnText);
+/* Подписи под кнопками апгрейда: делаем тёмнее, чтобы читалось */
+.framePanelLight .wardUpgradeSub,
+.framePanelLight .wardUpgradeNow{
+  color:#4b3726;
+  opacity:1;
 }
 
+/* Кнопки на светлом фоне должны быть контрастные */
 .framePanelLight .btn{
   background: #2e3f75;
-  color: #fff;
-  border: 1px solid rgba(0,0,0,0.4);
+  color:#fff;
+  border: 1px solid rgba(0,0,0,0.35);
 }
+.framePanelLight .btn:hover{ background:#3b5194; }
 
-/* hover если есть */
-.framePanelLight .btn:hover{
-  background: #3b5194;
+/* Сетка внутри светлой рамки: ничего не вылезает */
+.framePanelLight .grid2{
+  width:100%;
+  box-sizing:border-box;
+}
+.framePanelLight .grid2 > *{ min-width:0; }
+
+/* Пациентские строки: один финальный вариант, без дублей */
+.wardPatientName{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.wardPatientTimer{
+  width:86px;
+  flex:0 0 auto;
+  text-align:right;
+  opacity:.95;
+  font-variant-numeric: tabular-nums;
+  white-space:nowrap;
 }
     
   </style>
