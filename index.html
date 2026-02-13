@@ -1076,6 +1076,65 @@ html, body{
   border: 1px solid rgba(255,255,255,.12);
 }
 
+/* SHIFT END: плашки на всю ширину */
+#screen-shiftend .shiftSegment{
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* SHIFT END: скроллим панель, а не страницу (Телега любит дёргать страницу) */
+#screen-shiftend .panel{
+  max-height: calc(100vh - 190px); /* под topbar + bottombar */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== SHIFT END framed panels ===== */
+.framePanel{
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+
+  /* твоя картинка-рамка */
+  background-image: url("img/ui/segment_frame.png"); 
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;  /* растягиваем рамку под блок */
+  
+  padding: 16px 18px;
+  border-radius: 16px; /* если картинка с округлениями, можно убрать */
+}
+
+/* чтобы текст внутри рамки не прилипал */
+.framePanel .listTitle{ margin: 0 0 6px 0; }
+.framePanel .listSub{ margin: 0; }
+
+/* варианты наград тоже рамками */
+.rewardFrame{
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+
+  background-image: url("img/ui/segment_frame.png"); 
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.rewardFrame.selected{
+  outline: 2px solid rgba(120, 255, 180, .55); /* мягкая подсветка */
+}
+
+/* кнопка "Выбрать" чтобы не ломала верстку */
+.rewardFrame .row{
+  align-items: center;
+  gap: 10px;
+}
+
     
   </style>
 </head>
@@ -1244,22 +1303,17 @@ html, body{
 <div class="screen" id="screen-shiftend">
   <div class="panel">
 
-    <div class="shiftSegment">
-      <div class="listTitle">Смена окончена</div>
-      <div class="listSub" id="shift-summary">…</div>
-    </div>
+    <div class="framePanel">
+  <div class="listTitle">Смена окончена</div>
+  <div class="listSub" id="shift-summary">…</div>
+</div>
 
-    <div class="sep"></div>
+<div class="framePanel">
+  <div class="listTitle">🎁 Награда за смену</div>
+  <div class="listSub" id="reward-hint">Выбери одну из трёх.</div>
+</div>
 
-    <div class="shiftSegment">
-      <div class="listTitle">🎁 Награда за смену</div>
-      <div class="listSub" id="reward-hint">Выбери одну из трёх.</div>
-    </div>
-
-    <div class="sep"></div>
-
-    <div class="shiftSegment">
-      <div id="reward-list"></div>
+<div id="reward-list"></div>
     </div>
 
     <div class="sep"></div>
@@ -4026,7 +4080,7 @@ function renderShiftEnd(){
 
   for(const r of (state.rewards?.pending || [])){
     const div = document.createElement("div");
-    div.className = "card rewardCard" + ((chosenId === r.id) ? " selected" : "");
+    div.className = "rewardFrame" + ((chosenId === r.id) ? " selected" : "");
 
     const row = document.createElement("div");
     row.className = "row";
@@ -4503,32 +4557,19 @@ function backToClinic(){
   refreshVisibleUI();
 }
 
-let currentScreen = null;
+let currentScreenId = null;
 
-function showScreen(name){
-  // 1) прячем все экраны
-  document.querySelectorAll(".screen").forEach(el=>{
-    el.style.display = "none";
-    el.classList.remove("active");
-  });
+function showScreen(id){
+  // если уже на этом экране - НЕ трогаем (иначе Telegram прыгает наверх)
+  if(currentScreenId === id) return;
+  currentScreenId = id;
 
-  // 2) показываем нужный
-  const target = document.getElementById("screen-" + name);
-  if(target){
-    target.style.display = "block";
-    target.classList.add("active");
-  }
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const el = document.getElementById("screen-" + id) || document.getElementById(id) || document.getElementById("screen-" + id);
+  if(el) el.classList.add("active");
 
-  // 2.5) ✅ ВАЖНО: неделя показывается только когда body.onClinic
-  // хочешь видеть "Неделю" и на пациенте тоже? оставь как есть.
-  const clinicLike = (name === "clinic");
-  document.body.classList.toggle("onClinic", clinicLike);
-
-  // 3) подсветка нижнего меню
-  highlightBottomBar(name);
-
-  // 4) чтобы в телеге не оставалось прокрутки посередине
-  try{ window.scrollTo(0,0); }catch(e){}
+  // скроллим вверх только при ПЕРЕХОДЕ, а не каждую перерисовку
+  requestAnimationFrame(()=> window.scrollTo(0,0));
 }
 
 
