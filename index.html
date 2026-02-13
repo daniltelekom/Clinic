@@ -1243,13 +1243,61 @@ html, body{
   background: rgba(0,0,0,0.12);
 }
 
+.btn.ok{
+  background: transparent;
+  border-color: rgba(30, 90, 50, 0.6);
+  color: #1f5132;
+}
 
+.btn.warn{
+  background: transparent;
+  border-color: rgba(140, 90, 20, 0.6);
+  color: #7a4d12;
+}
+
+.btn.bad{
+  background: transparent;
+  border-color: rgba(140, 30, 30, 0.6);
+  color: #7a1d1d;
+}
+    
 .btn .muted{
   color: rgba(40,30,20,0.65);
 }
 
+/* ===== FORCE TRANSPARENT BUTTONS ===== */
 
+.btn,
+.btn.primary,
+.btn.big,
+.btn.small{
+  background: transparent !important;
+  background-image: none !important;
 
+  color: #2a1c10 !important;
+  border: 1.5px solid rgba(50,35,20,0.65) !important;
+  border-radius: 14px;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+/* hover */
+.btn:hover{
+  background: rgba(255,255,255,0.15) !important;
+}
+
+/* active */
+.btn:active{
+  background: rgba(0,0,0,0.12) !important;
+}
+.btn .muted{
+  color: rgba(40,30,20,0.65) !important;
+}
+.framePanelLight .btn{
+  background: rgba(255,255,255,0.08) !important;
+  border: 1.5px solid rgba(60,40,20,0.5) !important;
+  color: #2a1c10 !important;
+}
     
   </style>
 </head>
@@ -2481,7 +2529,6 @@ function makeWard(letter){
   return {
     id: "ward_"+letter,
     name: "Палата "+letter,
-    level: 1,
 
     // статы (с капами)
     comfort: 1,
