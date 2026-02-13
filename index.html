@@ -84,19 +84,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
       margin:10px 0;
     }
     .row{display:flex; gap:10px; align-items:center; justify-content:space-between}
-    .btn{
-      background:linear-gradient(180deg, var(--btn2), var(--btn));
-      color:var(--text);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px 12px;
-      font-weight:800;
-      cursor:pointer;
-      text-align:left;
-      width:100%;
-    }
     .btn:active{transform:scale(.99)}
-    .btn.small{width:auto; padding:8px 10px; border-radius:12px}
     .btn.danger{background:linear-gradient(180deg, rgba(255,107,107,.22), rgba(255,107,107,.12))}
     .btn.ok{background:linear-gradient(180deg, rgba(73,209,125,.22), rgba(73,209,125,.12))}
     .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
@@ -178,7 +166,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
 .tutHint{ color:var(--muted); font-size:12px; margin-top:8px; }
 
 .tutNav{ display:flex; gap:10px; margin-top:12px; }
-.tutNav .btn{ width:auto; }
+.tutNav  width:auto; }
 
 .tutSpot{
   position:fixed;
@@ -1223,50 +1211,22 @@ html, body{
 
 /* ===== ПРОЗРАЧНЫЕ КНОПКИ ===== */
 
-.btn{
-  background: rgba(25, 35, 60, 0.85);   /* было слишком прозрачно */
-  backdrop-filter: blur(2px);
-
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 14px;
+.btn,
+.btn.primary,
+.btn.big,
+.btn.small{
+  background: rgba(25, 35, 60, 0.92);
+  background-image: none;
 
   color: #f4e6c7;
-  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
 
-  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.40);
 
   padding: 10px 14px;
-}
-
-.btn:hover{
-  filter: brightness(1.08);
-}
-
-.btn:active{
-  transform: translateY(1px);
-}
-
-.btn.ok{
-  background: transparent !important;
-  border-color: rgba(30, 90, 50, 0.6);
-  color: #1f5132;
-}
-
-.btn.warn{
-  background: transparent !important;
-  border-color: rgba(140, 90, 20, 0.6);
-  color: #7a4d12;
-}
-
-.btn.bad{
-  background: transparent !important;
-  border-color: rgba(140, 30, 30, 0.6);
-  color: #7a1d1d;
-}
-    
-.btn .muted{
-  color: rgba(40,30,20,0.65);
 }
     
   </style>
