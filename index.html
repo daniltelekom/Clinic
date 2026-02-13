@@ -1195,6 +1195,20 @@ html, body{
   color: #5a4633;
 }
 
+.framePanelLight .wardEffectLine{
+  color:#3b2a1a;
+  margin-top:8px;
+  line-height:1.25;
+}
+
+.framePanelLight .wardEffectLine b{
+  color:#2a1c10;
+}
+
+.framePanelLight .sep{
+  background: rgba(60,40,20,.25);
+}
+
     
   </style>
 </head>
@@ -6514,7 +6528,7 @@ card.innerHTML = `
     ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
   </div>
 
-  <div class="wardEffects">
+  <div class="wardEffects framePanelLight" style="margin-top:10px;">
     <div class="listTitle">Что дают улучшения сейчас</div>
     <div class="sep"></div>
 
