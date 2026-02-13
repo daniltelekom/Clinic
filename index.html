@@ -1224,23 +1224,27 @@ html, body{
 /* ===== ПРОЗРАЧНЫЕ КНОПКИ ===== */
 
 .btn{
-  background: transparent !important;
-  color: #2a1c10;
+  background: rgba(25, 35, 60, 0.85);   /* было слишком прозрачно */
+  backdrop-filter: blur(2px);
 
-  border: 1.5px solid rgba(40,30,20,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
   border-radius: 14px;
 
-  backdrop-filter: blur(2px);
+  color: #f4e6c7;
+  font-weight: 600;
+
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+
+  padding: 10px 14px;
 }
 
-/* hover */
 .btn:hover{
-  background: rgba(255,255,255,0.15);
+  filter: brightness(1.08);
 }
 
-/* нажатие */
 .btn:active{
-  background: rgba(0,0,0,0.12);
+  transform: translateY(1px);
 }
 
 .btn.ok{
