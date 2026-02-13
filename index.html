@@ -1194,6 +1194,32 @@ html, body{
   font-variant-numeric: tabular-nums;
   white-space:nowrap;
 }
+
+/* ===== FIX: читаемость на светлых рамках (framePanelLight) ===== */
+.framePanelLight{
+  color:#2b241c;
+}
+
+.framePanelLight .listTitle{
+  color:#1f1a14;
+}
+
+.framePanelLight .listSub,
+.framePanelLight .muted,
+.framePanelLight .hint,
+.framePanelLight .wardUpgradeNow,
+.framePanelLight .wardEffectLine{
+  color: rgba(35, 28, 20, .88);
+}
+
+.framePanelLight .wardEffectLine b{
+  color:#1f1a14;
+}
+
+.fatiguePct{
+  color:#1f1a14;
+  font-weight: 900;
+}
     
   </style>
 </head>
@@ -4622,16 +4648,31 @@ function backToClinic(){
 
 let currentScreenId = null;
 
+let currentScreenId = null;
+
 function showScreen(id){
   // если уже на этом экране - НЕ трогаем (иначе Telegram прыгает наверх)
   if(currentScreenId === id) return;
   currentScreenId = id;
 
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  const el = document.getElementById("screen-" + id) || document.getElementById(id) || document.getElementById("screen-" + id);
+  const el =
+    document.getElementById("screen-" + id) ||
+    document.getElementById(id);
   if(el) el.classList.add("active");
 
-  // скроллим вверх только при ПЕРЕХОДЕ, а не каждую перерисовку
+  // ✅ НЕДЕЛЯ: видна только на главной
+  document.body.classList.toggle("onClinic", id === "clinic");
+
+  const weekPanel = document.getElementById("week-panel");
+  if(weekPanel){
+    weekPanel.style.display = (id === "clinic") ? "block" : "none";
+  }
+
+  // ✅ подсветка нижнего меню (у тебя функция уже есть)
+  if(typeof highlightBottomBar === "function") highlightBottomBar(id);
+
+  // скроллим вверх только при ПЕРЕХОДЕ
   requestAnimationFrame(()=> window.scrollTo(0,0));
 }
 
@@ -4689,7 +4730,7 @@ function renderStaff(){
   Любит: ${doc.likes?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"} •
   Не любит: ${doc.hates?.map(m=>escapeHtml(methodName(m))).join(", ") || "—"}
 </div>
-<div class="hint">Усталость: <b>${Math.round(doc.fatigue || 0)}%</b></div>
+<div class="hint">Усталость: <b class="fatiguePct">${Math.round(doc.fatigue || 0)}%</b></div>
 <div class="grid2" style="margin-top:10px">
   <button class="btn small ok" onclick="useRestOnDoctor('${doc.id}', 'small')" ${hasSmall ? "" : "disabled"}>
     🫖 -20% (x${state._shopRestToken || 0})
