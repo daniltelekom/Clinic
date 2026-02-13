@@ -1161,6 +1161,40 @@ html, body{
   color: #e7d7b5;
 }
 
+/* ===== UNIVERSAL FRAME PANEL ===== */
+.framePanelLight{
+  width: 100%;
+  box-sizing: border-box;
+  margin: 10px 0;
+
+  background-image: url("img/ui/segment_frame.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+
+  padding: 16px 18px;
+  border-radius: 16px;
+
+  /* светлая подложка */
+  background-color: rgba(245, 232, 205, 0.92);
+  border: 1px solid rgba(60,40,20,0.35);
+}
+
+/* текст внутри светлой рамки */
+.framePanelLight .listTitle{
+  color: #2a1c10;
+  text-shadow: none;
+}
+
+.framePanelLight .listSub{
+  color: #3b2a1a;
+}
+
+.framePanelLight .hint,
+.framePanelLight .muted{
+  color: #5a4633;
+}
+
     
   </style>
 </head>
@@ -1218,18 +1252,22 @@ html, body{
       <div class="hint">Палаты лечат параллельно. Прокачка ограничена капами и дорожает.</div>
     </div>
 
-    <div class="panel">
-      <h2>Дежурные доктора</h2>
-      <div id="duty"></div>
-      <div class="hint">Дежурные дают советы и штрафуют методы, которые “не умеют”.</div>
-    </div>
+   <div class="framePanelLight">
+  <div class="listTitle">Дежурные доктора</div>
+  <div id="duty"></div>
+  <div class="hint">Дежурные дают советы и штрафуют методы, которые “не умеют”.</div>
+</div>
 
-    <div class="panel queuePanel">
-      <h2>Очередь пациентов</h2>
-      <div id="queue-upgrades" class="grid2" style="margin:10px 0;"></div>
-      <div id="queue"></div>
-      <div class="hint">Если долго не лечить: могут уйти или умереть прямо в очереди. Жизнь.</div>
-    </div>
+    <div class="framePanelLight">
+  <div class="listTitle">Очередь пациентов</div>
+
+  <div id="queue-upgrades" class="grid2" style="margin-top:10px;"></div>
+  <div id="queue"></div>
+
+  <div class="hint">
+    Если долго не лечить: могут уйти или умереть прямо в очереди. Жизнь.
+  </div>
+</div>
 
   </div>
 
