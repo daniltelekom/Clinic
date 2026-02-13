@@ -1209,6 +1209,13 @@ html, body{
   background: rgba(60,40,20,.25);
 }
 
+.framePanelLight .grid2{
+  margin-top: 6px;
+}
+    
+.framePanelLight .btn{
+  color:#2a1c10;
+}
     
   </style>
 </head>
@@ -6521,12 +6528,17 @@ card.innerHTML = `
       : ``
   }
 
-<div class="grid2" style="margin-top:10px">
+<div class="framePanelLight" style="margin-top:10px;">
+  <div class="listTitle">Улучшения палаты</div>
+  <div class="sep"></div>
+
+  <div class="grid2">
     ${renderWardUpgradeBtn(w, "comfort", "Койки", "Меньше страданий пациента")}
     ${renderWardUpgradeBtn(w, "ventilation", "Вентиляция", "Миазмы уходят")}
     ${renderWardUpgradeBtn(w, "light", "Свет", "Лучшие исходы")}
     ${renderWardUpgradeBtn(w, "cleanliness", "Чистота", "Меньше заражений")}
   </div>
+</div>
 
   <div class="wardEffects framePanelLight" style="margin-top:10px;">
     <div class="listTitle">Что дают улучшения сейчас</div>
