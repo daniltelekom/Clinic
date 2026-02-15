@@ -144,7 +144,7 @@ body:not(.onClinic) .screen.active .panel:first-child{
   width:min(560px, calc(100% - 24px));
 
   background:
-    url("img/ui/scroll.png") center / cover no-repeat,
+    url("img/ui/segment_frame.png") center / cover no-repeat,
     linear-gradient(
       180deg,
       rgba(10, 8, 4, 0.85),
@@ -1058,7 +1058,7 @@ html, body{
 
 /* Аптека: единый фон */
 .pharmUnifiedBg{
-  background: url("img/pharmacy/pharmacy_top.png") top center / cover no-repeat;
+  background: url("img/ui/segment_frame.png") top center / cover no-repeat;
 }
 .pharmUnifiedBg{ position:relative; overflow:hidden; }
 .pharmUnifiedBg::before{
@@ -1402,14 +1402,14 @@ html, body{
     </div>
   </div>
 
-  <div id="research-active" class="card" style="margin-top:10px; display:none;"></div>
+ <div id="research-active" class="framePanelLight researchNodeCard" style="margin-top:10px; display:none;"></div>
 
-  <div class="card" style="margin-top:10px;">
-    <div class="listTitle">Древо</div>
-    <div class="listSub">Нажми на навык, чтобы начать изучение.</div>
-    <div class="sep"></div>
-    <div id="research-tree"></div>
-  </div>
+<div class="framePanelLight" style="margin-top:10px;">
+  <div class="listTitle">Древо</div>
+  <div class="listSub">Нажми на навык, чтобы начать изучение.</div>
+  <div class="sep"></div>
+  <div id="research-tree"></div>
+</div>
 </div>
 
 <!-- SCREEN: SHIFT END -->
@@ -1507,7 +1507,8 @@ html, body{
     <!-- кнопка Лекарства -->
   <button class="btn btnMeds" onclick="openPharmMeds()" style="width:100%;">
       💊 Лекарства
-      <div class="muted">Изучай свойства и ключевые слова</div>
+      <div class="muted"> Лекарства
+        Изучай свойства и ключевые слова</div>
     </button>
 
     <div class="sep"></div>
