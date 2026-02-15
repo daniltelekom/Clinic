@@ -4831,6 +4831,29 @@ window.useRestOnDoctor = useRestOnDoctor;
 
   // ===== ЕДИНЫЙ КАТАЛОГ ЛАВКИ (чтобы renderShop и buyPerk жили в одной реальности) =====
 const SHOP = [
+
+   // Stars товары
+{
+  id:"chest_doctors_stars6с доктором",
+  desc:"Открываешь и получаешь нового доктора (или редкий бонус).",
+  stars: 25,                 // цена в Stars
+  buy: ()=> startStarsPurchase("chest_doctors_stars")
+},
+{
+  id:"coins_pack_s",
+  title:"⭐ Монеты: мешок",
+  desc:"+1000 монет",
+  stars: 15,
+  buy: ()=> startStarsPurchase("coins_pack_s")
+},
+{
+  id:"bio_pack_s",
+  title:"⭐ Биоматериал: ящик",
+  desc:"+10 биоматериала",
+  stars: 20,
+  buy: ()=> startStarsPurchase("bio_pack_s")
+},
+  
   {
     id:"lab_extra",
     title:"Лаборант",
@@ -4932,7 +4955,9 @@ function renderShop(){
   }
 
   for(const it of list){
-    const disabled = (it.can && !it.can()) || !canAfford(it.cost);
+    const disabled =
+  (it.can && !it.can()) ||
+  (!it.stars && !canAfford(it.cost));
     const div = document.createElement("div");
     div.className = "card shopItemCard";
     div.innerHTML = `
@@ -4944,6 +4969,7 @@ function renderShop(){
       </div>
 
       <div class="listSub">${escapeHtml(it.desc)}</div>
+      ${formatStars(it.stars)}
       ${formatCost(it.cost)}
     </div>
 
@@ -4956,6 +4982,13 @@ function renderShop(){
 `;
     elShopList.appendChild(div);
   }
+}
+
+function formatStars(stars){
+  if(!stars) return "";
+  return` <div class="costLine">
+    <span class="costPill">⭐ ${Number(stars)}</span>
+  </div>`;
 }
 
 function formatCost(c){
@@ -4986,19 +5019,22 @@ function buyPerk(id){
   const it = SHOP.find(x => x.id === id);
   if(!it) return;
 
-  // страховка
   state.perks = state.perks || {};
   state.flags = state.flags || {};
   state.shopBought = state.shopBought || {};
 
-  // правила
   if(it.can && !it.can()) return;
-  if(!canAfford(it.cost)) return;
 
-  // списываем
+  // ⭐ Stars-покупка
+  if(it.stars){
+    if(typeof it.buy === "function") it.buy();
+    return;
+  }
+
+  // обычная покупка за ресурсы
+  if(!canAfford(it.cost)) return;
   payCost(it.cost);
 
-  // применяем
   if(typeof it.buy === "function") it.buy();
 
   saveState();
@@ -5025,6 +5061,52 @@ function assignDoctorToSlot(docId, slot){
   saveState();
   renderStaff();
   refreshVisibleUI();
+}
+
+const TG = window.Telegram?.WebApp;
+
+async function startStarsPurchase(productId){
+  if(!TG){
+    alert("Открой в Telegram, не в браузере 🙃");
+    return;
+  }
+
+  try{
+    TG.HapticFeedback?.impactOccurred("medium");
+
+    // 1) просим сервер создать инвойс
+    const r = await fetch("https://plague-clinic.vercel.app//api/stars/create-invoice", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        productId,
+        // полезно передать initData для проверки пользователя на сервере
+        initData: TG.initData
+      })
+    });
+
+    const data = await r.json();
+    if(!data.ok) throw new Error(data.error || "invoice failed");
+
+    // 2) открываем оплату
+    TG.openInvoice(data.invoiceLink, (status) => {
+      // status: "paid" | "cancelled" | "failed" (зависит от клиента/версии)
+      console.log("invoice status:", status);
+
+      if(status === "paid"){
+        // НЕ ВЫДАЁМ НАГРАДУ ТУТ (это небезопасно).
+        // Тут просто обновим UI, а награду получим после подтверждения с сервера.
+        TG.HapticFeedback?.notificationOccurred("success");
+        syncFromServer(); // сделаем функцию ниже
+      } else {
+        TG.HapticFeedback?.notificationOccurred("warning");
+      }
+    });
+
+  }catch(e){
+    console.log(e);
+    alert("Не вышло открыть оплату: " + (e?.message || e));
+  }
 }
 
 /* =========================================================
