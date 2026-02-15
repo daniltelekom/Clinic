@@ -4996,7 +4996,7 @@ function formatStars(stars){
 }
 
 function formatCost(c){
-  cost = cost || {};
+  c = c || {};
   const parts = [];
   if(c.coins) parts.push(`<span class="costPill"><img src="icons/topbar/icon_coins.png" alt="">${c.coins}</span>`);
   if(c.rep)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_rep.png" alt="">${c.rep}</span>`);
