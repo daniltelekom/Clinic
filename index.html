@@ -5097,32 +5097,39 @@ function assignDoctorToSlot(docId, slot){
 const TG = window.Telegram?.WebApp;
 
 async function startStarsPurchase(productId){
-  co10am?.WebApp;
-  if(!TG){ alert("Это работает только внутри Telegram 😏"); return; }
 
-  // userId берём из Telegram initDataUnsafe
-  const userId = TG?.initDataUnsafe?.user?.id;
-  if(!userId){ alert("Не вижу TG user id"); return; }
+  const TG = window.Telegram?.WebApp;
+
+  if(!TG){
+    alert("Это работает только внутри Telegram 😏");
+    return;
+  }
 
   try{
+    const userId = TG.initDataUnsafe?.user?.id;
+
+    if(!userId){
+      throw new Error("userId not found");
+    }
+
     const r = await fetch("/api/stars/create-invoice", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type":"application/json" },
       body: JSON.stringify({ productId, userId })
     });
 
     const data = await r.json();
-    if(!data.ok) throw new Error(data.error || "invoice error");
+
+    if(!data.ok){
+      throw new Error(data.error || "invoice error");
+    }
 
     TG.openInvoice(data.invoiceLink, async (status)=>{
       console.log("Invoice status:", status);
-      if(status === "paid"){
-        TG.HapticFeedback?.notificationOccurred("success");
 
-        // ВАЖНО: перезагружаем состояние с сервера, потому что награду выдаёт вебхук
-        await cloudLoad?.();       // если у тебя есть cloudLoad
+      if(status === "paid"){
+        await cloudLoad?.();
         refreshVisibleUI?.();
-        renderShop?.();
       }
     });
 
