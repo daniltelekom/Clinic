@@ -4834,9 +4834,10 @@ const SHOP = [
 
    // Stars товары
 {
-  id:"chest_doctors_stars6с доктором",
+  id:"chest_doctors_stars",
+  title:"⭐ Сундук с доктором",
   desc:"Открываешь и получаешь нового доктора (или редкий бонус).",
-  stars: 25,                 // цена в Stars
+  stars: 25,
   buy: ()=> startStarsPurchase("chest_doctors_stars")
 },
 {
@@ -5075,14 +5076,11 @@ async function startStarsPurchase(productId){
   }
 
   try{
-    const r = await fetch(
-      "https://plague-clinic.vercel.app/api/stars/create-invoice",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId })
-      }
-    );
+    const r = await fetch("/api/stars/create-invoice", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ productId })
+});
 
     const data = await r.json();
 
