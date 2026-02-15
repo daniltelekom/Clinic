@@ -2786,11 +2786,11 @@ async function cloudLoad(){
     return null;
   }
 
-  const r = await fetch("/api/stars/create-invoice", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ productId })
-});
+  const r = await fetch("/api/save", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ initData })
+  });
 
   const txt = await r.text().catch(()=> "");
   console.log("cloudLoad status:", r.status, txt.slice(0,200));
