@@ -4838,6 +4838,7 @@ const SHOP = [
   title:"⭐ Сундук с доктором",
   desc:"Открываешь и получаешь нового доктора (или редкий бонус).",
   stars: 25,
+  cost: {},
   buy: ()=> startStarsPurchase("chest_doctors_stars")
 },
 {
@@ -4845,6 +4846,7 @@ const SHOP = [
   title:"⭐ Монеты: мешок",
   desc:"+1000 монет",
   stars: 15,
+  cost: {},
   buy: ()=> startStarsPurchase("coins_pack_s")
 },
 {
@@ -4852,6 +4854,7 @@ const SHOP = [
   title:"⭐ Биоматериал: ящик",
   desc:"+10 биоматериала",
   stars: 20,
+  cost: {},
   buy: ()=> startStarsPurchase("bio_pack_s")
 },
   
@@ -4993,6 +4996,7 @@ function formatStars(stars){
 }
 
 function formatCost(c){
+  cost = cost || {};
   const parts = [];
   if(c.coins) parts.push(`<span class="costPill"><img src="icons/topbar/icon_coins.png" alt="">${c.coins}</span>`);
   if(c.rep)   parts.push(`<span class="costPill"><img src="icons/topbar/icon_rep.png" alt="">${c.rep}</span>`);
