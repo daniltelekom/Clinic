@@ -1244,6 +1244,15 @@ html, body{
 
   padding: 10px 14px;
 }
+
+/* Лавка: рамка segment_frame на каждый товар */
+.shopItemCard{
+  background:
+    url("img/ui/segment_frame.png") center/100% 100% no-repeat,
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.62));
+  border-radius:14px;
+  overflow:hidden; /* чтобы фон не торчал за углы */
+}
     
   </style>
 </head>
@@ -1568,7 +1577,7 @@ html, body{
 
 <!-- SCREEN: PHARM RESULT -->
 <div class="screen" id="screen-pharm-result">
-  <div class="panel">
+  <div class="framePanelLight">
     <div class="listTitle">Итог обслуживания</div>
     <div class="listSub" id="pharm-result-text">…</div>
     <div class="sep"></div>
@@ -4902,7 +4911,7 @@ function renderShop(){
   for(const it of list){
     const disabled = (it.can && !it.can()) || !canAfford(it.cost);
     const div = document.createElement("div");
-    div.className = "card";
+    div.className = "card shopItemCard";
     div.innerHTML = `
   <div class="row">
     <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
