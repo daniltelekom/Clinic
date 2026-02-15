@@ -4861,26 +4861,27 @@ const SHOP = [
 {
   id:"chest_doctors_stars",
   title:"⭐ Сундук с доктором",
-  desc:"Открываешь и получаешь нового доктора (или редкий бонус).",
+   desc:"Открываешь и получаешь нового доктора (рандом).",
   stars: 25,
-  cost: {},
-  buy: ()=> startStarsPurchase("chest_doctors_stars")
+  cost: {},                 // ВАЖНО: чтобы ничего не падало
+  buy: ()=> startStarsPurchase("chest_doctor")
 },
 {
   id:"coins_pack_s",
   title:"⭐ Монеты: мешок",
-  desc:"+1000 монет",
+  title:"+1000 монет",
+  desc:"Деньги за звёзды.",
   stars: 15,
   cost: {},
-  buy: ()=> startStarsPurchase("coins_pack_s")
+  buy: ()=> startStarsPurchase("coins_1000")
 },
 {
   id:"bio_pack_s",
   title:"⭐ Биоматериал: ящик",
-  desc:"+10 биоматериала",
+   desc:"Биоматериал за звёзды.",
   stars: 20,
   cost: {},
-  buy: ()=> startStarsPurchase("bio_pack_s")
+  buy: ()=> startStarsPurchase("bio_10")
 },
   
   {
@@ -5096,35 +5097,32 @@ function assignDoctorToSlot(docId, slot){
 const TG = window.Telegram?.WebApp;
 
 async function startStarsPurchase(productId){
+  co10am?.WebApp;
+  if(!TG){ alert("Это работает только внутри Telegram 😏"); return; }
 
-  const TG = window.Telegram?.WebApp;
-
-  if(!TG){
-    alert("Это работает только внутри Telegram 😏");
-    return;
-  }
+  // userId берём из Telegram initDataUnsafe
+  const userId = TG?.initDataUnsafe?.user?.id;
+  if(!userId){ alert("Не вижу TG user id"); return; }
 
   try{
     const r = await fetch("/api/stars/create-invoice", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ productId })
-});
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId, userId })
+    });
 
     const data = await r.json();
+    if(!data.ok) throw new Error(data.error || "invoice error");
 
-    if(!data.ok){
-      throw new Error(data.error || "invoice error");
-    }
-
-    TG.openInvoice(data.invoiceLink, (status)=>{
+    TG.openInvoice(data.invoiceLink, async (status)=>{
       console.log("Invoice status:", status);
-
       if(status === "paid"){
         TG.HapticFeedback?.notificationOccurred("success");
 
-        // тут можно обновить UI / запросить sync
-        refreshVisibleUI();
+        // ВАЖНО: перезагружаем состояние с сервера, потому что награду выдаёт вебхук
+        await cloudLoad?.();       // если у тебя есть cloudLoad
+        refreshVisibleUI?.();
+        renderShop?.();
       }
     });
 
