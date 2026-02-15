@@ -74,6 +74,22 @@ body:not(.onClinic) .screen.active .panel:first-child{
     url("img/ui/duty_bg.png") center/cover no-repeat,
     linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
 }
+
+  /* === RESEARCH backgrounds === */
+
+/* общий фон для шапки экрана "Исследования" (как у дежурных) */
+.researchPanel{
+  background:
+    url("img/ui/segment_frame.png") center/cover no-repeat,
+    linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
+}
+
+/* фон для каждой карточки исследования (как у очереди) */
+.researchNodeCard{
+  background:
+    url("img/ui/segment_frame.png") center/cover no-repeat,
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.62));
+}
     
     h2{margin:0 0 10px 0; font-size:18px}
     .card{
@@ -1062,7 +1078,7 @@ html, body{
   content:"";
   position:absolute;
   inset: -6px -10px; /* выше/шире */
-  background: url("img/pharmacy/meds_btn_bg.png") center/100% 100% no-repeat;
+  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
   z-index:0;
   pointer-events:none;
 }
@@ -1372,7 +1388,7 @@ html, body{
 
 <!-- SCREEN: RESEARCH -->
 <div id="screen-research" class="screen">
-  <div class="panel">
+  <div class="panel researchPanel">
     <div class="row" style="align-items:flex-start;">
       <div>
         <div class="listTitle">🧪 Изучение</div>
@@ -5493,7 +5509,7 @@ const PHARM_CASES = [
     id:"case_bees_head",
     rarity:"common",
     clientName:"Жена крестьянина",
-    avatar:"img/patients/placeholder.png",
+    avatar:"img/patients/f4.png",
     text:"Доктор, мой муж сходит с ума: кричит, что голова полна пчёл и они его жалят. Он перестал бить наших детей. Я боюсь, ему осталось недолго. Я привязала его к кровати, помогите.",
     keywords:["боль","безумие"],
     answers:[
@@ -5518,7 +5534,7 @@ const PHARM_CASES = [
     id:"case_black_choir",
     rarity:"legendary",
     clientName:"Монах",
-    avatar:"img/patients/placeholder.png",
+    avatar:"img/patients/m8.png",
     text:"Ночью я слышу чёрный хор в колодце. Они поют моё имя наоборот. Дайте мне средство, пока я не спел вместе с ними.",
     keywords:["галлюцинации","безумие"],
     answers:[
@@ -5543,7 +5559,7 @@ const PHARM_CASES = [
   id:"case_skin_melts",
   rarity:"rare",
   clientName:"Купчиха",
-  avatar:"img/patients/placeholder.png",
+  avatar:"img/patients/f6.png",
   text:"Доктор, кожа будто плавится: щиплет, трескается и пахнет чужими решениями и носками. Муж говорит, я стала «слишком человеческой».",
   keywords:["кожа","боль","ожог"],
   answers:[
@@ -6252,7 +6268,7 @@ function renderResearch(){
     // ✅ если изучено — сворачиваем карточку
     if(unlocked){
       html += `
-        <div class="card" style="margin-top:10px;">
+        <div class="card researchNodeCard" style="margin-top:10px;">
           <div class="row">
             <div class="listTitle">✅ ${escapeHtml(n.name)}</div>
             <span class="tag ok">Изучено</span>
@@ -6271,7 +6287,7 @@ function renderResearch(){
       : "Доступно сразу";
 
     html += `
-      <div class="card" style="margin-top:10px;">
+      <div class="card researchNodeCard" style="margin-top:10px;">
         <div class="row" style="align-items:flex-start;">
           <div style="flex:1;">
             <div class="listTitle">${available ? "🔓" : "🔒"} ${escapeHtml(n.name)}</div>
