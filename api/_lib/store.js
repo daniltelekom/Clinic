@@ -1,16 +1,15 @@
-export async function loadUserState(userId){
-  const key = `state:${userId}`;
-  const s = await kv.get(key);
-  return s || null;
+import { kv } from "@vercel/kv";
+
+export async function loadState(userId){
+  return (await kv.get(`state:${userId}`)) || null;
 }
 
-export async function saveUserState(userId, state){
-  const key = `state:${userId}`;
-  await kv.set(key, state);
+export async function saveState(userId, state){
+  await kv.set(`state:${userId}`, state);
 }
 
+// защита от двойной выдачи (одну оплату обработать 1 раз)
 export async function markTxProcessed(txId){
-  // чтобы не выдать награду дважды
   const key = `starsTx:${txId}`;
   const exists = await kv.get(key);
   if(exists) return false;
