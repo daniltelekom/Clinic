@@ -2786,11 +2786,11 @@ async function cloudLoad(){
     return null;
   }
 
-  const r = await fetch("/api/save", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ initData })
-  });
+  const r = await fetch("/api/stars/create-invoice", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ productId })
+});
 
   const txt = await r.text().catch(()=> "");
   console.log("cloudLoad status:", r.status, txt.slice(0,200));
@@ -5066,49 +5066,46 @@ function assignDoctorToSlot(docId, slot){
 const TG = window.Telegram?.WebApp;
 
 async function startStarsPurchase(productId){
+
+  const TG = window.Telegram?.WebApp;
+
   if(!TG){
-    alert("Открой в Telegram, не в браузере 🙃");
+    alert("Это работает только внутри Telegram 😏");
     return;
   }
 
   try{
-    TG.HapticFeedback?.impactOccurred("medium");
-
-    // 1) просим сервер создать инвойс
-    const r = await fetch("https://plague-clinic.vercel.app//api/stars/create-invoice", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        productId,
-        // полезно передать initData для проверки пользователя на сервере
-        initData: TG.initData
-      })
-    });
+    const r = await fetch(
+      "https://plague-clinic.vercel.app/api/stars/create-invoice",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId })
+      }
+    );
 
     const data = await r.json();
-    if(!data.ok) throw new Error(data.error || "invoice failed");
 
-    // 2) открываем оплату
-    TG.openInvoice(data.invoiceLink, (status) => {
-      // status: "paid" | "cancelled" | "failed" (зависит от клиента/версии)
-      console.log("invoice status:", status);
+    if(!data.ok){
+      throw new Error(data.error || "invoice error");
+    }
+
+    TG.openInvoice(data.invoiceLink, (status)=>{
+      console.log("Invoice status:", status);
 
       if(status === "paid"){
-        // НЕ ВЫДАЁМ НАГРАДУ ТУТ (это небезопасно).
-        // Тут просто обновим UI, а награду получим после подтверждения с сервера.
         TG.HapticFeedback?.notificationOccurred("success");
-        syncFromServer(); // сделаем функцию ниже
-      } else {
-        TG.HapticFeedback?.notificationOccurred("warning");
+
+        // тут можно обновить UI / запросить sync
+        refreshVisibleUI();
       }
     });
 
   }catch(e){
     console.log(e);
-    alert("Не вышло открыть оплату: " + (e?.message || e));
+    alert("Ошибка Stars оплаты: " + e.message);
   }
 }
-
 /* =========================================================
    PHARMACY (аптека) — очередь, лекарства, кейсы
 ========================================================= */
