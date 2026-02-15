@@ -7,7 +7,7 @@ const CATALOG = {
 };
 
 // TODO: подставь реальные id докторов из твоей игры
-const DOCTOR_POOL = ["doc_plague", "doc_herbal", "doc_surgeon", "doc_priest", "doc_alchemist"];
+const DOCTOR_POOL = ["doc_herb","doc_blood","doc_priest","doc_demo","doc_amput","doc_hypno","doc_leech","doc_candle","doc_bell","doc_ash","doc_sawbones","doc_inquis","doc_grave","doc_salt","doc_night","doc_worm",];
 
 function parsePayload(payload){
   // stars|uid:123|prod:coins_1000|n:abc
