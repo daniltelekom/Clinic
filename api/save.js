@@ -1,7 +1,6 @@
 import crypto from "crypto";
+import { kv } from "@vercel/kv";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.BOT_TOKEN;
 
 function parseQueryString(qs) {
@@ -11,7 +10,7 @@ function parseQueryString(qs) {
   return obj;
 }
 
-// Telegram Mini Apps: validate initData server-side. 4
+// Telegram Mini Apps: validate initData server-side.
 function checkTelegramInitData(initData, botToken, maxAgeSec = 24 * 3600) {
   const data = parseQueryString(initData);
   const receivedHash = data.hash;
@@ -48,24 +47,10 @@ function checkTelegramInitData(initData, botToken, maxAgeSec = 24 * 3600) {
   return { ok: true, userId: Number(user.id) };
 }
 
-async function sb(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      ...(options.headers || {}),
-    },
-  });
-  const text = await res.text();
-  return { ok: res.ok, status: res.status, text };
-}
-
 export default async function handler(req, res) {
   try {
-    if (!TELEGRAM_BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({ error: "Server env missing" });
+    if (!TELEGRAM_BOT_TOKEN) {
+      return res.status(500).json({ error: "Server env missing: BOT_TOKEN" });
     }
 
     if (req.method !== "POST" && req.method !== "PUT") {
@@ -80,34 +65,19 @@ export default async function handler(req, res) {
     if (!v.ok) return res.status(401).json({ error: v.error });
 
     const userId = v.userId;
+    const key = `state:${userId}`;
 
     if (req.method === "POST") {
       // LOAD
-      const url = `${SUPABASE_URL}/rest/v1/saves?user_id=eq.${userId}&select=state_json,updated_at`;
-      const r = await sb(url, { method: "GET" });
-      if (!r.ok) return res.status(r.status).json({ error: r.text });
-
-      const rows = JSON.parse(r.text);
-      const row = rows?.[0] || null;
-      return res.status(200).json({ state: row?.state_json || null, updatedAt: row?.updated_at || null });
+      const state = (await kv.get(key)) || null;
+      return res.status(200).json({ state, updatedAt: null });
     }
 
     // SAVE
     const state = body.state;
     if (!state) return res.status(400).json({ error: "state required" });
 
-    const url = `${SUPABASE_URL}/rest/v1/saves?on_conflict=user_id`;
-    const r = await sb(url, {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({
-        user_id: userId,
-        state_json: state,
-        updated_at: new Date().toISOString(),
-      }),
-    });
-    if (!r.ok) return res.status(r.status).json({ error: r.text });
-
+    await kv.set(key, state);
     return res.status(200).json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: e?.message || String(e) });
