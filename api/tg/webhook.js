@@ -45,11 +45,7 @@ async function grantProduct(userId, productId){
 
   if(!s){
     console.log("State missing, creating default for", userId);
-    s = {
-      coins: 0,
-      biomaterial: 0,
-      doctorsOwned: {}
-    };
+    s = { coins: 0, biomaterial: 0, doctorsOwned: {} };
   }
 
   ensureStateShape(s);
