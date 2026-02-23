@@ -11,6 +11,14 @@ export async function saveState(userId, state){
   await kv.sadd("users:all", String(userId));
 }
 
+export async function saveStarsPayment(txId, data){
+  await kv.set(`starsPay:${txId}`, data);
+}
+
+export async function loadStarsPayment(txId){
+  return (await kv.get(`starsPay:${txId}`)) || null;
+}
+
 // защита от двойной выдачи Stars
 export async function markTxProcessed(txId){
   const key = `starsTx:${txId}`;
