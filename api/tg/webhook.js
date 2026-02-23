@@ -41,8 +41,16 @@ function grantDoctorRandom(s){
 }
 
 async function grantProduct(userId, productId){
-  const s = await loadState(userId);
-  if(!s) throw new Error("State not found for userId=" + userId);
+  let s = await loadState(userId);
+
+  if(!s){
+    console.log("State missing, creating default for", userId);
+    s = {
+      coins: 0,
+      biomaterial: 0,
+      doctorsOwned: {}
+    };
+  }
 
   ensureStateShape(s);
 
