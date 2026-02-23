@@ -1,4 +1,4 @@
-import { loadState, saveState, markTxProcessed } from "../_lib/store.js";
+import { loadState, saveState, markTxProcessed, saveStarsPayment } from "../_lib/store.js";
 
 const CATALOG = {
   chest_doctor: { stars: 25 },
@@ -23,6 +23,16 @@ function parsePayload(payload){
 
   return { userId: map.uid, productId: map.prod };
 }
+
+await saveStarsPayment(txId, {
+  ts: Date.now(),
+  userId,
+  productId,
+  telegram_payment_charge_id: pay.telegram_payment_charge_id || null,
+  provider_payment_charge_id: pay.provider_payment_charge_id || null,
+  total_amount: pay.total_amount,
+  currency: pay.currency
+});
 
 function pickRandom(arr){
   return arr[Math.floor(Math.random() * arr.length)];
@@ -80,6 +90,8 @@ export default async function handler(req, res){
       return res.status(200).json({ ok:true, step:"pre_checkout_ok" });
     }
 
+    
+
     // 2) successful_payment -> выдаём
     const pay = update?.message?.successful_payment;
     if(pay){
@@ -90,9 +102,16 @@ export default async function handler(req, res){
       if(!first) return res.status(200).json({ ok:true, duplicate:true });
 
       const parsed = parsePayload(pay.invoice_payload);
-      if(!parsed) throw new Error("Bad payload: " + pay.invoice_payload);
+if(!parsed) throw new Error("Bad invoice payload");
 
-      const { userId, productId } = parsed;
+// 👉 приводим к числу
+const userId = Number(parsed.userId);
+const productId = parsed.productId;
+
+// 👉 ВОТ СЮДА проверка
+if(!Number.isFinite(userId)){
+  throw new Error("Bad userId in payload: " + parsed.userId);
+}
 
       if(pay.currency !== "XTR") throw new Error("Bad currency: " + pay.currency);
 
