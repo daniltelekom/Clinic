@@ -9,61 +9,82 @@
   <title>Plague Clinic git test</title>
   <style>
     :root{
-      --bg:#0b1020;
-      --panel:#111a33;
-      --panel2:#0f1730;
-      --text:#e9eefc;
-      --muted:#9fb0d9;
-      --line:rgba(255,255,255,0.08);
-      --ok:#49d17d;
-      --warn:#ffcc66;
-      --bad:#ff6b6b;
-      --accent:#5b7cff;
-      --btn:#1b2a55;
-      --btn2:#23356b;
-    }
+  --bg:#0b0e14;
+
+  /* “чернила” */
+  --text:#e9eefc;     /* для темных поверхностей */
+  --muted:#b9c3d8;
+
+  /* пергамент */
+  --paper:#f3e5c7;
+  --paper2:#ead7b0;
+  --ink:#2a1c10;
+  --inkMuted:#5a4633;
+
+  /* линии */
+  --line:rgba(255,255,255,0.10);
+  --paperLine:rgba(60,40,20,0.25);
+
+  /* акцент */
+  --accent:#2f6ea8;
+
+  /* кнопки на темном */
+  --btn:#1b2a55;
+  --btn2:#23356b;
+}
     *{box-sizing:border-box}
     body{
-      margin:0; font-family:system-ui,Segoe UI,Roboto,Arial;
-     background:
-  url("img/ui/global_bg.png") center/cover no-repeat,
-  radial-gradient(1200px 700px at 30% -20%, rgba(91,124,255,0.25), transparent 60%),
-  var(--bg);
-      color:var(--text);
-    }
+  margin:0;
+  font-family:system-ui,Segoe UI,Roboto,Arial;
+  background:
+    radial-gradient(900px 600px at 20% -10%, rgba(120,90,40,.18), transparent 60%),
+    radial-gradient(900px 700px at 80% 0%, rgba(60,90,140,.12), transparent 55%),
+    radial-gradient(1100px 800px at 50% 120%, rgba(0,0,0,.55), transparent 60%),
+    #0b0e14;
+  color:var(--text);
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.55) 100%);
+  z-index:0;
+}
+.wrap{ position:relative; z-index:1; }
     
     .wrap{max-width:720px; margin:0 auto; padding:16px;}
 .topbar{
-  display:flex; 
-  align-items:center; 
+  display:flex;
+  align-items:center;
   justify-content:space-between;
-  flex-wrap: wrap;          /* ← ВАЖНО */
-  gap:10px;                 /* ← ВАЖНО */
-  padding:12px 14px; 
-  border:1px solid var(--line); 
+  flex-wrap: wrap;
+  gap:10px;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.12);
   border-radius:16px;
-  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  background: rgba(10,14,20,.72);
+  backdrop-filter: blur(8px);
   margin-bottom:12px;
-   background:
-    url("img/topbar_bg.png") center/cover no-repeat,
-    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
 }
     .title{display:flex; gap:10px; align-items:center; font-weight:800;}
-    .pill{
-      padding:6px 10px; border:1px solid var(--line); border-radius:999px;
-      background:rgba(255,255,255,.03); display:flex; gap:8px; align-items:center;
-      font-weight:700;
-    }
+.pill{
+  padding:6px 10px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;
+  background: rgba(0,0,0,.18);
+  display:flex;
+  gap:8px;
+  align-items:center;
+  font-weight:700;
+}
     .muted{color:var(--muted); font-weight:500}
     .screen{display:none}
     .screen.active{display:block}
     .panel{
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:14px;
-      margin:12px 0;
-    }
+  padding:10px 12px;
+}
       /* когда "Неделя" скрыта, поднимаем контент экранов выше */
 body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
@@ -172,12 +193,10 @@ body:not(.onClinic) .screen.active .panel:first-child{
   font-size:12px;
 }
 
-.tutTitle{ font-weight:900; font-size:16px; margin-bottom:8px; }
-.tutText{ color:black; line-height:1.35; }
-.tutHint{ color:var(--muted); font-size:12px; margin-top:8px; }
+.tutTitle, .tutText, .tutHint { color: var(--ink) !important; text-shadow:none; }
 
 .tutNav{ display:flex; gap:10px; margin-top:12px; }
-.tutNav  width:auto; }
+.tutNav{  width:auto; }
 
 .tutSpot{
   position:fixed;
@@ -584,7 +603,8 @@ body:not(.onClinic) .screen.active .panel:first-child{
   justify-content: space-around;
   gap: 6px;
   padding: 10px 10px 12px;
-  background: rgba(15, 23, 48, .92);
+
+  background: rgba(8,10,14,.78);
   border-top: 1px solid rgba(255,255,255,.10);
   backdrop-filter: blur(10px);
 }
@@ -1177,6 +1197,25 @@ html, body{
 }
 .framePanelLight .grid2 > *{ min-width:0; }
 
+/* Пергаментная панель должна ПЕРЕОПРЕДЕЛЯТЬ переменные текста внутри */
+.framePanelLight{
+  background-color: rgba(243,229,199,0.94);
+  border: 1px solid var(--paperLine);
+  color: var(--ink);
+
+  --text: var(--ink);
+  --muted: var(--inkMuted);
+  --line: var(--paperLine);
+}
+
+.framePanelLight .muted{ color: var(--muted); }
+
+/* карточки внутри пергамента делаем светлыми, а не грязно-серыми */
+.framePanelLight .card{
+  background: rgba(255,255,255,0.35);
+  border-color: rgba(60,40,20,0.18);
+}
+
 /* Пациентские строки: один финальный вариант, без дублей */
 .wardPatientName{
   flex:1;
@@ -1275,6 +1314,28 @@ html, body{
 .shopItemCard img{
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
 }
+
+.cardDark{
+  background: rgba(12,16,22,.62);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:18px;
+  padding:14px;
+  backdrop-filter: blur(6px);
+}
+.cardDark .muted{ color: var(--muted); }
+
+.cardPaper{
+  background: rgba(243,229,199,0.94);
+  border: 1px solid rgba(60,40,20,0.25);
+  border-radius:18px;
+  padding:14px;
+  color: var(--ink);
+
+  --text: var(--ink);
+  --muted: var(--inkMuted);
+  --line: rgba(60,40,20,0.25);
+}
+.cardPaper .muted{ color: var(--muted); }
     
   </style>
 </head>
@@ -1354,7 +1415,7 @@ html, body{
 <!-- SCREEN: PATIENT -->
 <div class="screen" id="screen-patient">
 
-  <div class="panel patientCard">
+  <div class="panel patientCard framePanelLight">
     <div class="patientHead">
       <img id="patient-avatar" class="patientAvatar" src="img/patients/placeholder.png" alt="">
       <div class="patientMeta">
@@ -1385,10 +1446,10 @@ html, body{
   <div class="hint" id="lab-hint"></div>
 
   <!-- Действия -->
-  <div class="panel" id="patient-actions"></div>
+  <div class="panel cardDark" id="patient-actions"></div>
 
   <!-- Назначить лечение -->
-  <div class="panel" id="treat-panel">
+  <div class="panel framePanelLight" id="treat-panel">
     <h2>Назначить лечение</h2>
     <div id="treatment-buttons"></div>
     <div class="hint">Выбирай из 4 вариантов. Один обычно лучше, один обычно хуже, два просто по приколу.</div>
@@ -1410,7 +1471,7 @@ html, body{
   </div>
 
   <!-- Результат -->
-  <div class="panel" id="result-panel" style="display:none">
+  <div class="panel framePanelLight" id="result-panel">
     <h2>Результат</h2>
     <div id="result-text"></div>
   </div>
@@ -1489,7 +1550,7 @@ html, body{
 
 <!-- SCREEN: SHOP -->
 <div class="screen" id="screen-shop">
-  <div class="panel">
+  <div class="panel framePanelLight">
     <div class="row">
       <div>
         <div class="listTitle">🛒 Лавка</div>
@@ -1554,7 +1615,7 @@ html, body{
 
 <!-- SCREEN: PHARM MEDS -->
 <div class="screen" id="screen-pharm-meds">
-  <div class="panel">
+  <div class="card cardDark">
     <div class="row">
       <div>
         <div class="listTitle">💊 Лекарства</div>
@@ -1570,6 +1631,7 @@ html, body{
 <!-- SCREEN: PHARM CASE -->
 <div class="screen" id="screen-pharm-case">
   <div class="panel pharmUnifiedBg">
+    <div class="panel pharmUnifiedBg framePanelLight"></div>
     <div class="row">
       <div>
         <div class="listTitle">Клиент</div>
@@ -1599,7 +1661,7 @@ html, body{
 
 <!-- SCREEN: PHARM RESULT -->
 <div class="screen" id="screen-pharm-result">
-  <div class="framePanelLight">
+  <div class="framePanel cardPaper">
     <div class="listTitle">Итог обслуживания</div>
     <div class="listSub" id="pharm-result-text">…</div>
     <div class="sep"></div>
