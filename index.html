@@ -96,20 +96,54 @@ body:not(.onClinic) .screen.active .panel:first-child{
     linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
 }
 
-  /* === RESEARCH backgrounds === */
+ /* === RESEARCH backgrounds (FIX: no ugly stretch) === */
 
-/* общий фон для шапки экрана "Исследования" (как у дежурных) */
+/* панель экрана "Исследования" */
 .researchPanel{
-  background:
-    url("img/ui/segment_frame.png") center/cover no-repeat,
-    linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
+  position: relative;
+  /* рамка */
+  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-/* фон для каждой карточки исследования (как у очереди) */
+/* мягкая подложка под текст (читабельность) */
+.researchPanel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(245,236,214,.78); /* бумага */
+  pointer-events:none;
+}
+
+/* контент поверх подложки */
+.researchPanel > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* карточка ноды */
 .researchNodeCard{
-  background:
-    url("img/ui/segment_frame.png") center/cover no-repeat,
-    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.62));
+  position: relative;
+  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(30,20,10,.22);
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+/* подложка внутри карточки */
+.researchNodeCard::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(255,248,232,.78); /* светлее, чем панель */
+  pointer-events:none;
+}
+
+.researchNodeCard > *{
+  position: relative;
+  z-index: 1;
 }
     
     h2{margin:0 0 10px 0; font-size:18px}
@@ -1279,63 +1313,446 @@ html, body{
   padding: 10px 14px;
 }
 
-/* Лавка: рамка segment_frame на каждый товар */
-.shopItemCard{
-  background:
-    url("img/ui/segment_frame.png") center/100% 100% no-repeat,
-    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.62));
+/* === Unified buttons readability === */
+.btn{
+  min-height:52px;
+  padding:12px 14px;
+  line-height:1.15;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+
+  /* читаемость */
+  color:rgba(255,255,255,.95);
+  text-shadow:0 1px 0 rgba(0,0,0,.55);
+}
+
+.btn.small{ min-height:42px; padding:10px 12px; }
+
+/* кнопки-методы лечения (они горизонтальные) */
+.btn.methodBtn{
+  flex-direction:row;
+  justify-content:flex-start;
+  text-align:left;
+  min-height:92px;         /* чтобы все 4 были одинаковые */
+  padding:12px;
+}
+
+.btn .muted{
+  color:rgba(255,255,255,.78);
+}
+
+.btn .hint{
+  color:rgba(255,255,255,.72);
+}
+
+/* если где-то кнопки стоят в ряд (действия пациента) */
+.actionRow{
+  display:flex;
+  gap:10px;
+}
+.actionRow .btn{ flex:1; }
+
+/* === Reward line (icons + numbers) === */
+.rewardLine{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-top:8px;
+  font-weight:800;
+  color:#2a1c10;                 /* под пергамент */
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+
+.rewardItem{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.35);
+  border:1px solid rgba(0,0,0,.12);
+}
+
+.rewardItem .icon{
+  width:16px;
+  height:16px;
+  filter:none;                   /* на пергаменте лишние фильтры делают мыло */
+  opacity:1;
+}
+
+/* Читаемость текста внутри метода лечения */
+.methodMeta .muted{ color:rgba(255,255,255,.82) !important; }
+.methodMeta .hint{ color:rgba(255,255,255,.78) !important; }
+
+/* ===== Лечение: одинаковые кнопки ===== */
+#treatment-buttons{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* кнопка-метод */
+.btn.methodBtn{
+  width: 100%;
+  min-height: 92px;           /* <-- вот это делает их одинаковыми */
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  /* чтобы текст внутри не делал кнопку выше */
+  box-sizing: border-box;
+}
+
+/* иконка метода */
+.btn.methodBtn .methodIcon{
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+/* правая часть (тексты) */
+.btn.methodBtn .methodMeta{
+  flex: 1;
+  text-align: left;
+  min-width: 0; /* важно для обрезки */
+}
+
+/* верхняя жирная строка */
+.btn.methodBtn .methodMeta > div:first-child{
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+/* подсказка снизу: максимум 2 строки, дальше троеточие */
+.btn.methodBtn .hint{
+  margin-top: 4px;
+  opacity: .9;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ===== SHOP (ЛАВКА) красивый вид ===== */
+
+#shop-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:10px;
+}
+
+.shopRow{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.shopLeft{
+  display:flex;
+  gap:12px;
+  flex:1;
+  min-width:0;
+}
+
+.shopIcon{
+  width:54px;
+  height:54px;
+  border-radius:12px;
+  object-fit:contain;
+  background: rgba(255,255,255,.06);
+  padding:6px;
+  flex:0 0 auto;
+}
+
+.shopText{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+
+.shopText .listTitle{
+  font-size:15px;
+  line-height:1.2;
+  font-weight:900;
+}
+
+.shopText .listSub{
+  font-size:13px;
+  opacity:.78;
+}
+
+.shopMeta{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.shopRight{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+
+/* кнопка "Купить" фикс-ширина, чтобы не плясала */
+.shopRight .btn.small{
+  min-width:110px;
+  height:44px;
+  padding:10px 14px;
   border-radius:14px;
-  overflow:hidden; /* чтобы фон не торчал за углы */
+  font-weight:900;
 }
 
-/* ===== SHOP text fix ===== */
+/* чтобы price/звёзды выглядели плотнее */
+.shopItemCard .rewardLine,
+.shopItemCard .costLine{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  opacity:.9;
+}
 
+.shopItemCard .icon{
+  width:16px;
+  height:16px;
+}
+
+/* ===== SHOP ITEM CARD (как Research) ===== */
+
+#shop-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:10px;
+}
+
+/* рамка + бумага внутри */
 .shopItemCard{
-  color: #2a1c10; /* базовый тёмный текст */
+  position: relative;
+  border-radius:16px;
+  padding:14px;
+  overflow:hidden;
+
+  /* рамка */
+  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
+
+  border: 1px solid rgba(60,40,20,.25);
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+
+  color:#2a1c10;
 }
 
-/* заголовок товара */
+/* бумажная подложка внутри */
+.shopItemCard::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(243,229,199,0.94);
+  pointer-events:none;
+}
+
+/* чтобы контент был поверх подложки */
+.shopItemCard > *{
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== текст ===== */
 .shopItemCard .listTitle{
-  color: #1f160f;
-  text-shadow: none;
+  color:#1f160f;
+  font-weight:900;
+  font-size:15px;
+  line-height:1.2;
+  text-shadow:none;
 }
 
-/* описание */
 .shopItemCard .listSub{
-  color: #4b3726;
+  color:#4b3726;
+  font-size:13px;
+  opacity:.92;
 }
 
-/* стоимость / вспомогательный текст */
 .shopItemCard .muted,
 .shopItemCard .hint{
-  color: #5a4633;
+  color:#5a4633;
 }
 
+/* иконки */
 .shopItemCard img{
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
 }
 
-.cardDark{
-  background: rgba(12,16,22,.62);
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:18px;
+.shopItemCard .icon{
+  width:16px;
+  height:16px;
+}
+
+/* ===== layout (твои классы) ===== */
+.shopRow{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.shopLeft{
+  display:flex;
+  gap:12px;
+  flex:1;
+  min-width:0;
+}
+
+.shopIcon{
+  width:54px;
+  height:54px;
+  border-radius:12px;
+  object-fit:contain;
+  background: rgba(0,0,0,.05);
+  padding:6px;
+  flex:0 0 auto;
+}
+
+.shopText{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+
+.shopMeta{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:6px;
+}
+
+.shopRight{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+
+/* кнопка купить фикс */
+.shopRight .btn.small{
+  min-width:110px;
+  height:44px;
+  padding:10px 14px;
+  border-radius:14px;
+  font-weight:900;
+}
+
+/* строки цены/звёзд */
+.shopItemCard .rewardLine,
+.shopItemCard .costLine{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  opacity:.95;
+}
+
+/* ===== RESEARCH TREE ===== */
+
+#research-tree{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:10px;
+}
+
+.researchNodeCard{
+  border-radius:16px;
   padding:14px;
-  backdrop-filter: blur(6px);
 }
-.cardDark .muted{ color: var(--muted); }
 
-.cardPaper{
-  background: rgba(243,229,199,0.94);
-  border: 1px solid rgba(60,40,20,0.25);
-  border-radius:18px;
-  padding:14px;
-  color: var(--ink);
-
-  --text: var(--ink);
-  --muted: var(--inkMuted);
-  --line: rgba(60,40,20,0.25);
+.researchNodeTop{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
 }
-.cardPaper .muted{ color: var(--muted); }
+
+.researchNodeMain{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.researchNodeReq{
+  opacity:.78;
+}
+
+.researchNodeCost{
+  flex:0 0 auto;
+  min-width:150px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  text-align:right;
+}
+
+.researchNodeCost .listSub{
+  display:flex;
+  justify-content:flex-end;
+  gap:6px;
+  align-items:center;
+}
+
+.researchNodeBtn{
+  width:100%;
+  margin-top:10px;
+  height:46px;
+  border-radius:14px;
+  font-weight:900;
+}
+
+.researchDoneRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.researchLockIcon{
+  width:18px;
+  height:18px;
+  opacity:.9;
+}
+
+/* === Research text readability === */
+#screen-research .listTitle,
+#screen-research h2{
+  color:#1b1b1b;
+  text-shadow: 0 1px 0 rgba(255,255,255,.45);
+}
+
+#screen-research .listSub,
+#screen-research .hint{
+  color:#2a2a2a;
+  opacity: .92;
+}
+
+/* кнопка у ноды: одинаковая высота всегда */
+.researchNodeBtn{
+  height:48px;
+  line-height:48px;
+  padding:0 14px;
+  font-weight:900;
+}
+
+/* чтобы cost-колонка не прыгала */
+.researchNodeCost{
+  min-width:140px;
+}
     
   </style>
 </head>
@@ -1471,10 +1888,10 @@ html, body{
   </div>
 
   <!-- Результат -->
-  <div class="panel framePanelLight" id="result-panel">
-    <h2>Результат</h2>
-    <div id="result-text"></div>
-  </div>
+<div class="panel framePanelLight" id="result-panel" style="display:none">
+  <h2>Результат</h2>
+  <div id="result-text"></div>
+</div>
 
 </div>
 
@@ -5048,19 +5465,21 @@ function renderShop(){
     const div = document.createElement("div");
     div.className = "card shopItemCard";
     div.innerHTML = `
-  <div class="row">
-    <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <img src="${getShopIcon(it)}" width="32" height="32"/>
-        <span class="listTitle">${escapeHtml(it.title)}</span>
-      </div>
+  <div class="shopRow">
+    <div class="shopLeft">
+      <img class="shopIcon" src="${getShopIcon(it)}" alt="">
+      <div class="shopText">
+        <div class="listTitle">${escapeHtml(it.title)}</div>
+        <div class="listSub">${escapeHtml(it.desc)}</div>
 
-      <div class="listSub">${escapeHtml(it.desc)}</div>
-      ${formatStars(it.stars)}
-      ${formatCost(it.cost)}
+        <div class="shopMeta">
+          ${formatStars(it.stars)}
+          ${formatCost(it.cost)}
+        </div>
+      </div>
     </div>
 
-    <div class="right">
+    <div class="shopRight">
       <button class="btn small ok" ${disabled ? "disabled" : ""} onclick="buyPerk('${it.id}')">
         Купить
       </button>
@@ -6463,14 +6882,14 @@ function renderResearch(){
 
   // --- дерево ---
   let html = "";
+
   for(const n of RESEARCH){
     const unlocked = isResearchUnlocked(n.id);
 
-    // ✅ если изучено — сворачиваем карточку
     if(unlocked){
       html += `
-        <div class="card researchNodeCard" style="margin-top:10px;">
-          <div class="row">
+        <div class="card researchNodeCard">
+          <div class="researchDoneRow">
             <div class="listTitle">✅ ${escapeHtml(n.name)}</div>
             <span class="tag ok">Изучено</span>
           </div>
@@ -6488,20 +6907,23 @@ function renderResearch(){
       : "Доступно сразу";
 
     html += `
-      <div class="card researchNodeCard" style="margin-top:10px;">
-        <div class="row" style="align-items:flex-start;">
-          <div style="flex:1;">
-            <div class="listTitle">${available ? "🔓" : "🔒"} ${escapeHtml(n.name)}</div>
+      <div class="card researchNodeCard">
+        <div class="researchNodeTop">
+          <div class="researchNodeMain">
+            <div class="listTitle">
+              <img class="researchLockIcon" src="${available ? "icons/ui/unlocked.png" : "icons/ui/locked.png"}" alt="">
+              ${escapeHtml(n.name)}
+            </div>
             <div class="listSub">${escapeHtml(n.desc)}</div>
-            <div class="listSub" style="margin-top:6px; opacity:.8;">${escapeHtml(reqText)}</div>
+            <div class="listSub researchNodeReq">${escapeHtml(reqText)}</div>
           </div>
 
-          <div style="text-align:right; min-width:140px;">
+          <div class="researchNodeCost">
             <div class="listSub">
-              <img class="icon" src="icons/topbar/icon_coins.png" alt=""> ${c.coins}
+              <img class="icon" src="icons/topbar/icon_coins.png" alt=""> ${Number(c.coins || 0)}
             </div>
             <div class="listSub">
-              <img class="icon" src="icons/topbar/icon_bio.png" alt=""> ${c.bio}
+              <img class="icon" src="icons/topbar/icon_bio.png" alt=""> ${Number(c.bio || 0)}
             </div>
             <div class="listSub">
               <img class="icon" src="icons/topbar/icon_time.png" alt=""> ${formatStudyTime(c.timeMin)}
@@ -6509,8 +6931,8 @@ function renderResearch(){
           </div>
         </div>
 
-        <button class="btn ${(!disabled ? "ok" : "")}"
-          style="margin-top:10px; ${disabled ? "opacity:.55; pointer-events:none;" : ""}"
+        <button class="btn researchNodeBtn ${(!disabled ? "ok" : "")}"
+          ${disabled ? "disabled" : ""}
           onclick="startResearch('${n.id}')">
           ${available ? "Изучить" : "Недоступно"}
         </button>
@@ -6520,6 +6942,7 @@ function renderResearch(){
 
   elTree.innerHTML = html;
 }
+
 window.renderResearch = renderResearch;
 
 function formatStudyTime(min){
@@ -7178,6 +7601,8 @@ if(!inWard){
   }
   const options = p.treatmentOptions;
 
+
+
   // 2) фиксируем советы один раз, пока не сменили врачей
   if(!p.doctorAdviceCache){
     const docs = dutyDoctors().filter(Boolean);
@@ -7498,12 +7923,37 @@ function showResultForPatient(patientId){
     `;
   }
 
+  function rewardHTML(rew){
+  // если rew пустой, пробуем читать награду прямо из r (внешней переменной)
+  const src = rew ?? r;
+
+  const c = Number(src?.coins ?? 0);
+
+  // иногда репутация называется rep, иногда reputation
+  const repVal = (src?.rep ?? src?.reputation ?? 0);
+  const rp = Number(repVal);
+
+  const b = Number(src?.bio ?? 0);
+
+  const coinI = `<img class="icon" src="icons/topbar/icon_coins.png" alt="">`;
+  const repI  = `<img class="icon" src="icons/topbar/icon_rep.png" alt="">`;
+  const bioI  = `<img class="icon" src="icons/topbar/icon_bio.png" alt="">`;
+
+  return `
+    <div class="rewardLine">
+      <span class="rewardItem">${coinI} ${c >= 0 ? "+" : ""}${c}</span>
+      <span class="rewardItem">${repI} ${rp >= 0 ? "+" : ""}${rp}</span>
+      <span class="rewardItem">${bioI} ${b >= 0 ? "+" : ""}${b}</span>
+    </div>
+  `;
+}
+
   elResultText.innerHTML = `
     <div class="${labelClass}">${label}</div>
     <div class="listSub">${escapeHtml((r.flavor || ""))}</div>
     <div class="sep"></div>
     <div class="hint">
-      💰 ${r.coins>=0?"+":""}${r.coins} • ⭐️ ${r.reputation>=0?"+":""}${r.reputation} • 🧫 ${r.biomaterial>=0?"+":""}${r.biomaterial}
+     ${rewardHTML(r.reward)}
     </div>
     <div class="sep"></div>
     ${primaryBtnHtml}
