@@ -90,60 +90,98 @@ body:not(.onClinic) .screen.active .panel:first-child{
   margin-top: 0;
 }
 
-    .dutyPanel{
+   /* ===== DUTY PANEL BACKGROUND FIX ===== */
+/* По умолчанию (не главная) — без растянутой картинки, просто тёмная подложка */
+.dutyPanel{
+  background: linear-gradient(180deg, rgba(10,14,20,.88), rgba(10,14,20,.78));
+  border-radius:18px;
+}
+
+/* А вот на главной (clinic) — оставляем твой красивый фон */
+body.onClinic .dutyPanel{
   background:
     url("img/ui/duty_bg.png") center/cover no-repeat,
     linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55));
 }
 
- /* === RESEARCH backgrounds (FIX: no ugly stretch) === */
+/* === SHOP + RESEARCH: перекрываем duty_bg.png своей подложкой === */
+#screen-shop,
+#screen-research{
+  /* Это и есть “фон вместо рамки”, чуть темнее карточек */
+  background: rgba(220,205,175,0.92);
+  border: 1px solid rgba(60,40,20,0.25);
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+  padding: 12px;
+}
 
-/* панель экрана "Исследования" */
+/* чтобы внутри не вылезали лишние “доски” от старых панелей */
+#screen-shop .framePanelLight,
+#screen-research .framePanelLight{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ===== RESEARCH PANEL (без рамки, чистый фон) ===== */
+
 .researchPanel{
-  position: relative;
-  /* рамка */
-  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
-  border-radius: 16px;
-  overflow: hidden;
+  background: rgba(220,205,175,0.92);   /* темнее карточек */
+  border-radius:18px;
+  padding:14px;
+
+  border: 1px solid rgba(60,40,20,0.25);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+
+  color:#2a1c10;
 }
 
-/* мягкая подложка под текст (читабельность) */
-.researchPanel::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(245,236,214,.78); /* бумага */
-  pointer-events:none;
+/* текст в шапке */
+.researchPanel .listTitle,
+.researchPanel h2{
+  color:#1f160f;
 }
 
-/* контент поверх подложки */
-.researchPanel > *{
-  position: relative;
-  z-index: 1;
+.researchPanel .listSub,
+.researchPanel .hint{
+  color:#4b3726;
 }
 
-/* карточка ноды */
+
+/* ===== RESEARCH CARDS = как карточки товаров в лавке ===== */
+
 .researchNodeCard{
-  position: relative;
-  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(30,20,10,.22);
-  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+  /* точно как визуал лавки: бумага + мягкая рамка */
+  background: rgba(243,229,199,0.94);
+  border: 1px solid rgba(60,40,20,0.25);
+  border-radius:18px;
+  padding:14px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.14);
+
+  /* чтобы текст не был “светлым на светлом” */
+  color:#2a1c10;
 }
 
-/* подложка внутри карточки */
-.researchNodeCard::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(255,248,232,.78); /* светлее, чем панель */
-  pointer-events:none;
+/* текст */
+.researchNodeCard .listTitle{
+  color:#1f160f;
+  text-shadow:none;
 }
 
-.researchNodeCard > *{
-  position: relative;
-  z-index: 1;
+.researchNodeCard .listSub{
+  color:#4b3726;
+}
+
+.researchNodeCard .muted,
+.researchNodeCard .hint{
+  color:#5a4633;
+}
+
+/* иконки стоимости чтобы выглядели как в лавке */
+.researchNodeCard .icon{
+  width:16px;
+  height:16px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
 }
     
     h2{margin:0 0 10px 0; font-size:18px}
@@ -1753,6 +1791,21 @@ html, body{
 .researchNodeCost{
   min-width:140px;
 }
+
+/* === RESEARCH cards = как SHOP cards (перебиваем .card) === */
+.card.researchNodeCard{
+  background: rgba(243,229,199,0.96) !important; /* светлая бумага */
+  border: 1px solid rgba(60,40,20,0.25) !important;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.14);
+  color: #2a1c10;
+}
+
+/* текст внутри карточек исследований */
+.card.researchNodeCard .listTitle{ color:#1f160f; text-shadow:none; }
+.card.researchNodeCard .listSub{ color:#4b3726; }
+.card.researchNodeCard .muted,
+.card.researchNodeCard .hint{ color:#5a4633; }
     
   </style>
 </head>
@@ -6931,11 +6984,11 @@ function renderResearch(){
           </div>
         </div>
 
-        <button class="btn researchNodeBtn ${(!disabled ? "ok" : "")}"
-          ${disabled ? "disabled" : ""}
-          onclick="startResearch('${n.id}')">
-          ${available ? "Изучить" : "Недоступно"}
-        </button>
+        <button class="btn small ${(!disabled ? "ok" : "")} researchNodeBtn"
+  style="margin-top:10px; ${disabled ? "opacity:.55; pointer-events:none;" : ""}"
+  onclick="startResearch('${n.id}')">
+  ${available ? "Изучить" : "Недоступно"}
+</button>
       </div>
     `;
   }
