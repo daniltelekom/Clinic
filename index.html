@@ -1056,18 +1056,11 @@ html, body{
 
 /* ===== SHIFT END framed panels ===== */
 .framePanel{
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 12px;
-
-  /* твоя картинка-рамка */
-  background-image: url("img/ui/segment_frame.png"); 
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% 100%;  /* растягиваем рамку под блок */
-  
-  padding: 16px 18px;
-  border-radius: 16px; /* если картинка с округлениями, можно убрать */
+  background: rgba(210,195,165,0.55); /* тёмнее карточек, но без картинки */
+  border: 1px solid rgba(60,40,20,0.28);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
 }
 
 /* чтобы текст внутри рамки не прилипал */
@@ -1143,33 +1136,44 @@ html, body{
 }
 .bgDim > *{ position:relative; z-index:1; }
 
-/* Аптека: единый фон */
+/* ===== PHARMACY: paper fill instead of image ===== */
 .pharmUnifiedBg{
-  background: url("img/ui/segment_frame.png") top center / cover no-repeat;
-}
-.pharmUnifiedBg{ position:relative; overflow:hidden; }
-.pharmUnifiedBg::before{
-  content:"";
-  position:absolute; inset:0;
-  background: rgba(0,0,0,.38);
-  pointer-events:none;
-}
-.pharmUnifiedBg > *{ position:relative; z-index:1; }
+  background: rgba(220,205,175,0.92); /* чуть темнее карточек */
+  border: 1px solid rgba(60,40,20,0.28);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+  color: #2a1c10;
 
-/* Кнопка “Лекарства”: растягиваем только фон */
-.btnMeds{
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
+
+/* УБИРАЕМ “муть/затемнение” */
+.pharmUnifiedBg::before{
+  content: none !important;
+}
+
+/* ===== PHARM: button "Лекарства" without image frame ===== */
+.btnMeds{
+  width: 100%;
+  border-radius: 16px;
+  padding: 14px 14px;
+  border: 1px solid rgba(60,40,20,0.25);
+  background: rgba(243,229,199,0.94);
+  color: #2a1c10;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.14);
+}
+
+/* убираем псевдо-фон с картинкой */
 .btnMeds::before{
-  content:"";
-  position:absolute;
-  inset: -6px -10px; /* выше/шире */
-  background: url("img/ui/segment_frame.png") center/100% 100% no-repeat;
-  z-index:0;
-  pointer-events:none;
+  content:none !important;
 }
-.btnMeds > *{ position:relative; z-index:1; }
+
+/* текст внутри */
+.btnMeds .muted{
+  color:#5a4633;
+}
 
 /* FIX: не даём странице улетать по X на мобиле */
 html, body{
@@ -1201,23 +1205,11 @@ html, body{
 
 /* ===== Светлая рамка (пергамент) для блоков ===== */
 .framePanelLight{
-  width:100%;
-  box-sizing:border-box;
-  margin:10px 0;
-
-  background-image: url("img/ui/segment_frame.png");
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size:100% 100%;
-
-  padding:16px 18px;
-  border-radius:16px;
-
-  background-color: rgba(245, 232, 205, 0.92);
-  border: 1px solid rgba(60,40,20,0.35);
-
-  overflow:hidden;
-  color:#2a1c10;
+  background: rgba(210,195,165,0.35); /* чуть светлее, но всё равно не “картинка” */
+  border: 1px solid rgba(60,40,20,0.22);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.16);
 }
 
 .framePanelLight .listTitle{
@@ -1806,6 +1798,36 @@ html, body{
 .card.researchNodeCard .listSub{ color:#4b3726; }
 .card.researchNodeCard .muted,
 .card.researchNodeCard .hint{ color:#5a4633; }
+
+/* ===== PHARM: cards look like SHOP cards (paper) ===== */
+#screen-pharmacy .card,
+#screen-pharm-case .card,
+#screen-pharm-meds .card,
+#screen-pharm-meds .cardDark{
+  background: rgba(243,229,199,0.94) !important;
+  border: 1px solid rgba(60,40,20,0.25) !important;
+  border-radius: 18px !important;
+  color: #2a1c10 !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12) !important;
+}
+
+#screen-pharmacy .listTitle,
+#screen-pharm-case .listTitle,
+#screen-pharm-meds .listTitle{
+  color:#1f160f !important;
+  text-shadow:none !important;
+}
+
+#screen-pharmacy .listSub,
+#screen-pharm-case .listSub,
+#screen-pharm-meds .listSub{
+  color:#4b3726 !important;
+}
+
+/* PHARM CASE: скрываем пустую вложенную панель, которая даёт лишний слой */
+#screen-pharm-case .panel > .panel.pharmUnifiedBg.framePanelLight{
+  display:none !important;
+}
     
   </style>
 </head>
@@ -5953,15 +5975,42 @@ function resolvePharmAnswer(clientId, caseId, answerId){
 
 function renderPharmResult(){
   ensurePharmacyState();
-  const r = state.pharmacy.pendingReward;
-  if(!r){
-    openPharmacy();
+
+  // ✅ У нас итог живёт тут
+  const res = state.pharmacy?.pendingReward;
+
+  const el = document.getElementById("pharm-result-text");
+  const elRew = document.getElementById("pharm-result-reward");
+  if(!el || !elRew) return;
+
+  // если реально нет результата — уходим назад (чтобы не висеть на пустом экране)
+  if(!res){
+    el.textContent = "Нет результата.";
+    elRew.innerHTML = "";
     return;
   }
-  document.getElementById("pharm-result-text").textContent = r.text;
-  document.getElementById("pharm-result-reward").textContent =
-    `Награда: 💰 ${fmtSigned(r.coins)} • ⭐ ${fmtSigned(r.rep)} • 🧫 ${fmtSigned(r.bio)}`;
+
+  // текст
+  el.textContent = res.text || "Готово.";
+
+  // ✅ иконки как в топбаре
+  const coinI = `<img class="icon" src="icons/topbar/icon_coins.png" alt="">`;
+  const repI  = `<img class="icon" src="icons/topbar/icon_rep.png" alt="">`;
+  const bioI  = `<img class="icon" src="icons/topbar/icon_bio.png" alt="">`;
+
+  const coins = Number(res.coins ?? 0);
+  const rep   = Number(res.rep ?? 0);
+  const bio   = Number(res.bio ?? 0);
+
+  elRew.innerHTML = `
+    <div class="rewardLine">
+      <span class="rewardItem">${coinI} ${coins >= 0 ? "+" : ""}${coins}</span>
+      <span class="rewardItem">${repI} ${rep >= 0 ? "+" : ""}${rep}</span>
+      <span class="rewardItem">${bioI} ${bio >= 0 ? "+" : ""}${bio}</span>
+    </div>
+  `;
 }
+window.renderPharmResult = renderPharmResult;
 
 function pharmClaimReward(){
   ensurePharmacyState();
