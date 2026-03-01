@@ -1068,22 +1068,59 @@ html, body{
 .framePanel .listSub{ margin: 0; }
 
 /* варианты наград тоже рамками */
-.rewardFrame{
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 12px;
+/* ===== SHIFT END: reward cards = как в лавке (без картинок) ===== */
 
-  background-image: url("img/ui/segment_frame.png"); 
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% 100%;
-  
-  padding: 14px 16px;
-  border-radius: 16px;
+#screen-shiftend #reward-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:12px;
 }
 
+/* карточка выбора награды */
+.rewardFrame{
+  width:100%;
+  box-sizing:border-box;
+  margin:0;
+
+  background: rgba(243,229,199,0.94);         /* paper */
+  border: 1px solid rgba(60,40,20,0.25);
+  border-radius:16px;
+  padding:14px 16px;
+
+  box-shadow: 0 6px 16px rgba(0,0,0,0.14);
+  color:#2a1c10;
+}
+
+/* выделение выбранной */
 .rewardFrame.selected{
-  outline: 2px solid rgba(120, 255, 180, .55); /* мягкая подсветка */
+  outline: 2px solid rgba(73,209,125,.55);    /* зелёное, мягко */
+  outline-offset: 2px;
+}
+
+/* чтобы кнопка и контент стояли ровно */
+.rewardFrame .row{
+  align-items:center;
+  gap:10px;
+}
+
+/* текст внутри reward cards */
+.rewardFrame .listTitle{
+  color:#1f160f;
+  font-weight:900;
+  text-shadow:none;
+}
+
+.rewardFrame .listSub{
+  color:#4b3726;
+  text-shadow:none;
+}
+
+/* иконки (если внутри есть) */
+.rewardFrame .icon{
+  width:16px;
+  height:16px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
 }
 
 /* кнопка "Выбрать" чтобы не ломала верстку */
